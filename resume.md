@@ -42,4 +42,4 @@ education:
 certifications:
   - "AWS Certified Solutions Architect"
   - "TOGAF 9 Certified"
-
+---
