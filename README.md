@@ -1,5 +1,5 @@
 # my-job-agent
-Framework to improve job hunting
+Framework to promote my professional career growth
 
 ## resume creator
 
