@@ -1,0 +1,40 @@
+@startuml PJES_Architecture
+!theme spacelab
+
+skinparam rectangle {
+  BackgroundColor #EFF6FF
+  BorderColor #4F46E5
+  BorderThickness 2
+}
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #6366F1
+}
+
+rectangle "Frontend\n(Next.js / React)" as FE {
+  component "Chat UI" as FE_CHAT
+  component "GraphQL Profile" as FE_GQL
+}
+
+component "Chat Agent API\n(FastAPI + LangChain)" as CHAT
+component "Personal Brand\nEngine" as BRAND
+database "Knowledge Graph\n(Neo4j / Jena)" as KG
+component "Ontology & Schema\n(RDF / SHACL)" as ONT
+component "MCP Server" as MCP
+database "Vector Store\n(Neo4j Vectors / Qdrant)" as VS
+cloud "Partner Agents\n(A2A Consumers)" as AGENTS
+database "Progress Tracker\n(TimescaleDB / Supabase)" as TRACK
+component "Dashboards\n(Grafana / Superset)" as DASH
+
+FE_CHAT --> CHAT : WebSocket
+FE_GQL --> KG : read‑only queries
+CHAT --> KG : RAG look‑ups
+CHAT --> VS : Embedding search
+CHAT --> BRAND : Tone / Promotion
+KG <---> ONT : RDF mapping
+KG --> MCP : Publish model cards
+CHAT --> MCP : Serve KG snippets
+MCP --> AGENTS : OAuth2 / REST
+BRAND --> TRACK : KPIs & events
+TRACK --> DASH : Visualization
+@enduml

@@ -8,6 +8,7 @@ end_date: "1987-09"
 location: Rostock, Germany
 ---
 ```
+
 # Embedded Systems Developer
 **Schiffselektronik Rostock**
 Rostock, Germany | August 1986 – September 1987
