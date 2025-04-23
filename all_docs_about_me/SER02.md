@@ -1,4 +1,3 @@
-```yaml
 ---
 job_id: embedded_systems_developer_schiffselektronik_rostock_1986_1987
 role: Embedded Systems Developer
@@ -7,8 +6,6 @@ start_date: "1986-08"
 end_date: "1987-09"
 location: Rostock, Germany
 ---
-```
-
 # Embedded Systems Developer
 **Schiffselektronik Rostock**
 Rostock, Germany | August 1986 – September 1987

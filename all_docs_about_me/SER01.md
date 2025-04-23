@@ -1,4 +1,3 @@
-```yaml
 ---
 job_id: engineering_intern_practica_1985
 role: Engineering Intern (Praktica)
@@ -7,8 +6,6 @@ start_date: "1985-08"
 end_date: "1985-12"
 location: Rostock, Germany
 ---
-```
-
 # Engineering Intern (Praktica)
 **Schiffselektronik Rostock**
 Rostock, Germany | August 1985 – December 1985
