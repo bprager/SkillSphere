@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Develop improvement strategy (KPIs?)
 
 
+## [0.1.2] - Tue Apr 22 18:44:11 PDT 2025
+
+### Added
+
+- Branding files
+- Intial website
+
 ## [0.1.1] - Fri Apr 18 13:53:33 PDT 2025
 
 ### Added

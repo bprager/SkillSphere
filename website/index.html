@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bernd Prager — AI Expert & Creative Technologist</title>
+  <style>
+    :root {
+      /* —— Brand palette (evolvable) —— */
+      --brand-accent: #009688;      /* teal accent used in tie */
+      --brand-grey-100: #fafafa;
+      --brand-grey-700: #616161;
+      --brand-grey-900: #212121;
+      --brand-white: #ffffff;
+    }
+
+    /* —— Global reset & typography —— */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--brand-grey-900);
+      background: var(--brand-grey-100);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--brand-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* —— Layout helpers —— */
+    .container { width: 90%; max-width: 1080px; margin: 0 auto; }
+    header, footer { background: var(--brand-white); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+    /* —— Header —— */
+    header { position: sticky; top: 0; z-index: 100; }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 0;
+    }
+    .nav ul { list-style: none; display: flex; gap: 1.5rem; }
+
+    /* —— Hero —— */
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 2rem;
+      padding: 4rem 0 3rem;
+    }
+    .hero img {
+      flex: 1 1 240px;
+      max-width: 320px;
+      width: 100%;
+      border-radius: 8px;
+    }
+    .hero .intro { flex: 2 1 280px; }
+    .hero h1 { font-size: 2.25rem; margin-bottom: 0.75rem; }
+    .hero h2 { font-weight: 400; color: var(--brand-grey-700); margin-bottom: 1.5rem; }
+    .cta {
+      display: inline-block;
+      background: var(--brand-accent);
+      color: var(--brand-white);
+      padding: 0.75rem 1.25rem;
+      border-radius: 4px;
+      transition: background 200ms ease;
+    }
+    .cta:hover { background: #007f72; }
+
+    /* —— Sections —— */
+    section { padding: 3rem 0; }
+    section:nth-of-type(even) { background: var(--brand-white); }
+    h3 { font-size: 1.5rem; margin-bottom: 1rem; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--brand-white);
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    /* —— Footer —— */
+    footer { text-align: center; padding: 2rem 0; font-size: 0.875rem; color: var(--brand-grey-700); }
+
+    /* —— Responsive tweaks —— */
+    @media (max-width: 640px) {
+      .hero { padding-top: 2.5rem; }
+      .hero h1 { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="logo"><strong>Bernd Prager</strong></div>
+      <nav>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#expertise">Expertise</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- —— Hero —— -->
+    <section class="hero container">
+      <img src="me03.png" alt="Portrait of Bernd Prager – AI Expert" />
+      <div class="intro">
+        <h1>AI Architect & Creative Technologist</h1>
+        <h2>Designing intelligent systems that turn visionary ideas into lasting impact</h2>
+        <a href="#contact" class="cta">Let’s collaborate</a>
+      </div>
+    </section>
+
+    <!-- —— About —— -->
+    <section id="about" class="container">
+      <h3>About Me</h3>
+      <p>With 30+ years at the intersection of enterprise architecture, data science, and emerging AI, I help organizations translate business challenges into scalable, cost‑effective solutions. My journey spans pioneering semantic web research in the 1990s, building credit‑rating analytics at S&P, and steering cloud‑native AI architectures for Fortune 500 clients today.</p>
+    </section>
+
+    <!-- —— Expertise —— -->
+    <section id="expertise">
+      <div class="container">
+        <h3>Core Expertise</h3>
+        <div class="grid-3">
+          <div class="card">
+            <h4>AI Architecture</h4>
+            <p>Designing end‑to‑end LLM and knowledge‑graph systems, from data pipelines to inference, with a FinOps mindset.</p>
+          </div>
+          <div class="card">
+            <h4>Technical Leadership</h4>
+            <p>Guiding cross‑functional teams, mentoring architects, and aligning technology roadmaps with strategic goals.</p>
+          </div>
+          <div class="card">
+            <h4>Innovation Consulting</h4>
+            <p>Rapid prototyping, PoC delivery, and translating cutting‑edge research into practical business value.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- —— Projects (placeholder) —— -->
+    <section id="projects" class="container">
+      <h3>Featured Projects</h3>
+      <p>(Coming soon) A showcase of transformative AI initiatives—from semantic search engines to cost‑optimized LLM deployments.</p>
+    </section>
+
+    <!-- —— Contact —— -->
+    <section id="contact">
+      <div class="container">
+        <h3>Let’s Talk</h3>
+        <p>Interested in collaborating or need strategic guidance for your next AI venture? Reach out anytime.</p>
+        <p><strong>Email:</strong> <a href="mailto:bernd@prager.ws">bernd@prager.ws</a></p>
+        <p><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/bprager" target="_blank" rel="noopener">linkedin.com/in/bprager</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">© <span id="year"></span> Bernd Prager — All rights reserved.</div>
+  </footer>
+
+  <script>
+    // Auto‑update year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
+
