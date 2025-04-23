@@ -36,6 +36,7 @@ Led hardware and firmware development, testing, and deployment of marine embedde
 
 ## Skills
 - Embedded hardware design
+- PCB design
 - Low‑level firmware development
 - Real‑time signal processing
 - Field testing and validation

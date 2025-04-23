@@ -2,13 +2,13 @@
 job_id: founder_ceo_gecko_mbh_1990_2000
 role: Founder & CEO
 company: GECKO Gesellschaft für Computer- und Kommunikationssysteme mbH (GECKO Software)
-start_date: "1990-04"
+start_date: "1989-04"
 end_date: "2000-12"
 location: Rostock, Germany
 ---
 # Founder & CEO
 **GECKO Gesellschaft für Computer- und Kommunikationssysteme mbH**
-Rostock, Germany | April 1990 – December 2000
+Rostock, Germany | April 1990 – December 1999
 
 ## Summary
 Founded and scaled one of the first private software-engineering firms in post-reunification Rostock, driving it from a single-person start-up to a 30-employee organisation with seven-figure annual revenue while pioneering German web-search R & D and municipal IT solutions.
@@ -49,7 +49,7 @@ Consortium R & D project (1997-2000) to build a domain-independent, linguistical
 - International business development
 
 ## Technologies
-- **Platforms**: UNIX (SUN OS, SINIX), Windows NT, early Linux
+- **Platforms**: UNIX (SUN OS, IBM AIX), Windows NT, early Linux
 - **Languages**: C/C++, Delphi, Gupta SQL Windows, Java (from 1996)
 - **Databases**: Oracle 7/8, Informix, MySQL
 - **Web**: HTML 2/3.2, CGI/Perl, Apache HTTP D (since 1995)
