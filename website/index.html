@@ -3,176 +3,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bernd Prager — AI Expert & Mentor</title>
-  <style>
-    :root {
-      --text-primary: #222222;
-      --text-secondary: #4F545A;
-      --bg-light: #F7F9FB;
-      --accent: #00D0FF;
-      --accent-hover: #0090B3;
-      --accent-light: #5BE4FF;
-      --warm-accent: #FF8A00;
-      --white: #ffffff;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', sans-serif;
-      line-height: 1.6;
-      color: var(--text-primary);
-      background: var(--bg-light);
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { color: var(--accent-hover); }
-
-    .container { width: 90%; max-width: 1080px; margin: 0 auto; }
-    header, footer { background: var(--white); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-
-    header { position: sticky; top: 0; z-index: 100; }
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 0;
-    }
-    .nav ul { list-style: none; display: flex; gap: 1.5rem; }
-
-    .hero {
-      background: #222222;
-      color: var(--white);
-      text-align: center;
-      padding: 4rem 1rem 3rem;
-    }
-    .hero img {
-      width: 160px;
-      height: auto;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-    }
-    .hero h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-    .hero p {
-      font-size: 1.25rem;
-      color: #cccccc;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-
-    .cta {
-      display: inline-block;
-      background: var(--accent);
-      color: var(--white);
-      padding: 0.75rem 1.25rem;
-      border-radius: 4px;
-      margin-top: 1.5rem;
-      transition: background 200ms ease;
-    }
-    .cta:hover { background: var(--accent-hover); }
-
-    section { padding: 3rem 0; }
-    h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-secondary); }
-
-    .impact-metrics {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin: 2rem 0;
-    }
-    .impact-metrics div {
-      background: var(--white);
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      text-align: center;
-      flex: 1 1 180px;
-    }
-    .impact-metrics div h4 {
-      font-size: 2rem;
-      color: var(--accent);
-      margin-bottom: 0.25rem;
-    }
-
-    .footer {
-      text-align: center;
-      padding: 2rem 0;
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-    }
-
-    @media (max-width: 480px) {
-      .nav {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-      }
-      .nav ul {
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      .logo {
-        font-size: 1.25rem;
-      }
-      .hero h1 {
-        font-size: 1.75rem;
+  <title>Bernd Prager — AI Architect · Delivery Leader · Mentor</title>
+  <!-- Tailwind via CDN (will be replaced with local build later) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#00d0ff',      // accent taken from tie
+            ink:   '#222222',      // primary text
+            frost: '#f7f9fb',      // light background
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          },
+        }
       }
     }
-  </style>
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Enterprise‑grade AI architecture, cost‑optimized LLM solutions, and pragmatic mentorship from Bernd Prager—65‑year technologist turning insight into impact." />
 </head>
-<body>
-  <header>
-    <div class="container nav">
-      <div class="logo"><strong>Bernd Prager</strong></div>
-      <nav>
-        <ul>
-          <li><a href="#about">About</a></li>
-          <li><a href="#impact">Impact</a></li>
-          <li><a href="#mentor">Mentor</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
+<body class="text-ink bg-frost font-sans antialiased">
+  <!-- ╭─ Nav ───────────────────────────────────────────╮ -->
+  <header class="sticky top-0 z-50 backdrop-blur bg-white/80 shadow-sm">
+    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+      <span class="text-lg font-bold">Bernd Prager</span>
+      <nav class="hidden md:flex gap-8 text-sm font-medium">
+        <a href="#about" class="hover:text-brand">About</a>
+        <a href="#expertise" class="hover:text-brand">Expertise</a>
+        <a href="#impact" class="hover:text-brand">Impact</a>
+        <a href="#contact" class="hover:text-brand">Contact</a>
       </nav>
     </div>
   </header>
 
-  <section id="about" class="hero">
-    <img src="me03.png" alt="Black and white portrait of Bernd Prager">
-    <h1>I build tomorrow’s AI with the insight of five decades in technology.</h1>
-    <p>Creative technologist, LLM architect, mentor. Transforming complexity into elegant, scalable solutions.</p>
-    <a href="#contact" class="cta">Let’s collaborate</a>
-  </section>
-
-  <section id="impact" class="container">
-    <h3>Impact Metrics</h3>
-    <div class="impact-metrics">
-      <div><h4>↓38%</h4><p>LLM Infra Cost Reduction</p></div>
-      <div><h4>15+</h4><p>LLM/Graph Solutions Deployed</p></div>
-      <div><h4>6×</h4><p>Faster Go‑To‑Market via RAG</p></div>
+  <!-- ╭─ Hero ──────────────────────────────────────────╮ -->
+  <section id="about" class="relative isolate overflow-hidden bg-ink text-white">
+    <div class="absolute inset-0 -z-10 opacity-20" style="background-image:radial-gradient(circle at 50% 30%,rgba(0,208,255,.25),transparent 60%);"></div>
+    <div class="mx-auto max-w-6xl px-4 py-20 flex flex-col md:flex-row items-center gap-8">
+      <img src="/me03.png" alt="Black‑and‑white headshot of Bernd Prager" class="w-48 h-48 rounded-lg shadow-lg border-4 border-brand/60 object-cover" />
+      <div class="max-w-xl">
+        <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-4">I build tomorrow’s&nbsp;AI with the insight of five decades in technology.</h1>
+        <p class="text-lg text-white/80 mb-6">Enterprise architect and hands‑on tinkerer, I translate bleeding‑edge research into scalable, cost‑efficient products—while mentoring teams to do the same.</p>
+        <a href="#contact" class="inline-block bg-brand hover:bg-brand/80 text-ink font-semibold py-3 px-6 rounded-md shadow transition">Let’s collaborate</a>
+      </div>
     </div>
   </section>
 
-  <section id="mentor" class="container">
-    <h3>Mentor & Thought‑Partner</h3>
-    <p>“Bernd is an exceptional technologist with a firm handle on driving enterprise vision and strategy. I reported directly to Bernd and gained a tremendous amount of enterprise acumen as a result.” — Saleem Khan, 2012</p>
+  <!-- ╭─ Expertise ═════════════════════════════════════╮ -->
+  <section id="expertise" class="mx-auto max-w-6xl px-4 py-16">
+    <h2 class="text-2xl font-semibold mb-10 text-center">Core Focus Areas</h2>
+    <div class="grid md:grid-cols-3 gap-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
+        <h3 class="text-xl font-semibold mb-3">AI & LLM Architecture</h3>
+        <p class="text-sm leading-relaxed text-ink/80">Designing Retrieval‑Augmented Generation, vector search, and fine‑tuning pipelines that marry accuracy with FinOps discipline.</p>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
+        <h3 class="text-xl font-semibold mb-3">Delivery Leadership</h3>
+        <p class="text-sm leading-relaxed text-ink/80">Guiding cross‑continental teams (50 + engineers) to ship large‑scale platforms—on time, on budget, with measurable business value.</p>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
+        <h3 class="text-xl font-semibold mb-3">Creative Innovation</h3>
+        <p class="text-sm leading-relaxed text-ink/80">Rapid prototyping, LoRA fine‑tuning, and graph‑based RAG experiments documented publicly to foster community learning.</p>
+      </div>
+    </div>
   </section>
 
-  <section id="contact" class="container">
-    <h3>Let’s Talk</h3>
-    <p>Looking for strategic guidance or hands‑on architecture for your next AI venture?</p>
-    <p><strong>Email:</strong> <a href="mailto:bernd@prager.ws">bernd@prager.ws</a></p>
-    <p><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/bprager" target="_blank" rel="noopener">linkedin.com/in/bprager</a></p>
+  <!-- ╭─ Impact metrics ════════════════════════════════╮ -->
+  <section id="impact" class="bg-white/60 py-16">
+    <div class="mx-auto max-w-6xl px-4 text-center">
+      <h2 class="text-2xl font-semibold mb-10">A Track‑Record of Tangible Impact</h2>
+      <div class="grid sm:grid-cols-3 gap-8">
+        <div class="p-6 rounded-xl bg-white shadow-sm">
+          <span class="text-brand text-4xl font-bold">↓ 38 %</span>
+          <p class="mt-2 text-sm text-ink/80">LLM infrastructure cost reduction for enterprise client</p>
+        </div>
+        <div class="p-6 rounded-xl bg-white shadow-sm">
+          <span class="text-brand text-4xl font-bold">15 +</span>
+          <p class="mt-2 text-sm text-ink/80">RAG & graph solutions delivered since 2023</p>
+        </div>
+        <div class="p-6 rounded-xl bg-white shadow-sm">
+          <span class="text-brand text-4xl font-bold">6×</span>
+          <p class="mt-2 text-sm text-ink/80">Faster go‑to‑market achieved via reusable AI accelerators</p>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <footer class="footer">
-    <div class="container">© <span id="year"></span> Bernd Prager — All rights reserved.</div>
+  <!-- ╭─ Testimonials (subtle) ═════════════════════════╮ -->
+  <section class="mx-auto max-w-3xl px-4 py-16">
+    <h2 class="text-2xl font-semibold mb-6 text-center">What collaborators say</h2>
+    <div class="space-y-10">
+      <blockquote class="relative bg-white p-6 rounded-xl shadow-sm">
+        <p class="italic text-ink/80">"Working with Bernd helped me see architecture not just as a system map, but a business narrative."</p>
+        <cite class="block mt-4 text-sm font-medium text-ink">— A. Senchylov, Staff Engineer @ EPAM</cite>
+      </blockquote>
+      <blockquote class="relative bg-white p-6 rounded-xl shadow-sm">
+        <p class="italic text-ink/80">“Bernd is an exceptional technologist with a firm handle on driving enterprise vision and strategy. I reported directly to Bernd and gained a tremendous amount of enterprise acumen as a result.”</p>
+        <cite class="block mt-4 text-sm font-medium text-ink">— S. Khan, Solution Architect @ S&P</cite>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- ╭─ Contact ═══════════════════════════════════════╮ -->
+  <section id="contact" class="bg-ink text-white py-16">
+    <div class="mx-auto max-w-2xl px-4 text-center">
+      <h2 class="text-2xl font-semibold mb-4">Let’s build something remarkable</h2>
+      <p class="mb-8 text-white/80">Whether you need strategic guidance on generative AI adoption or hands‑on architecture for a critical delivery, I’m here to help.</p>
+      <div class="flex flex-col sm:flex-row justify-center gap-4">
+        <a href="mailto:bernd@prager.ws" class="bg-brand hover:bg-brand/80 text-ink font-semibold py-3 px-6 rounded-md shadow transition">Email Me</a>
+        <a href="https://www.linkedin.com/in/bprager" target="_blank" rel="noopener" class="border border-brand text-brand hover:bg-brand hover:text-ink font-semibold py-3 px-6 rounded-md transition">Connect on LinkedIn</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╭─ Footer ════════════════════════════════════════╮ -->
+  <footer class="py-8 text-center text-sm text-ink/60">
+    © <span id="year"></span> Bernd Prager · Los Angeles, CA
   </footer>
 
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
 
