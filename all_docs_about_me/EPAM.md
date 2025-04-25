@@ -50,7 +50,7 @@ Led enterprise-architecture and large-scale delivery for marquee clients while s
 - **LLMs / GenAI**: Azure OpenAI GPT-4, OpenAI embeddings, EPAM DIAL™, AI/RUN™    [oai_citation:5‡EPAM](https://www.epam.com/about/newsroom/press-releases/2023/epam-launches-dial-a-unified-generative-ai-orchestration-platform?utm_source=chatgpt.com)
 - **Frameworks**: LangChain, LangGraph, LlamaIndex
 - **Data / Graph**: Neo4j, Amazon Redshift, Pandas, Matplotlib
-- **Cloud**: AWS (Lambda, RDS, EKS, S3), Azure (OpenAI, Functions)
+- **Cloud**: AWS (Lambda, EC2, RDS, ECS, EKS, S3, Redshift), Azure (OpenAI, Functions, Containers)
 - **DevOps**: Terraform, GitHub Actions, Grafana, Prometheus
 - **Languages**: Python, Java, C++, SQL, JavaScript/TypeScript
 
