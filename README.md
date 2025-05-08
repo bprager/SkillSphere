@@ -48,5 +48,8 @@ certifications:
 Use `pandoc` to create an ATS (Applicant Tracking System) pdf resume
 
 ```
-pandoc resume.md -o resume.pdf --template=resume-template.tex --pdf-engine=xelatex
+pandoc applications/company.md \
+      -o applications/ResumeCompany.pdf \
+      --template=ats_resume.latex \
+      --pdf-engine=xelatex          # or lualatex
 ```

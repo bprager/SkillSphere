@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Develop improvement strategy (KPIs?)
 
 
+## [0.1.3] - Thu May  8 10:19:03 PDT 2025
+
+### Added
+
+- certificates record
+
+### Changed
+
+- added AI focus on experience record
+
 ## [0.1.2] - Tue Apr 22 18:44:11 PDT 2025
 
 ### Added

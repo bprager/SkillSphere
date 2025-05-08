@@ -2,24 +2,32 @@
 
 ## [Job Title]
 - **Company**: [Company Name]
-- **Duration**: [Start Date] - [End Date]
+- **Duration**: [Start Date] – [End Date]
 - **Location**: [City, Country]
 
 ### Responsibilities
-- [List your key responsibilities, each as a bullet point]
+- …
 
 ### Achievements
-- [List key achievements and contributions, each as a bullet point]
+- …
 
 ### Skills Used
-- [List relevant skills used in the job, each as a bullet point]
+- …
 
 ### Technologies Used
-- [List technologies, tools, and software used, each as a bullet point]
+- …
 
 ### Significant Projects
-- [Describe significant projects you were involved in, the challenge, your role, and the outcome]
+- …
+
+### AI & Machine-Learning Contributions   <!-- NEW CHAPTER -->
+- **AI Scope**: [Briefly describe how AI/ML related to the role (e.g., NLP pipeline, computer-vision prototype, data-engineering for model training).]
+- **Techniques / Models**: [List specific models, algorithms, fine-tuning methods, vector DBs, etc. you touched.]
+- **Datasets & Tooling**: [Mention domain datasets, labeling workflow, MLOps tools, cloud ML services, GPU setup, etc.]
+- **Impact Metrics**: [Quantify gains such as ↑ accuracy, ↓ inference cost, faster deployment cycle, new AI POC approved, etc.]
+- **Leadership & Collaboration**: [Note mentorship, cross-team AI guilds, papers, conference talks, or hackathons you led or joined.]
+- **Continuous Learning**: [Courses, certifications, or research you pursued during the role that deepen your AI expertise.]
 
 ### Lessons Learned
-- [Reflect on the experience and note any important lessons learned or insights gained]
+- …
 
