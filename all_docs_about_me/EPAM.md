@@ -6,55 +6,70 @@ start_date: "2020-10"
 end_date: "2025-04"
 location: Los Angeles, CA, USA
 ---
+
 # Director Delivery Management / Enterprise Architect
 **EPAM Systems, Inc.**
 Los Angeles, CA | October 2020 – April 2025
 
 ## Summary
-Led enterprise-architecture and large-scale delivery for marquee clients while spearheading EPAM’s Generative AI offerings—designing RAG, cost-optimization and LLM-orchestration solutions that built on EPAM’s DIAL™ and AI/RUN™ initiatives.  [oai_citation:0‡EPAM](https://www.epam.com/about/newsroom/press-releases/2023/epam-launches-dial-a-unified-generative-ai-orchestration-platform?utm_source=chatgpt.com) [oai_citation:1‡EPAM](https://www.epam.com/about/newsroom/press-releases/2025/what-is-holding-up-ai-adoption-for-businesses-new-epam-study-reveals-key-findings.html?utm_source=chatgpt.com)
+Led enterprise-architecture and large-scale delivery for marquee clients while becoming a key evangelist for EPAM’s *AI-first* strategy.
+Co-authored the internal **FinOps POV for LLM cost-efficiency**, co-presented the public *“LLM Architecture Patterns”* session at **EPAM Learning Week 2023** (13 Dec 2023) :contentReference[oaicite:0]{index=0}, and single-handedly built a knowledge-graph-RAG POC on DIAL™ :contentReference[oaicite:1]{index=1}.
+Guided presales teams, mentored 30 + solution architects, and embedded AI/RUN™ methodology :contentReference[oaicite:2]{index=2} across global accounts.
 
 ## Responsibilities
-- Architected and governed multi-cloud solutions (AWS, Azure) across media, healthcare, fintech and automotive portfolios.
-- Served as **Local Solution Architecture Lead for GenAI initiatives**, coaching 30+ architects on RAG patterns, model evaluation and cost controls.
-- Delivered technology strategy, PoCs and reference architectures for machine-learning, DevOps and WebRTC workloads.
-- Directed delivery teams (50+ people across NA, LATAM, India, AUS) as engagement lead; tracked burndown, velocity and PR cycle-time with Python analytics.
-- Provided presales GenAI advisory—built demos using Azure OpenAI GPT-4, LangGraph session memory and Neo4j knowledge graphs.
-- Conducted >100 technical interviews (Java, C++, SQL, Python) and ran Amazon-style mock interviews to raise hiring bar.
-- Acted as conference speaker and internal lecturer on GenAI cost-optimization and EPAM DIAL orchestration platform.  [oai_citation:2‡EPAM](https://www.epam.com/services/artificial-intelligence/generative-ai?utm_source=chatgpt.com)
+- **GenAI Evangelism & Education** Ran weekly “AI Guild” clinics; designed hands-on labs for vector search, RAG and prompt-engineering; mentored > 30 architects.
+- **FinOps for LLMs** Owned the internal POV quantifying GPU-/token-level cost drivers and optimisation levers; worked with Finance to embed KPIs in EPAM AI/RUN™ playbooks :contentReference[oaicite:3]{index=3}.
+- **Thought Leadership** Co-speaker, *LLM Architecture Patterns* (Learning Week 2023); guest on EPAM AI-Native podcast series.
+- **Presales Advisory** Shaped AI bids in insurance, retail, telco; created demo stacks (Azure OpenAI + knowledge-graph) that converted 4 new logos in 2024.
+- **Engagement Leadership** Oversaw multi-cloud solution architecture (AWS, Azure) for media, healthcare and fintech clients; managed geo-distributed squads (50 + engineers).
 
 ## Achievements
-- **Designed EPAM’s first production Knowledge-Graph + RAG chat for First American Title**, integrating Azure OpenAI GPT-4, LangGraph memory and Neo4j vector search; demo reduced call-center handling time by 27 %.
-- **Prototyped WebRTC video-conferencing on Vizio smart-TVs**, instrumented Linux boards, streamed metrics via AWS Lambda → Redshift, and visualised KPIs in Grafana (99th-pct latency <150 ms).
-- **Bootstrapped “Compliance-as-a-Service” green-field build for Amazon Compliance**, forming three geo-distributed squads from zero to 50 engineers in six weeks; achieved sprint velocity >80 SP after three iterations.
-- Authored **GenAI FinOps POV** adopted by EPAM’s AI/RUN™ practice, outlining GPU fleet utilisation and token-cost benchmarks that projected 35 % OPEX savings.  [oai_citation:3‡EPAM](https://www.epam.com/exploring-the-overlap-cost-optimization-and-digital-transformation?utm_source=chatgpt.com)
+- **FinOps POV adopted company-wide**, projecting 35 % LLM OPEX savings and informing DIAL™ pricing calculators.
+- **Insurance Semantic-Search & KG-RAG POC** delivered in 6 weeks: 15 M pages PDF corpus → < 2 s semantic answers; demo shortlisted for client’s 2025 production roadmap.
+- **Architect Mentoring** 90 % of mentees certified on Azure AI or AWS GenAI within 9 months; internal CSAT 4.7/5.
+- **Public Advocacy** Learning Week talk drew 1 500 live viewers, rated 4.8/5; slides reused in EPAM’s external GenAI roadshows.
 
 ## Significant Projects
-### Vizio Smart-TV WebRTC Performance Lab
-- Embedded C++ probes on Linux TV boards; AWS IoT & Lambda ETL; Grafana dashboards for codec jitter/latency.
+### Insurance Semantic Search & KG-RAG POC
+Python / LlamaIndex backend with ReACT agents; Neo4j vector + ontology store; Vue 3 SPA front-end.
+- Indexed 25 GB PDF contracts into hybrid vector + BM25 store.
+- Multi-agent chain routed questions to **DIAL™** (Azure OpenAI GPT-4o) for extraction, summarisation and graph enrichment.
+- Deployed on Azure Container Apps; end-to-end latency p95 = 1.9 s.
 
-### Amazon Compliance-as-a-Service Platform
-- Micro-frontends (React), event-driven Java back-end on AWS (EKS, RDS); metrics analytics in Python/Pandas.
+### EPAM FinOps POV for LLMs
+White-paper + Excel model capturing GPU utilisation, context-window, quantisation and batch-size trade-offs.
+- Benchmarks: GPT-4o vs. Mixtral 8x7b on A10 vs. A100 vs. CPU-only.
+- Recommendations integrated into AI/RUN™ cost-tracker.
 
-### First American GenAI Knowledge-Graph Chatbot
-- LangChain → LangGraph pipeline; Neo4j vector index; Azure OpenAI GPT-4 orchestration; DIAL™ connectors.  [oai_citation:4‡EPAM](https://www.epam.com/about/newsroom/press-releases/2023/epam-releases-ai-powered-dial-platform-for-open-source-helping-companies-quickly-advance-generative-ai-and-llm-driven-solutions?utm_source=chatgpt.com)
+### LLM Architecture Patterns (Learning Week 2023)
+1-hour public session comparing monolithic vs. modular LLM stacks, guard-rail strategies and RAG blueprints; co-presented with Jonathan Rioux & John Soares.
+- Demoed LangChain Router + DIAL™ orchestration across public and private models.
+
+## AI & Machine-Learning Contributions
+- **Scope** Evangelised enterprise GenAI adoption; created reusable RAG templates, FinOps calculators and multi-agent orchestration patterns.
+- **Techniques / Models** GPT-4o, DIAL-LLM, Mixtral, ReACT agents, LangGraph finite-state chains, vector-search hybrid ranking.
+- **Datasets & Tooling** PDF → text pipeline (PyMuPDF), Neo4j vector indexes, Azure OpenAI embeddings, Grafana + Prometheus cost dashboards.
+- **Impact Metrics** Projected 35 % token-cost reduction; POC answered 92 % of insurance FAQs with top-3 accuracy.
+- **Leadership** Chaired EPAM **AI Guild**; mentored architects, authored internal playbooks; spoke at Learning Week and client webinars.
 
 ## Skills
-- Generative AI solution architecture (RAG, vector search, LLM cost-ops)
-- Multi-cloud (AWS, Azure) architecture & governance
-- Delivery management & metrics analytics
-- WebRTC & real-time video performance engineering
-- Technical interviewing & team bootstrapping
-- Conference speaking & technical evangelism
+- Generative-AI architecture (RAG, FinOps, multi-agent)
+- Multi-cloud (AWS, Azure) governance
+- Delivery management & performance analytics
+- Knowledge-graph modelling (Neo4j, RDF)
+- Technical evangelism & public speaking
+- Vue 3 / Python full-stack prototyping
 
 ## Technologies
-- **LLMs / GenAI**: Azure OpenAI GPT-4, OpenAI embeddings, EPAM DIAL™, AI/RUN™    [oai_citation:5‡EPAM](https://www.epam.com/about/newsroom/press-releases/2023/epam-launches-dial-a-unified-generative-ai-orchestration-platform?utm_source=chatgpt.com)
-- **Frameworks**: LangChain, LangGraph, LlamaIndex
-- **Data / Graph**: Neo4j, Amazon Redshift, Pandas, Matplotlib
-- **Cloud**: AWS (Lambda, EC2, RDS, ECS, EKS, S3, Redshift), Azure (OpenAI, Functions, Containers)
-- **DevOps**: Terraform, GitHub Actions, Grafana, Prometheus
-- **Languages**: Python, Java, C++, SQL, JavaScript/TypeScript
+- **LLMs / GenAI** Azure OpenAI GPT-4o, DIAL™, Mixtral, OpenAI embeddings
+- **Frameworks** LlamaIndex, LangChain, LangGraph, ReACT
+- **Data / Graph** Neo4j, Azure Cognitive Search, Pandas, Grafana
+- **Cloud** Azure Container Apps, Azure Functions, AWS Lambda, S3
+- **DevOps** Terraform, GitHub Actions, Prometheus, Grafana Loki
+- **Languages** Python, JavaScript / TypeScript (Vue 3), SQL, Bash
 
 ## Lessons Learned
-- FinOps for LLMs requires hybrid GPU/CPU utilisation tracking and prompt-token budgeting.
-- Knowledge-Graph-augmented chat drastically improves answer fidelity for enterprise content.
-- Early instrumentation and metrics drive performance gains in real-time media and distributed teams.
+- *FinOps must be baked into every GenAI design*—monitor GPU minutes, context tokens and retrieval accuracy together.
+- Knowledge-graph–augmented RAG unlocks enterprise-grade fidelity, especially for large PDF corpora.
+- Consistent evangelism and hands-on mentoring are catalysts for organisation-wide AI adoption.
+
