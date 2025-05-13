@@ -88,14 +88,73 @@
 <details>
 <summary>✎ Notes (click to expand)</summary>
 
-* Badge earners have mastered the core **supervised, unsupervised, and neural-network** techniques covered in Stanford’s Machine Learning Specialization (Andrew Ng).  
-* Demonstrated ability to implement end-to-end ML pipelines in **Python** using NumPy, scikit-learn, and TensorFlow—including data prep, model training, hyper-parameter tuning, and evaluation.  
-* Can design and deploy regression/classification models, decision-tree ensembles, clustering & anomaly-detection systems, recommender engines, and an introductory reinforcement-learning agent.  
-* Emphasizes practical best-practice workflows (train/validation/test splits, bias-variance trade-off, vectorization for efficiency) aligned with industry standards.  
+* Badge earners have mastered the core **supervised, unsupervised, and neural-network** techniques covered in Stanford’s Machine Learning Specialization (Andrew Ng).
+* Demonstrated ability to implement end-to-end ML pipelines in **Python** using NumPy, scikit-learn, and TensorFlow—including data prep, model training, hyper-parameter tuning, and evaluation.
+* Can design and deploy regression/classification models, decision-tree ensembles, clustering & anomaly-detection systems, recommender engines, and an introductory reinforcement-learning agent.
+* Emphasizes practical best-practice workflows (train/validation/test splits, bias-variance trade-off, vectorization for efficiency) aligned with industry standards.
 * Certificate is the modern successor to Ng’s original 2012 course—validated by both **Stanford Online** and **DeepLearning.AI**.
 
 </details>
 
+---
+
+## SCRUM Master Accredited Certification**
+
+* **Issuer:** International Scrum Institute™ (Scrum Institute)
+* **Issued:** 2016-04-07
+* **Verification:** (certs/Scrum-Institute.org-SMAC62422c588f-06709196959156.pdf)
+
+<details>
+<summary>✎ Notes (click to expand)</summary>
+
+* Badge earners show deep command of the **Scrum framework**—roles, events, and artifacts—able to facilitate *Sprint Planning, Daily Scrum, Sprint Review,* and *Retrospectives* in line with the official Scrum Guide. [oai_citation:0‡International Scrum Institute](https://www.scrum-institute.org/Scrum_Master_Accredited_Certification_Program.php)
+* Proven **servant-leadership** skills: coaching cross-functional teams, clearing impediments, and driving continuous improvement to maximise product value and team velocity. [oai_citation:1‡International Scrum Institute](https://www.scrum-institute.org/Scrum_Master_Accredited_Certification_Program.php)
+* Passed a **50-question, 60-minute online exam** with a ≥ 60 % score; the credential is **lifetime & worldwide-recognised** with no renewal fees. [oai_citation:2‡International Scrum Institute](https://www.scrum-institute.org/Scrum_Master_Accredited_Certification_Program.php)
+* Certification provides a portable **“proof of competence”** in Agile delivery, boosting career prospects for roles such as Architect, Product Manager, Project Manager, and QA/Test. [oai_citation:3‡International Scrum Institute](https://www.scrum-institute.org/Scrum_Master_Accredited_Certification_Program.php)
+* Holders gain access to Scrum Institute’s premium self-study resources (e-book, video masterclasses, sample tests) designed to reinforce practical, real-world application of Scrum. [oai_citation:4‡International Scrum Institute](https://www.scrum-institute.org/Scrum_Master_Accredited_Certification_Program.php)
+
+</details>
+
+
+---
+
+## Introduction to Data Science in Python
+
+* **Issuer:** Coursera / University of Michigan
+* **Issued:** 2020-03-12
+* **Verification:** <https://www.coursera.org/account/accomplishments/verify/K3ZSV46VV76H>
+
+<details>
+<summary>✎ Notes (click to expand)</summary>
+
+* Completed the **34-hour** University of Michigan course that forms the first step of the “Applied Data Science with Python” pathway, proving a solid command of Python-centric data science tooling.  [oai_citation:0‡Coursera](https://www.coursera.org/account/accomplishments/verify/K3ZSV46VV76H)
+* Mastered the core data stack—**NumPy, pandas, SciPy**—to ingest, clean, transform, and query tabular data with efficient, vectorised code.  [oai_citation:1‡Coursera](https://www.coursera.org/account/accomplishments/verify/K3ZSV46VV76H)
+* Demonstrated proficiency with **lambda functions, CSV I/O, DataFrame grouping/merging, reshaping, and pivot operations** for end-to-end exploratory analysis.  [oai_citation:2‡Coursera](https://www.coursera.org/account/accomplishments/verify/K3ZSV46VV76H)
+* Gained foundational statistics skills, including understanding **distributions, sampling methods, and t-tests** to validate hypotheses.  [oai_citation:3‡Coursera](https://www.coursera.org/account/accomplishments/verify/K3ZSV46VV76H)
+* Skill set formally recognised by Coursera covers **data cleansing, data management, general & statistical programming, critical thinking, and analytical storytelling**, equipping holders to contribute immediately to real-world data projects.  [oai_citation:4‡Coursera](https://www.coursera.org/account/accomplishments/verify/K3ZSV46VV76H)
+
+</details>
+
+---
+
+## Deloitte Data Analytics Job Simulation
+
+* **Issuer:** Deloitte (Australia) · Forage Virtual Experience
+* **Issued:** 2025-04-30
+* **Verification:** <https://forage-uploads-prod.s3.amazonaws.com/completion-certificates/9PBTqmSxAf6zZTseP/io9DzWKe3PTsiS6GG_9PBTqmSxAf6zZTseP_HCQJzaYT6bGXeHaG6_1746050490036_completion_certificate.pdf>
+
+<details>
+<summary>✎ Notes (click to expand)</summary>
+
+* Completed Deloitte’s **self-paced 1–2 hour data-analytics virtual internship**, taken by 30 k+ learners and designed to mirror real consulting engagements.  [oai_citation:0‡Forage](https://www.theforage.com/simulations/deloitte-au/data-analytics-s5zy)
+* Produced two client deliverables for heavy-machinery firm *Daikibo Industrials*:
+  * **Tableau dashboard** that mined factory telemetry to surface downtime patterns, KPIs and actionable recommendations.  [oai_citation:1‡Forage](https://www.theforage.com/simulations/deloitte-au/data-analytics-s5zy)
+  * **Excel fairness model** that classified pay-equality scores (Fair / Unfair / Highly Discriminative) via IF-based logic, enabling HR insight.  [oai_citation:2‡GitHub](https://github.com/mohitsharma614/Deloitte-Virtual-Internship-)
+* Practised core skills in **data modelling, cleaning, exploratory analysis, spreadsheets and visual storytelling**—aligned with Deloitte’s forensic-analytics methodology.  [oai_citation:3‡Forage](https://www.theforage.com/simulations/deloitte-au/data-analytics-s5zy)
+* Program context highlights Deloitte’s **Forensic Technology** services, giving exposure to investigative analytics and risk insights.  [oai_citation:4‡forage-uploads-prod.s3.amazonaws.com](https://forage-uploads-prod.s3.amazonaws.com/completion-certificates/9PBTqmSxAf6zZTseP/io9DzWKe3PTsiS6GG_9PBTqmSxAf6zZTseP_HCQJzaYT6bGXeHaG6_1746050490036_completion_certificate.pdf)
+* Certificate signed by Deloitte CHRO **Tina McCreery**; includes unique enrolment (rCPpFQNWGAoW6q9pS) and user (HCQJzaYT6bGXeHaG6) verification codes for lifetime validation.  [oai_citation:5‡forage-uploads-prod.s3.amazonaws.com](https://forage-uploads-prod.s3.amazonaws.com/completion-certificates/9PBTqmSxAf6zZTseP/io9DzWKe3PTsiS6GG_9PBTqmSxAf6zZTseP_HCQJzaYT6bGXeHaG6_1746050490036_completion_certificate.pdf)
+
+</details>
 
 ---
 
