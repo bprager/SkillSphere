@@ -1,55 +1,104 @@
 # my-job-agent
-Framework to promote my professional career growth
 
-## resume creator
+*A lightweight framework to curate, maintain, and publish my professional story*
 
-Use follwing prompt:```
-You are an AI resume generator. Generate a structured resume using the following YAML format.
+---
 
+## 1 · Purpose
+
+This repo stores **a single source‑of‑truth** for everything that may show up in a résumé, cover letter, LinkedIn post, or project showcase.  The goal is to minimise duplication and make each downstream artefact (PDF résumé, web profile, etc.) a reproducible build from the same data.
+
+## 2 · Key files
+
+| File                         | Role                                                                                                       | Notes |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- | ----- |
+| `summary.md`                 | **Canonical record** of work history, skills, education, certs and achievements. *Always edit this first.* |       |
+| `README.md`                  | This guide.                                                                                                |       |
+| `templates/ats_resume.latex` | Pandoc template for an ATS‑friendly PDF (US‑Letter).                                                       |       |
+| `applications/<company>.md`  | Auto‑generated résumé drafts tailored to a job posting.                                                    |       |
+| `scripts/`                   | Helper scripts (YAML → Markdown, linting, etc.).                                                           |       |
+
+> **Deprecated**
+> `linkedin_profile.md` duplicated almost all content from `summary.md`.  After moving the few unique items (Ollama skill, German language, GETESS publication, FJB‑40 service, early education) into *summary.md*, you can delete the file.
+
+## 3 · Maintaining `summary.md`
+
+* Structure mirrors the YAML you’ll use for prompt‑based résumé generation (**see §4**).
+* Keep entries **chronological (newest first)** inside each section.
+* Use concise, action‑oriented bullet points (max 2‑lines each).
+* **Skills** → group by theme (e.g. `AI & ML`, `Cloud & DevOps`, `Leadership`).
+* **Projects** → include impact metrics where possible (% cost saved, ↑ revenue, ↓ latency…).
+
+## 4 · Generating a tailored résumé draft
+
+Paste this prompt into ChatGPT (or the `scripts/gen_resume.sh` helper) and feed it a job description plus your current `summary.md`.  The model will output a **Markdown résumé** that *matches the YAML block below*.
+
+```yaml
 ---
 name: "<Full Name>"
 title: "<Professional Title>"
-email: "<Email Address>"
-phone: "<Phone Number>"
+email: "<Email>"
+phone: "<Phone>"
 location: "<City, Country>"
-linkedin: "<LinkedIn Profile>"
-github: "<GitHub Profile>"
-summary: "<Brief summary of professional experience>"
+linkedin: "<LinkedIn URL>"
+github: "<GitHub URL>"
+website: "<Personal site>"
+summary: |
+  <2‑4 sentence value proposition>
 skills:
   - category: "<Skill Category>"
-    items: "<Comma-separated list of skills>"
+    items: "<Comma‑separated skills>"
 experience:
-  - company: "<Company Name>"
-    role: "<Job Title>"
-    dates: "<Start - End Date>"
+  - company: "<Company>"
+    role: "<Title>"
+    dates: "<Start – End>"
+    location: "<City, Country>"
     bullets:
-      - "<Achievement 1>"
-      - "<Achievement 2>"
+      - "<Achievement>"
 projects:
-  - name: "<Project Name>"
-    description: "<Brief description>"
+  - name: "<Project>"
+    description: "<One‑liner>"
 education:
-  - degree: "<Degree Name>"
-    institution: "<Institution Name>"
-    year: "<Year of Completion>"
+  - degree: "<Degree>"
+    institution: "<School>"
+    year: "<Year>"
 certifications:
-  - "<Certification Name>"
+  - "<Certification>"
+languages:
+  - "English (fluent)"
+  - "German (native)"
+publications:
+  - "GETESS – Searching the Web Exploiting German Texts"
+---
+```
+
+### Prompt snippet
+
+```text
+You are an AI résumé generator.  Using the YAML schema above and the career data supplied, produce a Markdown résumé tuned to the attached job spec.  Focus on achievements that match the required skills.  Keep bullet points to max 20 words.
+```
+
+## 5 · Building the PDF
+
+```bash
+pandoc applications/<company>.md \
+      -o applications/Resume_<company>.pdf \
+      --template=templates/ats_resume.latex \
+      --pdf-engine=xelatex   # or lualatex
+```
+
+* `ats_resume.latex` is configured for **US‑Letter**, Helvetica font, 1" margins.
+* The template automatically hides empty sections (e.g., no Projects → no heading).
+
+## 6 · Workflow checklist (TL;DR)
+
+1. **Update `summary.md`** whenever you finish a project, earn a cert, or need to add unique info.
+2. Run `scripts/check_duplication.py` (optional) to flag potential overlap or missing fields.
+3. Generate a role‑specific Markdown résumé (see §4).
+4. Compile to PDF with Pandoc (see §5).
+5. Commit artefacts (`summary.md`, new PDF) – but never commit autogenerated Markdown drafts.
+
 ---
 
-### **Additional Instructions**
-- Ensure Markdown syntax is correct.
-- Use bullet points for experiences and achievements.
-- Only include valid YAML types (strings, lists, numbers).
-- Make sure all data fields are filled correctly.
-```
+© 2025 Bernd Prager
 
-## pdf generator
-
-Use `pandoc` to create an ATS (Applicant Tracking System) pdf resume
-
-```
-pandoc applications/company.md \
-      -o applications/ResumeCompany.pdf \
-      --template=ats_resume.latex \
-      --pdf-engine=xelatex          # or lualatex
-```

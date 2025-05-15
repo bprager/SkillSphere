@@ -22,6 +22,7 @@ Guided presales teams, mentored 30 + solution architects, and embedded AI/RUN™
 - **Thought Leadership** Co-speaker, *LLM Architecture Patterns* (Learning Week 2023); guest on EPAM AI-Native podcast series.
 - **Presales Advisory** Shaped AI bids in insurance, retail, telco; created demo stacks (Azure OpenAI + knowledge-graph) that converted 4 new logos in 2024.
 - **Engagement Leadership** Oversaw multi-cloud solution architecture (AWS, Azure) for media, healthcare and fintech clients; managed geo-distributed squads (50 + engineers).
+- **Interviewing** Conducted technical interviews and supported hiring across client-aligned teams
 
 ## Achievements
 - **FinOps POV adopted company-wide**, projecting 35 % LLM OPEX savings and informing DIAL™ pricing calculators.
@@ -61,9 +62,9 @@ White-paper + Excel model capturing GPU utilisation, context-window, quantisatio
 - Vue 3 / Python full-stack prototyping
 
 ## Technologies
-- **LLMs / GenAI** Azure OpenAI GPT-4o, DIAL™, Mixtral, OpenAI embeddings
+- **LLMs / GenAI** Azure OpenAI GPT-4o, AI DIAL™, Mixtral, OpenAI embeddings
 - **Frameworks** LlamaIndex, LangChain, LangGraph, ReACT
-- **Data / Graph** Neo4j, Azure Cognitive Search, Pandas, Grafana
+- **Data / Graph** Neo4j, Azure Cognitive Search, Pandas, Grafana, Matplotlib, Seaborn (Python data viz)
 - **Cloud** Azure Container Apps, Azure Functions, AWS Lambda, S3
 - **DevOps** Terraform, GitHub Actions, Prometheus, Grafana Loki
 - **Languages** Python, JavaScript / TypeScript (Vue 3), SQL, Bash

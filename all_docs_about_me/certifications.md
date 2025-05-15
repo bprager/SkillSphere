@@ -102,7 +102,7 @@
 
 * **Issuer:** International Scrum Institute™ (Scrum Institute)
 * **Issued:** 2016-04-07
-* **Verification:** (certs/Scrum-Institute.org-SMAC62422c588f-06709196959156.pdf)
+* **Certificate:** <https://www.scrum-institute.org/certifications/Scrum-Institute.Org-SMAC62422c588f-06709196959156.pdf>
 
 <details>
 <summary>✎ Notes (click to expand)</summary>
