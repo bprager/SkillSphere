@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xml:base="http://www.prager.ws/ontology/skills-hypergraph.owl"
+         xmlns="http://www.prager.ws/ontology/skills-hypergraph.owl#">
+
+<owl:Ontology rdf:about="http://www.prager.ws/ontology/skills-hypergraph.owl"/>
+
+<owl:ObjectProperty rdf:about="#hasExperience">
+  <rdfs:domain rdf:resource="#Person"/>
+  <rdfs:range rdf:resource="#Job"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#workedFor">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#Organization"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#heldRole">
+  <rdfs:domain rdf:resource="#Person"/>
+  <rdfs:range rdf:resource="#Project"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#usedSkill">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#Skill"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#usedTechnology">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#Technology"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#locatedIn">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#Location"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#during">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#TimeRange"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#achievedCertification">
+  <rdfs:domain rdf:resource="#Person"/>
+  <rdfs:range rdf:resource="#Certification"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#issuedBy">
+  <rdfs:domain rdf:resource="#Certification"/>
+  <rdfs:range rdf:resource="#Organization"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#experienceType">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#ExperienceType"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#relatedTo">
+  <rdfs:domain rdf:resource="#Job"/>
+  <rdfs:range rdf:resource="#Skill"/>
+</owl:ObjectProperty>
+
+<owl:Class rdf:about="#Person">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Job">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Project">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Skill">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Technology">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Certification">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Organization">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Location">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#TimeRange">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+<owl:Class rdf:about="#ExperienceType">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+
+</rdf:RDF>
