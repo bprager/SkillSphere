@@ -12,11 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Design system components
 - Design Knowledge Graph [Kuzu?](https://kuzudb.com/)
 - Design Data pipeline
-- Complete docs collection
 - Design agent
 - Develop MCP and A2A components
 - Develop improvement strategy (KPIs?)
 
+
+## [0.1.4] - Thu May 15 09:28:39 PDT 2025
+
+### Added
+
+- missing experience records
+
+### Changed
+
+- updated documentation
 
 ## [0.1.3] - Thu May  8 10:19:03 PDT 2025
 
