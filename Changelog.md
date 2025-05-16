@@ -9,13 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## TODO
 
 - Design use case strategy
-- Design system components
-- Design Knowledge Graph [Kuzu?](https://kuzudb.com/)
-- Design Data pipeline
 - Design agent
 - Develop MCP and A2A components
 - Develop improvement strategy (KPIs?)
 
+
+## [0.1.6] - Fri May 16 10:25:37 PDT 2025
+
+### Changed
+
+- Improved Knowledge-HyperGraph by
+  - implementing "gleaning loop"
+  - Node2Vec graph embeddings
+
+## [0.1.5] - Thu May 15 20:46:34 PDT 2025
+
+### Added
+
+- intial ingestion pipe
 
 ## [0.1.4] - Thu May 15 09:28:39 PDT 2025
 

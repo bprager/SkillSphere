@@ -1,113 +1,89 @@
-# my-job-agent
+# SkillSphere — Hypergraph-Powered Professional Knowledge Base
 
-*A lightweight framework to curate, maintain, and publish my professional story*
+*A reproducible, open-source playground that turns plain career notes into a query-ready knowledge graph **and** can spit out job-targeted, ATS-friendly résumés on demand.*
 
 ---
 
-## 1 · Purpose
+## ✨ Why this repo exists
 
-This repo stores **a single source‑of‑truth** for everything that may show up in a résumé, cover letter, LinkedIn post, or project showcase.  The goal is to minimise duplication and make each downstream artefact (PDF résumé, web profile, etc.) a reproducible build from the same data.
+| Pain point                                                  | How SkillSphere helps                                                                                            |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Career data scattered across docs, LinkedIn and slide decks | **Single-source-of-truth**: all jobs, projects and certs live in Markdown                                        |
+| Recruiters can’t see proof of specific skills quickly       | **Hypergraph-of-Thought** in Neo4j lets agents answer: *“Show projects proving Kubernetes cost-optimisation.”*   |
+| Tailoring a résumé for every role is tedious                | **Graph-to-PDF pipeline** converts the same graph into a fully **ATS-optimised CV** aligned to a chosen job spec |
+| Privacy / cost worries around SaaS LLMs                     | Runs **entirely local** on Ollama; no OpenAI key required                                                        |
 
-## 2 · Key files
+If you’re exploring AI-driven personal knowledge graphs *or* need a quick way to generate job-specific CVs, clone the repo, drop in your own records and you’ll have a live graph **and** résumé builder inside 10 minutes.
 
-| File                         | Role                                                                                                       | Notes |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------- | ----- |
-| `summary.md`                 | **Canonical record** of work history, skills, education, certs and achievements. *Always edit this first.* |       |
-| `README.md`                  | This guide.                                                                                                |       |
-| `templates/ats_resume.latex` | Pandoc template for an ATS‑friendly PDF (US‑Letter).                                                       |       |
-| `applications/<company>.md`  | Auto‑generated résumé drafts tailored to a job posting.                                                    |       |
-| `scripts/`                   | Helper scripts (YAML → Markdown, linting, etc.).                                                           |       |
-
-> **Deprecated**
-> `linkedin_profile.md` duplicated almost all content from `summary.md`.  After moving the few unique items (Ollama skill, German language, GETESS publication, FJB‑40 service, early education) into *summary.md*, you can delete the file.
-
-## 3 · Maintaining `summary.md`
-
-* Structure mirrors the YAML you’ll use for prompt‑based résumé generation (**see §4**).
-* Keep entries **chronological (newest first)** inside each section.
-* Use concise, action‑oriented bullet points (max 2‑lines each).
-* **Skills** → group by theme (e.g. `AI & ML`, `Cloud & DevOps`, `Leadership`).
-* **Projects** → include impact metrics where possible (% cost saved, ↑ revenue, ↓ latency…).
-
-## 4 · Generating a tailored résumé draft
-
-Paste this prompt into ChatGPT (or the `scripts/gen_resume.sh` helper) and feed it a job description plus your current `summary.md`.  The model will output a **Markdown résumé** that *matches the YAML block below*.
-
-```yaml
 ---
-name: "<Full Name>"
-title: "<Professional Title>"
-email: "<Email>"
-phone: "<Phone>"
-location: "<City, Country>"
-linkedin: "<LinkedIn URL>"
-github: "<GitHub URL>"
-website: "<Personal site>"
-summary: |
-  <2‑4 sentence value proposition>
-skills:
-  - category: "<Skill Category>"
-    items: "<Comma‑separated skills>"
-experience:
-  - company: "<Company>"
-    role: "<Title>"
-    dates: "<Start – End>"
-    location: "<City, Country>"
-    bullets:
-      - "<Achievement>"
-projects:
-  - name: "<Project>"
-    description: "<One‑liner>"
-education:
-  - degree: "<Degree>"
-    institution: "<School>"
-    year: "<Year>"
-certifications:
-  - "<Certification>"
-languages:
-  - "English (fluent)"
-  - "German (native)"
-publications:
-  - "GETESS – Searching the Web Exploiting German Texts"
----
-```
 
-### Prompt snippet
-
-```text
-You are an AI résumé generator.  Using the YAML schema above and the career data supplied, produce a Markdown résumé tuned to the attached job spec.  Focus on achievements that match the required skills.  Keep bullet points to max 20 words.
-```
-
-## 5 · Building the PDF
-
-### Resume
+## 🚀 Quick start
 
 ```bash
-pandoc applications/<company>.md \
-      -o applications/Resume_<company>.pdf \
-      --template=templates/ats_resume.latex \
-      --pdf-engine=xelatex   # or lualatex
+git clone https://github.com/bprager/SkillSphere.git
+cd SkillSphere
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt       # faiss-cpu, langchain-community, neo4j-driver…
+ollama pull gemma3:12b                # or your favourite local LLM
+cp .env.sample .env                   # adjust Neo4j creds if needed
+
+# 1) Build / refresh the graph
+poetry run python hypergraph/ingestion_worker.py
+
+# 2) Generate an ATS-ready résumé for a target job description
+python scripts/build_resume.py --job-spec docs/job_postings/google_se_iii.md
 ```
 
-* `ats_resume.latex` is configured for **US‑Letter**, Helvetica font, 1" margins.
-* The template automatically hides empty sections (e.g., no Projects → no heading).
-
-### Achitecture
-
-```bash
-./.venv/bin/python3  -m pip install  pandoc-plantuml-filter # if not installed
-pandoc architecture.md -o architecture.pdf --pdf-engine=xelatex --filter pandoc-plantuml
-```
-
-## 6 · Workflow checklist (TL;DR)
-
-1. **Update `summary.md`** whenever you finish a project, earn a cert, or need to add unique info.
-2. Run `scripts/check_duplication.py` (optional) to flag potential overlap or missing fields.
-3. Generate a role‑specific Markdown résumé (see §4).
-4. Compile to PDF with Pandoc (see §5).
-5. Commit artefacts (`summary.md`, new PDF) – but never commit autogenerated Markdown drafts.
+* Browse the graph → [http://localhost:7474](http://localhost:7474) (Neo4j)
+* Query skills via MCP API → `curl localhost:8000/query -d '{"prompt":"List cloud skills"}'`
+* Résumé PDF appears in `output/` ready to send.
 
 ---
 
-© 2025 Bernd Prager
+## 🗺️ Repo tour
+
+| Path                             | Purpose                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| `docs/`                          | Markdown records (`jobs`, `extras`, `certifications`) **and** job-spec examples. |
+| `hypergraph/ingestion_worker.py` | Ingestion pipeline with **gleaning loop** + **Node2Vec**.                        |
+| `architecture.md`                | Design spec & PlantUML flow.                                                     |
+| `scripts/build_resume.py`        | Graph→Markdown→Pandoc pipeline for **ATS PDFs**.                                 |
+| `templates/`                     | Pandoc résumé / cover-letter templates.                                          |
+
+---
+
+## 📚 Research foundation
+
+SkillSphere’s hypergraph model is inspired by:
+
+> **Haoran Luo, Haihong E, Guanting Chen, et al.**
+> *HyperGraphRAG: Retrieval-Augmented Generation with Hypergraph-Structured Knowledge Representation.*
+> arXiv: 2503.21322 (2025). [https://arxiv.org/abs/2503.21322](https://arxiv.org/abs/2503.21322)
+
+We adapt it to a **personal** graph and add:
+
+* Incremental ingest with SHA-256 change tracking.
+* Local-LLM **gleaning loop** that wrings \~25 % extra facts per chunk.
+* Neo4j GDS **Node2Vec** embeddings for structural search.
+* A résumé generator that queries the graph and compiles an **ATS-optimised CV** for any job description.
+
+---
+
+## 🤝 Why you might care
+
+* **Hiring for AI / knowledge-graph talent?** — this is a live sample of my architecture, Python and graph-data chops.
+* **Building internal talent graphs or CV automation?** — fork it, swap Markdown for HR data, and you’re halfway to a skills matrix and auto-CV tool.
+* **Just curious?** — open a PR or start a discussion; I love geeky graph & GenAI conversations.
+
+---
+
+## 📬 Let’s connect
+
+* Web [https://www.prager.ws](https://www.prager.ws)
+* Email [bernd@prager.ws](mailto:bernd@prager.ws) · LinkedIn [@berndprager](https://www.linkedin.com/in/berndprager)
+* Book a chat [https://calendly.com/bernd-prager/30min](https://calendly.com/bernd-prager/30min)
+
+---
+
+© 2025 Bernd Prager — Apache 2.0 • Clone, adapt, and let me know what you build!
 

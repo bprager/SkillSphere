@@ -1,27 +1,15 @@
 # Skills‑Graph Architecture
 
-A unified reference for importing Bernd’s experience records into a **Hypergraph‑of‑Thought** in Neo4j and exposing it through an **MCP** service that local or cloud‑hosted LLM agents can query.
+**Author**: Bernd Prager
+**Revision**: **v1.1 · 2025‑05‑16**
+**Scope**: End‑to‑end design for turning Markdown experience records into a Hypergraph‑of‑Thought (Neo4j) and exposing it through an MCP API that local LLM agents (Ollama) can query.
 
 ---
+## 1  Logical View (high‑level)
 
-## 1  Scope & Goals
-
-* **Author**  Bernd Prager
-* **Revision**  v1.0 · 2025‑05‑15
-* **Purpose**  Define components, data flows, schemas, and operational guidelines so that:
-
-  * Markdown records (`jobs`, `extras`, `certifications`) → **hypergraph** (Neo4j)
-  * Graph → **MCP server API**
-  * LLM/agent stack (Ollama + LangChain) can answer skill‑centric queries.
-
----
-
-## 2  Logical View
-
-```{ .plantuml height=50% plantuml-filename=LogicalView.png }
-@startuml
+```plantuml
+@startuml LogicalView
 !theme plain
-title Logical View
 skinparam packageStyle rectangle
 
 package "Data Layer" {
@@ -31,164 +19,73 @@ package "Data Layer" {
 }
 
 package "Processing Layer" {
-  D : Ingestion Worker (Python)
-  E : Ollama LLMs\nGemma 3 12B / phi‑4 / nomic‑embed
+  D : Ingestion Worker v2 (Python)
+  E : Ollama LLMs\nGemma 3 12B / nomic‑embed
 }
 
 package "Graph Layer" {
   F : Neo4j
+  G : GDS Node2Vec (embedding)
 }
 
 package "Application Layer" {
-  G : MCP Server (FastAPI)
-  H : LangChain + Agents
+  H : MCP Server (FastAPI)
+  I : LangChain + Agents
 }
 
 A --> D
 D --> B : hash check
-D --> C : embed
-D --> E : triples
-E --> D : extracted triples
+D --> C : text embeddings
+D --> E : gleaning loop
+E --> D : triples JSON
 D --> F : Cypher MERGE
-F --> G
-G --> H
+F --> G : Node2Vec
+G --> F : write property `embedding`
+F --> H --> I
 @enduml
 ```
 
 ---
+## 2  Ingestion Worker v2 (detailed steps)
 
-## 3  Data Sources
+1. **SHA‑256 change detection** – skip unchanged docs (SQLite `doc_registry`).
+2. **Chunk & embed** – 1 500‑word chunks / 200‑word overlap → `nomic‑embed‑text` vectors → optional FAISS.
+3. **Gleaning loop extraction** – up to **3 LLM passes** (Gemma 3 12 B) per chunk; each pass only requests *new* triples.
+4. **Cypher MERGE insert** – deterministic `MERGE` for nodes/relations; alias map normalisation.
+5. **Registry update** – store new hash & timestamp (UTC).
+6. **Node2Vec batch job** – after all files processed: GDS `node2vec.write()` (128‑dim, 10×20 walks) → node property `embedding`.
+7. **(optional)** Add graph embeddings to FAISS for hybrid doc + structural search.
 
-| Folder         | Type               | Example File        | Primary Entities           |
-| -------------- | ------------------ | ------------------- | -------------------------- |
-| `docs/jobs/`   | Job experience     | `EPAM.md`           | Role, Project, Skill, Tool |
-| `docs/extras/` | Extra‑professional | `Ext_WJD.md`        | Activity, Skill            |
-| `docs/certs/`  | Certifications     | `certifications.md` | Certification, Skill       |
-
-### Registry Table (`doc_registry`)
-
-| Column          | Type     | Description      |
-| --------------- | -------- | ---------------- |
-| `doc_id`        | TEXT PK  | stem of filename |
-| `hash`          | CHAR(64) | SHA‑256 checksum |
-| `last_ingested` | DATETIME | UTC timestamp    |
+> **Performance note** – With gleaning + Node2Vec the first full build takes ~3× the v1 time, but incremental runs only pay the Node2Vec cost if *any* doc changed.
 
 ---
+## 3  Updated Infrastructure Topology
 
-## 4  Ingestion Worker
-
-* **Language** Python 3.11
-* **Key libs** langchain‑community, neo4j‑driver, faiss‑cpu, pyyaml, python‑multipart.
-
-### 4.1  Steps per document
-
-1. **Hash check** Skip if unchanged.
-2. **Chunk** \~1 500 tokens with overlap = 200.
-3. **Embeddings** `nomic-embed-text` → FAISS index (shared).
-4. **LLM IE** `gemma3:12b` prompt with known skills/tools.
-5. **Dedup** similarity lookup (`>=0.83` FTS OR `>=0.88` embed).
-6. **Cypher MERGE** nodes + rels.
-7. **Hyperedge build** hash(sorted node‑ids) → create/update.
-
-### 4.2  Config File
-
-Store schema & prompt hints in **`graph_schema.yaml`** (see separate file).
+| Host | Stack | Ports |
+|------|-------|-------|
+| odin | Neo4j 5.15 + GDS 2.x | 7474 / 7687 |
+| odin | Ollama 0.6.8 (local models & `/api/embed`) | 11434 |
+| odin | Ingestion Worker v2 (systemd) | – |
+| odin | FastAPI MCP server | 8000 |
 
 ---
+## 4  Maintenance Jobs
 
-## 5  Graph Schema (Neo4j)
-
-Refer to `graph_schema.yaml` for machine‑readable detail.
-
-* **Core labels** `Person, Role, Organization, Project, Activity, Certification, Skill, Tool, Topic, Hyperedge`.
-* **Key rels** `HAS_ROLE, WORKED_AT, CONTRIBUTED_TO, USED_IN, SHOWCASED_IN, COVERS_TOPIC, OWNS_CERT, SUPPORTS_SKILL, CONNECTS`.
-* **Indexes**
-
-  * `CREATE CONSTRAINT person_name IF NOT EXISTS ON (p:Person) ASSERT p.name IS UNIQUE;`
-  * `CREATE FULLTEXT INDEX skill_name IF NOT EXISTS FOR (s:Skill) ON EACH [s.name];`
+| Job | Schedule | Notes |
+|-----|----------|-------|
+| `nightly_dedupe` | 03:00 | APOC `refactor.mergeNodes` |
+| `node2vec_refresh` | After *any* ingest | Triggered automatically by worker |
+| `refresh_embeddings` | Weekly | Re‑runs text embeddings if model upgraded |
 
 ---
+## 5  Future Enhancements (next, ordered)
 
-## 6  Infrastructure Topology
-
-| Host                              | Stack                                      | Ports     |
-| --------------------------------- | ------------------------------------------ | --------- |
-| **odin** (Ubuntu 22 LTS, Ryzen 9) | Neo4j 5.15 (Docker)                        | 7474/7687 |
-| idem                              | Ollama 0.1.x (models in `/var/lib/ollama`) | 11434     |
-| idem                              | Ingestion Worker (systemd unit)            | –         |
-| idem                              | FastAPI MCP server                         | 8000      |
-
-> **Note** RTX 2060 (6 GB VRAM) runs `gemma3:12b` Q4\_0; bigger models spill to RAM.
+1. **Edge weighting & centrality pre‑compute** for richer MCP ranking.
+2. **Auto-summary blurb** (store summary on Entity)
+3. **Embedding‑aware LLM cache** to avoid redundant Gemma calls.
+4. **Incremental Node2Vec** once graph size or runtime makes full runs painful
+5. **Async ingestion + two-pass RAG** when we start serving high-QPS MCP queries
 
 ---
-
-## 7  MCP Server
-
-* **Framework** FastAPI + LangChain Graph
-* **Auth** Bearer JWT (future: OIDC)
-* **Endpoints**
-
-  * `POST /query` → JSON {prompt, agent="graph-rag"}
-  * `POST /skill_matrix` → returns CSV of skills vs. evidence nodes
-* **Agent Types**
-
-  * **GraphRAGAgent** → augments prompt with Cypher results
-  * **SkillLensAgent** → tailored skill queries (`MATCH (s:Skill)<-[:SHOWCASED_IN]-(n) …`)
-
----
-
-## 8  Observability
-
-* **Neo4j** → Prometheus exporter (`/metrics`)
-* **Worker** → structured logs (JSON) + Loki
-* **FastAPI** → OpenTelemetry traces
-
----
-
-## 9  Maintenance
-
-| Job                  | Schedule     | Tool                       |
-| -------------------- | ------------ | -------------------------- |
-| `nightly_dedupe`     | 03:00        | APOC `refactor.mergeNodes` |
-| `refresh_embeddings` | After dedupe | Custom Python              |
-| `recompute_metrics`  | Weekly       | Neo4j Algo (betweenness)   |
-
----
-
-## 10  Security & Backup
-
-* **Backups** Neo4j `neo4j-admin backup` daily → `/backups/neo4j/` (btrfs snapshot).
-* **Access** Neo4j roles: `reader` for MCP; `admin` for ingestion.
-* **Secrets** Env files managed via `systemd EnvironmentFile=`.
-
----
-
-## 11  Future Enhancements
-
-1. Swap FAISS for **Chroma** to avoid RAM overhead.
-2. Experiment with **phi4‑reasoning** as hyperedge‑suggestion co‑pilot.
-3. Deploy MCP in **K8s (k3s)** for HA.
-
----
-
-Great — I’ll add a new section titled **12  Deployment & Observability Setup** summarizing the changes we've made, including:
-
-* Docker Compose managed via systemd
-* Correct use of `env_file` separation to avoid config injection issues
-* Proper environment variable formatting for Neo4j config keys
-* Integration of the `petrov-e/neo4j_exporter` for Prometheus
-
-I’ll update the architecture file now.
-
-
-## 12  Deployment & Observability Setup
-
-* **Stack Orchestration** Neo4j and its Prometheus exporter run together via a single `docker-compose` configuration, with **systemd** managing the entire stack as one unit (starting/stopping both services together).
-* **Environment Files** The Neo4j container is launched with a minimal env file (only the `NEO4J_AUTH` credential). The exporter uses a separate env file (`NEO4J_USER` and `NEO4J_PASSWORD` for the DB login), preventing any unsupported variables from being passed into the Neo4j container.
-* **Config Variables** For Neo4j settings that contain underscores in their keys, use double-underscore in the environment variable name. For example, `dbms.security.allow_csv_import_from_file_urls` is set via `NEO4J_dbms_security_allow__csv__import__from__file__urls` in the container’s env.
-* **Prometheus Exporter** Uses the Neo4j exporter image from GHCR (`ghcr.io/petrov-e/neo4j_exporter`) since no official Docker Hub image exists. The metrics endpoint (`/metrics`) is exposed on container port 5000, mapped to host port **7475** for Prometheus scraping.
-* **Neosemantics (n10s)** The **n10s** RDF plugin is installed at container startup via the `NEO4J_PLUGINS` environment variable (including `"n10s"` in its JSON list). All neosemantics procedures (`n10s.*`) are enabled by adding `n10s.*` to `dbms.security.procedures.unrestricted`, allowing those plugin procedures to run without restriction.
-
-
-**© 2025 Bernd Prager** –  Licensed under Apache 2.0
+© 2025 Bernd Prager — Apache 2.0
 
