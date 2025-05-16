@@ -216,25 +216,35 @@ class GraphWriter:
                     ses.execute_write(self._merge, t["subject"], t["relation"], t["object"])
 
     # ---------- Node2Vec ---------
-    def run_node2vec(self):
-        """Project graph → run Node2Vec → write embeddings to property `embedding`."""
-        gname = "skill_graph_tmp"
-        n2v_query = f"""
-            CALL gds.graph.project('{gname}', '*', '*')
-            YIELD graphName
-            CALL gds.node2vec.write('{gname}', {{
-              embeddingDimension: {SET.node2vec_dim},
-              walkLength: {SET.node2vec_walk_length},
-              iterations: 1,
-              walksPerNode: {SET.node2vec_walks},
-              writeProperty: 'embedding'
+    def run_node2vec(self) -> None:
+      """
+      Project the whole database into GDS, run Node2Vec to create / update the
+      `embedding` property on every projected node, then clean up the temporary
+      in-memory graph.
+      All three Cypher statements are executed separately, so no explicit YIELD
+      clauses or RETURNs are required.
+      """
+      gname = "skill_graph_tmp"
+
+      with self._drv.session() as ses:
+        # 1️⃣  Project nodes and relationships
+        ses.run(f"CALL gds.graph.project('{gname}', '*', '*')")
+
+        # 2️⃣  Write Node2Vec embeddings to a node property
+        ses.run(f"""
+          CALL gds.node2vec.write('{gname}', {{
+            embeddingDimension: {SET.node2vec_dim},
+            walkLength:        {SET.node2vec_walk_length},
+            iterations:        1,
+            walksPerNode:      {SET.node2vec_walks},
+            writeProperty:     'embedding'
             }})
-            YIELD nodePropertiesWritten
-            CALL gds.graph.drop('{gname}') YIELD graphName;
-        """
-        with self._drv.session() as ses:
-            ses.run(n2v_query)
-        log.info("Node2Vec embeddings written to property 'embedding'.")
+        """)
+
+        # 3️⃣  Drop the temporary in-memory graph
+        ses.run(f"CALL gds.graph.drop('{gname}')")
+
+      log.info("Node2Vec embeddings written (property 'embedding'); temp graph dropped.")
 
     def close(self):
         self._drv.close()
