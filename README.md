@@ -80,6 +80,8 @@ You are an AI résumé generator.  Using the YAML schema above and the career da
 
 ## 5 · Building the PDF
 
+### Resume
+
 ```bash
 pandoc applications/<company>.md \
       -o applications/Resume_<company>.pdf \
@@ -89,6 +91,13 @@ pandoc applications/<company>.md \
 
 * `ats_resume.latex` is configured for **US‑Letter**, Helvetica font, 1" margins.
 * The template automatically hides empty sections (e.g., no Projects → no heading).
+
+### Achitecture
+
+```bash
+./.venv/bin/python3  -m pip install  pandoc-plantuml-filter # if not installed
+pandoc architecture.md -o architecture.pdf --pdf-engine=xelatex --filter pandoc-plantuml
+```
 
 ## 6 · Workflow checklist (TL;DR)
 

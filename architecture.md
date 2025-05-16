@@ -18,8 +18,8 @@ A unified reference for importing Bernd’s experience records into a **Hypergra
 
 ## 2  Logical View
 
-```plantuml
-@startuml LogicalView
+```{ .plantuml height=50% plantuml-filename=LogicalView.png }
+@startuml
 !theme plain
 title Logical View
 skinparam packageStyle rectangle
@@ -82,10 +82,10 @@ G --> H
 
 ### 4.1  Steps per document
 
-1. **Hash check** Skip if unchanged.
-2. **Chunk** \~1 500 tokens with overlap = 200.
-3. **Embeddings** `nomic-embed-text` → FAISS index (shared).
-4. **LLM IE** `gemma3:12b` prompt with known skills/tools.
+1. **Hash check** Skip if unchanged.
+2. **Chunk** \~1 500 tokens with overlap = 200.
+3. **Embeddings** `nomic-embed-text` → FAISS index (shared).
+4. **LLM IE** `gemma3:12b` prompt with known skills/tools.
 5. **Dedup** similarity lookup (`>=0.83` FTS OR `>=0.88` embed).
 6. **Cypher MERGE** nodes + rels.
 7. **Hyperedge build** hash(sorted node‑ids) → create/update.
@@ -170,6 +170,25 @@ Refer to `graph_schema.yaml` for machine‑readable detail.
 3. Deploy MCP in **K8s (k3s)** for HA.
 
 ---
+
+Great — I’ll add a new section titled **12  Deployment & Observability Setup** summarizing the changes we've made, including:
+
+* Docker Compose managed via systemd
+* Correct use of `env_file` separation to avoid config injection issues
+* Proper environment variable formatting for Neo4j config keys
+* Integration of the `petrov-e/neo4j_exporter` for Prometheus
+
+I’ll update the architecture file now.
+
+
+## 12  Deployment & Observability Setup
+
+* **Stack Orchestration** Neo4j and its Prometheus exporter run together via a single `docker-compose` configuration, with **systemd** managing the entire stack as one unit (starting/stopping both services together).
+* **Environment Files** The Neo4j container is launched with a minimal env file (only the `NEO4J_AUTH` credential). The exporter uses a separate env file (`NEO4J_USER` and `NEO4J_PASSWORD` for the DB login), preventing any unsupported variables from being passed into the Neo4j container.
+* **Config Variables** For Neo4j settings that contain underscores in their keys, use double-underscore in the environment variable name. For example, `dbms.security.allow_csv_import_from_file_urls` is set via `NEO4J_dbms_security_allow__csv__import__from__file__urls` in the container’s env.
+* **Prometheus Exporter** Uses the Neo4j exporter image from GHCR (`ghcr.io/petrov-e/neo4j_exporter`) since no official Docker Hub image exists. The metrics endpoint (`/metrics`) is exposed on container port 5000, mapped to host port **7475** for Prometheus scraping.
+* **Neosemantics (n10s)** The **n10s** RDF plugin is installed at container startup via the `NEO4J_PLUGINS` environment variable (including `"n10s"` in its JSON list). All neosemantics procedures (`n10s.*`) are enabled by adding `n10s.*` to `dbms.security.procedures.unrestricted`, allowing those plugin procedures to run without restriction.
+
 
 **© 2025 Bernd Prager** –  Licensed under Apache 2.0
 

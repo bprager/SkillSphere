@@ -171,7 +171,8 @@ cython_debug/
 .pypirc
 .DS_Store
 
-# Project specifics I don't care
+# Generated artefacts
 applications/*
-76d0a88aae7571eb3f9487093921d89c4f0238d2.uml
-LogicalView.png
+*.uml
+*.png
+*.pdf
