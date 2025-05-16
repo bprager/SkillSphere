@@ -1,14 +1,15 @@
-# Skills‑Graph Architecture
-
-**Author**: Bernd Prager
-**Revision**: **v1.1 · 2025‑05‑16**
-**Scope**: End‑to‑end design for turning Markdown experience records into a Hypergraph‑of‑Thought (Neo4j) and exposing it through an MCP API that local LLM agents (Ollama) can query.
-
 ---
+title: "Skills‑Graph Architecture"
+author: "Bernd Prager"
+revision: "v1.1 · 2025‑05‑16"
+scope: "End‑to‑end design for turning Markdown experience records into a Hypergraph‑of‑Thought (Neo4j) and exposing it through an MCP API that local LLM agents (Ollama) can query."
+---
+
+
 ## 1  Logical View (high‑level)
 
-```plantuml
-@startuml LogicalView
+```{ .plantuml height=50% plantuml-filename=LogicalView.png }
+@startuml
 !theme plain
 skinparam packageStyle rectangle
 
@@ -41,11 +42,11 @@ E --> D : triples JSON
 D --> F : Cypher MERGE
 F --> G : Node2Vec
 G --> F : write property `embedding`
-F --> H --> I
+F --> H
+H --> I
 @enduml
 ```
 
----
 ## 2  Ingestion Worker v2 (detailed steps)
 
 1. **SHA‑256 change detection** – skip unchanged docs (SQLite `doc_registry`).
@@ -58,7 +59,6 @@ F --> H --> I
 
 > **Performance note** – With gleaning + Node2Vec the first full build takes ~3× the v1 time, but incremental runs only pay the Node2Vec cost if *any* doc changed.
 
----
 ## 3  Updated Infrastructure Topology
 
 | Host | Stack | Ports |
@@ -68,7 +68,6 @@ F --> H --> I
 | odin | Ingestion Worker v2 (systemd) | – |
 | odin | FastAPI MCP server | 8000 |
 
----
 ## 4  Maintenance Jobs
 
 | Job | Schedule | Notes |
@@ -77,7 +76,7 @@ F --> H --> I
 | `node2vec_refresh` | After *any* ingest | Triggered automatically by worker |
 | `refresh_embeddings` | Weekly | Re‑runs text embeddings if model upgraded |
 
----
+
 ## 5  Future Enhancements (next, ordered)
 
 1. **Edge weighting & centrality pre‑compute** for richer MCP ranking.
@@ -86,6 +85,5 @@ F --> H --> I
 4. **Incremental Node2Vec** once graph size or runtime makes full runs painful
 5. **Async ingestion + two-pass RAG** when we start serving high-QPS MCP queries
 
----
 © 2025 Bernd Prager — Apache 2.0
 
