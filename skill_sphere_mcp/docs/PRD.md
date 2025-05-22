@@ -8,12 +8,12 @@
 
 ## 1 · Purpose & Background
 
-Recruiters, hiring bots and “smart-CV” tools repeatedly ask:
+Recruiters, hiring bots and "smart-CV" tools repeatedly ask:
 
-* “Does Bernd have the skills for *this* role?”
-* “Generate a résumé tailored to *that* job description.”
+* "Does Bernd have the skills for *this* role?"
+* "Generate a résumé tailored to *that* job description."
 
-SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** through the **Model Context Protocol (MCP)**, so any LLM agent can reason over a single, always-up-to-date source instead of scraping LinkedIn or PDFs. The PRD turns the existing PDD into an actionable roadmap for engineering, product and go-to-market teams.&#x20;
+SkillSphere exposes Bernd Prager's skills-and-experience **hypergraph** through the **Model Context Protocol (MCP)**, so any LLM agent can reason over a single, always-up-to-date source instead of scraping LinkedIn or PDFs. The PRD turns the existing PDD into an actionable roadmap for engineering, product and go-to-market teams.&#x20;
 
 ---
 
@@ -21,7 +21,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 
 | Objective                     | KPI / Success Metric                         | Target            |
 | ----------------------------- | -------------------------------------------- | ----------------- |
-| Accelerate suitability checks | Avg. time for recruiter bot to answer “fit?” | ≤ 3 s (p95)       |
+| Accelerate suitability checks | Avg. time for recruiter bot to answer "fit?" | ≤ 3 s (p95)       |
 | Automate CV creation          | % CVs generated without manual edits         | ≥ 80 %            |
 | Provide explainability        | % agent responses citing graph evidence      | ≥ 90 %            |
 | Reliability                   | API availability (rolling 30 d)              | ≥ 99.5 %          |
@@ -39,7 +39,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 | OpenTelemetry tracing                                                | Detailed business analytics dashboard      |
 | Deployment on single VM / Kubernetes                                 | Multi-tenant SaaS offering                 |
 
-*Assumptions*
+### Assumptions
 
 * Hypergraph already exists in Neo4j and is kept current by a separate ingestion pipeline.
 * Agents are credentialed via PAT; no anonymous access.
@@ -50,8 +50,8 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 
 | Persona                               | Goal                                   | Representative Questions                           |
 | ------------------------------------- | -------------------------------------- | -------------------------------------------------- |
-| **Suitability Agent** (recruiter bot) | Decide if Bernd fits a role            | “List critical skill gaps.”                        |
-| **CV Generator Agent**                | Produce tailored résumé / cover letter | “Give me a one-pager emphasising Go & Kubernetes.” |
+| **Suitability Agent** (recruiter bot) | Decide if Bernd fits a role            | "List critical skill gaps."                        |
+| **CV Generator Agent**                | Produce tailored résumé / cover letter | "Give me a one-pager emphasising Go & Kubernetes." |
 
 (See PDD §2 for extended table)&#x20;
 
@@ -61,7 +61,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 
 1. **As a recruiter bot**, I want to call `skill.match_role` with a list of required skills so that I receive a similarity score and gap analysis.
 2. **As a recruiter bot**, I want to call `skill.explain_match` for each supporting node so that I can justify my recommendation.
-3. **As a CV generator agent**, I want to call `cv.generate` with target keywords and format = “markdown” so that I receive an instantly usable résumé.
+3. **As a CV generator agent**, I want to call `cv.generate` with target keywords and format = "markdown" so that I receive an instantly usable résumé.
 4. **As any agent**, I want to list resources and tools on `initialize` so that I can self-discover capabilities.
 
 ---
@@ -77,7 +77,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 | FR-5 | Produce Node2Vec / embedding search results via `graph.search`                            | Should   |
 | FR-6 | Expose `/healthz` for liveness & readiness                                                | Must     |
 | FR-7 | Stream OpenTelemetry traces to collector; mask PII                                        | Should   |
-| FR-8 | Provide REST “legacy” endpoints (`/v1/entity/{id}`, `/v1/search`) until full MCP adoption | Could    |
+| FR-8 | Provide REST "legacy" endpoints (`/v1/entity/{id}`, `/v1/search`) until full MCP adoption | Could    |
 
 *Note:* tool parameter / return schemas are specified in PDD §5.&#x20;
 
@@ -124,7 +124,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 
 ---
 
-## 10 · Timeline & Milestones\*
+## 10 · Timeline & Milestones*
 
 | Date (Q2-25) | Milestone                                    |
 | ------------ | -------------------------------------------- |
@@ -136,7 +136,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 | **15 Aug**   | Beta freeze & stakeholder UAT                |
 | **29 Aug**   | v1.0 launch                                  |
 
-\* Dates assume two-week sprints; adjust per team velocity.
+* Dates assume two-week sprints; adjust per team velocity.
 
 ---
 
@@ -164,7 +164,7 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 | Term           | Definition                                                                      |
 | -------------- | ------------------------------------------------------------------------------- |
 | **MCP**        | Model Context Protocol – JSON-RPC-based standard for agent ↔ server interaction |
-| **Hypergraph** | Neo4j graph of Bernd’s skills, certifications, projects & relationships         |
+| **Hypergraph** | Neo4j graph of Bernd's skills, certifications, projects & relationships         |
 | **Resource**   | Read-only data entity exposed via MCP (`skills.node`, `profiles.summary`, …)    |
 | **Tool**       | Model-invocable function with strict JSON Schema parameters & returns           |
 
@@ -180,4 +180,3 @@ SkillSphere exposes Bernd Prager’s skills-and-experience **hypergraph** throug
 ---
 
 **Next step:** Kick-off Sprint 1 on 2 June 2025 with finalized epics and Jira tickets.
-
