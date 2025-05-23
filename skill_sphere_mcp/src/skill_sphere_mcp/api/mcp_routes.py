@@ -1,12 +1,13 @@
 """MCP (Model Context Protocol) route definitions and handlers."""
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
 from neo4j import AsyncSession
 from pydantic import BaseModel, Field
+from sentence_transformers import SentenceTransformer
 
 from skill_sphere_mcp.auth.pat import get_current_token
 from skill_sphere_mcp.db.neo4j import neo4j_conn
@@ -14,6 +15,13 @@ from skill_sphere_mcp.graph.embeddings import embeddings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Initialize the model at module level
+try:
+    model: Optional[SentenceTransformer] = SentenceTransformer("all-MiniLM-L6-v2")
+except ImportError:
+    model = None
+    logger.warning("sentence-transformers not installed, will use random embeddings")
 
 get_db_session = Depends(neo4j_conn.get_session)
 
@@ -309,7 +317,9 @@ async def explain_match(
         explanation = f"Skill {record['s']['name']} matches requirement '{request.role_requirement}' "
         explanation += f"based on {len(evidence)} pieces of evidence."
 
-        return ExplainMatchResponse(explanation=explanation, evidence=evidence).dict()
+        return ExplainMatchResponse(
+            explanation=explanation, evidence=evidence
+        ).model_dump()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid skill ID format") from None
 
@@ -363,15 +373,13 @@ async def graph_search(
         ) from exc
 
     try:
-        from sentence_transformers import SentenceTransformer
-
-        model = SentenceTransformer("all-MiniLM-L6-v2")
-        query_embedding = model.encode(request.query)
-    except ImportError:
-        logger.warning(
-            "sentence-transformers not installed, falling back to random embeddings"
-        )
-        query_embedding = np.random.randn(128)
+        if model is None:
+            raise ImportError("sentence-transformers not available")
+        tensor = model.encode(request.query)
+        query_embedding: np.ndarray = tensor.numpy()  # Convert Tensor to numpy array
+    except Exception as exc:
+        logger.warning("Failed to encode query: %s", exc)
+        query_embedding = np.random.default_rng(42).standard_normal(128)
 
     results = await embeddings.search(
         session=session, query_embedding=query_embedding, top_k=request.top_k

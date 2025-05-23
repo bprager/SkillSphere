@@ -185,7 +185,7 @@ async def health_check() -> dict[str, str]:
 
 
 @app.get("/v1/entity/{entity_id}", response_model=Entity, summary="Get entity by ID")
-async def get_entity(entity_id: int):
+async def get_entity(entity_id: int) -> Entity:
     """Get a graph entity by its ID, including its relationships."""
     logger.info("Fetching entity with ID: %d", entity_id)
     cypher = (
@@ -217,7 +217,7 @@ async def get_entity(entity_id: int):
 @app.post(
     "/v1/search", response_model=list[SearchResult], summary="Semantic / graph search"
 )
-async def search(request: SearchRequest):
+async def search(request: SearchRequest) -> list[SearchResult]:
     """Search for entities using semantic or graph-based queries."""
     logger.info("Search request: %s (k=%d)", request.query, request.k)
     # Placeholder for future vector search

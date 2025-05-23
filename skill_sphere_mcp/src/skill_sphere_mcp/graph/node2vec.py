@@ -1,7 +1,9 @@
 """Node2Vec implementation for graph embeddings."""
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Optional, Union
+
 import numpy as np
 from neo4j import AsyncSession
 from sklearn.preprocessing import normalize
@@ -9,50 +11,44 @@ from sklearn.preprocessing import normalize
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class Node2VecConfig:
+    """Node2Vec configuration parameters."""
+
+    dimension: int = 128
+    walk_length: int = 80
+    num_walks: int = 10
+    p: float = 1.0
+    q: float = 1.0
+    window_size: int = 5
+    num_neg_samples: int = 5
+    learning_rate: float = 0.025
+    epochs: int = 5
+
+
 class Node2Vec:
     """Node2Vec implementation for graph embeddings."""
 
-    def __init__(
-        self,
-        dimension: int = 128,
-        walk_length: int = 80,
-        num_walks: int = 10,
-        p: float = 1.0,
-        q: float = 1.0,
-        window_size: int = 5,
-        num_neg_samples: int = 5,
-        learning_rate: float = 0.025,
-        epochs: int = 5,
-    ):
-        """Initialize Node2Vec.
+    def __init__(self, config: Union[Node2VecConfig, None] = None):
+        """Initialize Node2Vec."""
+        config = config or Node2VecConfig()
+        self.dimension = config.dimension
+        self.walk_length = config.walk_length
+        self.num_walks = config.num_walks
+        self.p = config.p
+        self.q = config.q
+        self.window_size = config.window_size
+        self.num_neg_samples = config.num_neg_samples
+        self.learning_rate = config.learning_rate
+        self.epochs = config.epochs
+        self._rng = np.random.default_rng(42)  # Fixed seed for reproducibility
 
-        Args:
-            dimension: Embedding dimension
-            walk_length: Length of random walks
-            num_walks: Number of walks per node
-            p: Return parameter
-            q: In-out parameter
-            window_size: Context window size
-            num_neg_samples: Number of negative samples
-            learning_rate: Learning rate
-            epochs: Number of training epochs
-        """
-        self.dimension = dimension
-        self.walk_length = walk_length
-        self.num_walks = num_walks
-        self.p = p
-        self.q = q
-        self.window_size = window_size
-        self.num_neg_samples = num_neg_samples
-        self.learning_rate = learning_rate
-        self.epochs = epochs
+        self._embeddings: dict[str, np.ndarray] = {}
+        self._node_ids: dict[str, int] = {}
+        self._alias_nodes: dict[str, dict[str, list[int]]] = {}
+        self._alias_edges: dict[tuple[str, str], dict[str, list[int]]] = {}
 
-        self._embeddings: Dict[str, np.ndarray] = {}
-        self._node_ids: Dict[str, int] = {}
-        self._alias_nodes: Dict[str, Dict[str, List[int]]] = {}
-        self._alias_edges: Dict[Tuple[str, str], Dict[str, List[int]]] = {}
-
-    async def _get_graph(self, session: AsyncSession) -> Dict[str, List[str]]:
+    async def _get_graph(self, session: AsyncSession) -> dict[str, list[str]]:
         """Get graph structure from Neo4j.
 
         Args:
@@ -74,15 +70,15 @@ class Node2Vec:
             graph[node_id] = neighbors
         return graph
 
-    def _preprocess_transition_probs(self, graph: Dict[str, List[str]]) -> None:
+    def _preprocess_transition_probs(self, graph: dict[str, list[str]]) -> None:
         """Preprocess transition probabilities for random walks.
 
         Args:
             graph: Dictionary mapping node IDs to their neighbors
         """
         # Preprocess node transition probabilities
-        for node in graph:
-            unnormalized_probs = [1.0] * len(graph[node])
+        for node, neighbors in graph.items():
+            unnormalized_probs = [1.0] * len(neighbors)
             norm_const = sum(unnormalized_probs)
             normalized_probs = [
                 float(u_prob) / norm_const for u_prob in unnormalized_probs
@@ -90,13 +86,13 @@ class Node2Vec:
             self._alias_nodes[node] = self._alias_setup(normalized_probs)
 
         # Preprocess edge transition probabilities
-        for node in graph:
-            for neighbor in graph[node]:
+        for node, neighbors in graph.items():
+            for neighbor in neighbors:
                 unnormalized_probs = []
                 for next_node in graph[neighbor]:
                     if next_node == node:
                         unnormalized_probs.append(1.0 / self.p)
-                    elif next_node in graph[node]:
+                    elif next_node in neighbors:
                         unnormalized_probs.append(1.0)
                     else:
                         unnormalized_probs.append(1.0 / self.q)
@@ -108,7 +104,7 @@ class Node2Vec:
                     normalized_probs
                 )
 
-    def _alias_setup(self, probs: List[float]) -> Dict[str, List[int]]:
+    def _alias_setup(self, probs: list[float]) -> dict[str, list[int]]:
         """Set up alias sampling.
 
         Args:
@@ -117,14 +113,14 @@ class Node2Vec:
         Returns:
             Dictionary with alias sampling tables
         """
-        K = len(probs)
-        q = np.zeros(K)
-        J = np.zeros(K, dtype=np.int32)
+        k = len(probs)
+        q = np.zeros(k)
+        j = np.zeros(k, dtype=np.int32)
 
         smaller = []
         larger = []
         for kk, prob in enumerate(probs):
-            q[kk] = K * prob
+            q[kk] = k * prob
             if q[kk] < 1.0:
                 smaller.append(kk)
             else:
@@ -134,34 +130,25 @@ class Node2Vec:
             small = smaller.pop()
             large = larger.pop()
 
-            J[small] = large
+            j[small] = large
             q[large] = q[large] + q[small] - 1.0
             if q[large] < 1.0:
                 smaller.append(large)
             else:
                 larger.append(large)
 
-        return {"J": J.tolist(), "q": q.tolist()}
+        return {"J": j.tolist(), "q": q.tolist()}
 
-    def _alias_draw(self, alias: Dict[str, List[int]], idx: int) -> int:
-        """Draw sample from alias table.
-
-        Args:
-            alias: Alias sampling tables
-            idx: Index to sample from
-
-        Returns:
-            Sampled index
-        """
-        J = alias["J"]
+    def _alias_draw(self, alias: dict[str, list[int]], idx: int) -> int:
+        """Draw sample from alias table."""
+        j = alias["J"]
         q = alias["q"]
 
-        if np.random.random() < q[idx]:
+        if self._rng.random() < q[idx]:
             return idx
-        else:
-            return J[idx]
+        return j[idx]
 
-    def _node2vec_walk(self, start_node: str, graph: Dict[str, List[str]]) -> List[str]:
+    def _node2vec_walk(self, start_node: str, graph: dict[str, list[str]]) -> list[str]:
         """Generate a random walk starting from a node.
 
         Args:
@@ -187,61 +174,56 @@ class Node2Vec:
                 break
         return walk
 
-    def _generate_walks(self, graph: Dict[str, List[str]]) -> List[List[str]]:
-        """Generate random walks for all nodes.
-
-        Args:
-            graph: Dictionary mapping node IDs to their neighbors
-
-        Returns:
-            List of random walks
-        """
+    def _generate_walks(self, graph: dict[str, list[str]]) -> list[list[str]]:
+        """Generate random walks for all nodes."""
         walks = []
         nodes = list(graph.keys())
         for _ in range(self.num_walks):
-            np.random.shuffle(nodes)
+            self._rng.shuffle(nodes)
             for node in nodes:
                 walks.append(self._node2vec_walk(node, graph))
         return walks
 
-    def _train_embeddings(self, walks: List[List[str]]) -> None:
-        """Train embeddings using skip-gram model.
-
-        Args:
-            walks: List of random walks
-        """
-        # Initialize embeddings
-        nodes = set()
-        for walk in walks:
-            nodes.update(walk)
+    def _initialize_embeddings(self, nodes: set[str]) -> None:
+        """Initialize random embeddings for nodes."""
         for node in nodes:
-            self._embeddings[node] = np.random.randn(self.dimension)
+            self._embeddings[node] = self._rng.standard_normal(self.dimension)
             self._embeddings[node] = normalize(self._embeddings[node].reshape(1, -1))[0]
+
+    def _get_context_nodes(self, walk: list[str], center_idx: int) -> list[str]:
+        """Get context nodes within window size."""
+        start = max(0, center_idx - self.window_size)
+        end = min(len(walk), center_idx + self.window_size + 1)
+        return walk[start:end]
+
+    def _process_positive_samples(self, node: str, context_nodes: list[str]) -> None:
+        """Process positive samples for a node."""
+        for context_node in context_nodes:
+            if context_node != node:
+                self._update_embedding(node, context_node, 1.0)
+
+    def _process_negative_samples(
+        self, node: str, context_nodes: list[str], nodes: set[str]
+    ) -> None:
+        """Process negative samples for a node."""
+        for _ in range(self.num_neg_samples):
+            neg_node = self._rng.choice(list(nodes))
+            if neg_node not in context_nodes:
+                self._update_embedding(node, neg_node, -1.0)
+
+    def _train_embeddings(self, walks: list[list[str]]) -> None:
+        """Train embeddings using skip-gram model."""
+        # Initialize embeddings
+        nodes = {node for walk in walks for node in walk}
+        self._initialize_embeddings(nodes)
 
         # Train embeddings
         for _ in range(self.epochs):
             for walk in walks:
                 for i, node in enumerate(walk):
-                    # Positive samples
-                    for j in range(
-                        max(0, i - self.window_size),
-                        min(len(walk), i + self.window_size + 1),
-                    ):
-                        if i != j:
-                            self._update_embedding(node, walk[j], 1.0)
-
-                    # Negative samples
-                    for _ in range(self.num_neg_samples):
-                        neg_node = np.random.choice(list(nodes))
-                        if (
-                            neg_node
-                            not in walk[
-                                max(0, i - self.window_size) : min(
-                                    len(walk), i + self.window_size + 1
-                                )
-                            ]
-                        ):
-                            self._update_embedding(node, neg_node, -1.0)
+                    context_nodes = self._get_context_nodes(walk, i)
+                    self._process_positive_samples(node, context_nodes)
+                    self._process_negative_samples(node, context_nodes, nodes)
 
     def _update_embedding(self, node1: str, node2: str, label: float) -> None:
         """Update embeddings using gradient descent.
@@ -297,7 +279,7 @@ class Node2Vec:
         """
         return self._embeddings.get(node_id)
 
-    def get_all_embeddings(self) -> Dict[str, np.ndarray]:
+    def get_all_embeddings(self) -> dict[str, np.ndarray]:
         """Get all node embeddings.
 
         Returns:

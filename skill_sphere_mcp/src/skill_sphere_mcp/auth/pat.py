@@ -1,15 +1,16 @@
 """Personal Access Token (PAT) authentication."""
 
 import logging
-from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import Depends, HTTPException, Security
+from datetime import datetime, timedelta, timezone
+
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
+get_credentials = Depends(security)
 
 
 class PAT(BaseModel):
@@ -38,8 +39,8 @@ class PATAuth:
             New PAT instance
         """
         # Generate a random token (in production, use a proper token generator)
-        token = f"pat_{datetime.utcnow().timestamp()}"
-        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        token = f"pat_{datetime.now(timezone.utc).timestamp()}"
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
 
         pat = PAT(token=token, expires_at=expires_at, description=description)
         self._tokens[token] = pat
@@ -59,7 +60,7 @@ class PATAuth:
             return False
 
         pat = self._tokens[token]
-        if datetime.utcnow() > pat.expires_at:
+        if datetime.now(timezone.utc) > pat.expires_at:
             del self._tokens[token]
             return False
 
@@ -81,7 +82,7 @@ pat_auth = PATAuth()
 
 
 async def get_current_token(
-    credentials: HTTPAuthorizationCredentials = Security(security),
+    credentials: HTTPAuthorizationCredentials = get_credentials,
 ) -> str:
     """Get and validate the current PAT.
 

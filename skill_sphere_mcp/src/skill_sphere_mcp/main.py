@@ -1,16 +1,16 @@
 """Main application module."""
 
-import asyncio
 import logging
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.routes import router as api_router
 from .api.mcp_routes import router as mcp_router
+from .api.routes import router as api_router
 from .config.settings import get_settings
 from .db.neo4j import neo4j_conn
 from .telemetry.otel import setup_telemetry
@@ -26,12 +26,13 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown events."""
     # Setup OpenTelemetry
     tracer = setup_telemetry()
     if tracer:
         logger.info("OpenTelemetry configured successfully")
+        app.state.tracer = tracer
 
     # Verify Neo4j connection
     if await neo4j_conn.verify_connectivity():
@@ -72,7 +73,7 @@ def create_app() -> FastAPI:
     return app
 
 
-def main():
+def main() -> None:
     """Application entry point."""
     settings = get_settings()
     uvicorn.run(

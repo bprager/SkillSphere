@@ -1,8 +1,8 @@
 """Application settings and configuration."""
 
-from functools import lru_cache
-import sys
 import logging
+import sys
+from functools import lru_cache
 
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict

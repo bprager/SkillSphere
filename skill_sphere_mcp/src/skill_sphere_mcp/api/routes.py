@@ -2,15 +2,13 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.db.neo4j import neo4j_conn
+from skill_sphere_mcp.db.deps import get_db_session
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-get_db_session = Depends(neo4j_conn.get_session)
 
 
 @router.get("/health")

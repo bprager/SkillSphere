@@ -18,6 +18,11 @@ dependencies = [
     "pyyaml>=6.0.2",
 ]
 
+[dependency-groups]
+dev = [
+    "pandoc-plantuml-filter>=0.1.5",
+]
+
 [tool.uv.workspace]
 members = [
     "skill_sphere_mcp",

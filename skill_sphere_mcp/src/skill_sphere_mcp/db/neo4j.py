@@ -1,45 +1,38 @@
-"""Neo4j database connection and session management."""
+"""Neo4j database connection management."""
 
-import logging
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
-from neo4j import AsyncDriver, AsyncGraphDatabase
-from neo4j.exceptions import ServiceUnavailable
+from neo4j import AsyncGraphDatabase, AsyncSession
 
-from ..config.settings import get_settings
-
-logger = logging.getLogger(__name__)
+from skill_sphere_mcp.config.settings import get_settings
 
 
 class Neo4jConnection:
-    """Manages Neo4j database connection and session lifecycle."""
+    """Neo4j connection manager."""
 
     def __init__(self) -> None:
-        """Initialize Neo4j connection with settings."""
         settings = get_settings()
-        self._driver: AsyncDriver = AsyncGraphDatabase.driver(
-            settings.neo4j_uri,
-            auth=(settings.neo4j_user, settings.neo4j_password),
+        self._driver = AsyncGraphDatabase.driver(
+            settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
         )
 
-    async def close(self) -> None:
-        """Close the Neo4j driver connection."""
-        await self._driver.close()
-
     async def verify_connectivity(self) -> bool:
-        """Verify Neo4j database connectivity."""
+        """Verify database connectivity."""
+        from neo4j.exceptions import AuthError, ServiceUnavailable
+
         try:
             await self._driver.verify_connectivity()
             return True
-        except ServiceUnavailable as exc:
-            logger.error("Failed to connect to Neo4j: %s", exc)
+        except (ServiceUnavailable, AuthError):
             return False
 
-    async def get_session(self) -> AsyncGenerator:
-        """Get an async Neo4j session."""
-        async with self._driver.session() as session:
+    async def close(self) -> None:
+        """Close the database connection."""
+        await self._driver.close()
+    async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
+         """Get a Neo4j async session."""
+        session = self._driver.session()
+        try:
             yield session
-
-
-# Global connection instance
-neo4j_conn = Neo4jConnection()
+        finally:
+            await session.close()
