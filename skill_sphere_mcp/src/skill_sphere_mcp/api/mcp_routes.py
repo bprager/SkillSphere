@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
 from skill_sphere_mcp.auth.pat import get_current_token
-from skill_sphere_mcp.db.neo4j import neo4j_conn
+from skill_sphere_mcp.db import neo4j_conn
 from skill_sphere_mcp.graph.embeddings import embeddings
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,9 @@ router = APIRouter()
 
 # Initialize the model at module level
 try:
-    model: Optional[SentenceTransformer] = SentenceTransformer("all-MiniLM-L6-v2")
+    MODEL: Optional[SentenceTransformer] = SentenceTransformer("all-MiniLM-L6-v2")
 except ImportError:
-    model = None
+    MODEL = None
     logger.warning("sentence-transformers not installed, will use random embeddings")
 
 get_db_session = Depends(neo4j_conn.get_session)
@@ -314,8 +314,10 @@ async def explain_match(
             for rel in record["evidence"]
         ]
 
-        explanation = f"Skill {record['s']['name']} matches requirement '{request.role_requirement}' "
-        explanation += f"based on {len(evidence)} pieces of evidence."
+        explanation = (
+            f"Skill {record['s']['name']} matches requirement "
+            f"'{request.role_requirement}' based on {len(evidence)} pieces of evidence."
+        )
 
         return ExplainMatchResponse(
             explanation=explanation, evidence=evidence
@@ -373,11 +375,11 @@ async def graph_search(
         ) from exc
 
     try:
-        if model is None:
+        if MODEL is None:
             raise ImportError("sentence-transformers not available")
-        tensor = model.encode(request.query)
+        tensor = MODEL.encode(request.query)
         query_embedding: np.ndarray = tensor.numpy()  # Convert Tensor to numpy array
-    except Exception as exc:
+    except (ImportError, AttributeError, RuntimeError) as exc:
         logger.warning("Failed to encode query: %s", exc)
         query_embedding = np.random.default_rng(42).standard_normal(128)
 
