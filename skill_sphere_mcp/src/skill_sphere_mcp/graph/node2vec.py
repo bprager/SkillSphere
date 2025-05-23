@@ -286,3 +286,99 @@ class Node2Vec:
             Dictionary mapping node IDs to their embeddings
         """
         return self._embeddings.copy()
+
+    async def get_graph(self, session: AsyncSession) -> dict[str, list[str]]:
+        """Get the graph structure from Neo4j."""
+        return await self._get_graph(session)
+
+    def preprocess_transition_probs(self, graph: dict[str, list[str]]) -> None:
+        """Preprocess transition probabilities for random walks.
+
+        Args:
+            graph: Dictionary mapping node IDs to their neighbors
+        """
+        self._preprocess_transition_probs(graph)
+
+    def get_alias_nodes(self) -> dict[str, dict[str, list[int]]]:
+        """Get the alias nodes dictionary."""
+        return self._alias_nodes.copy()
+
+    def get_alias_edges(self) -> dict[tuple[str, str], dict[str, list[int]]]:
+        """Get the alias edges dictionary."""
+        return self._alias_edges.copy()
+
+    def alias_setup(self, probs: list[float]) -> dict[str, list[int]]:
+        """Set up alias sampling.
+
+        Args:
+            probs: List of probabilities
+
+        Returns:
+            Dictionary with alias sampling tables
+        """
+        return self._alias_setup(probs)
+
+    def alias_draw(self, alias: dict[str, list[int]], idx: int) -> int:
+        """Draw sample from alias table."""
+        return self._alias_draw(alias, idx)
+
+    def node2vec_walk(self, start_node: str, graph: dict[str, list[str]]) -> list[str]:
+        """Generate a random walk starting from a node.
+
+        Args:
+            start_node: Starting node ID
+            graph: Dictionary mapping node IDs to their neighbors
+
+        Returns:
+            List of node IDs in the walk
+        """
+        return self._node2vec_walk(start_node, graph)
+
+    def initialize_embeddings(self, nodes: set[str]) -> None:
+        """Initialize random embeddings for nodes."""
+        self._initialize_embeddings(nodes)
+
+    def get_context_nodes(self, walk: list[str], center_idx: int) -> list[str]:
+        """Get context nodes within window size."""
+        return self._get_context_nodes(walk, center_idx)
+
+    def process_positive_samples(self, node: str, context_nodes: list[str]) -> None:
+        """Process positive samples for a node."""
+        self._process_positive_samples(node, context_nodes)
+
+    def process_negative_samples(
+        self, node: str, context_nodes: list[str], nodes: set[str]
+    ) -> None:
+        """Process negative samples for a node."""
+        self._process_negative_samples(node, context_nodes, nodes)
+
+    def update_embedding(self, node1: str, node2: str, label: float) -> None:
+        """Update embeddings using gradient descent.
+
+        Args:
+            node1: First node ID
+            node2: Second node ID
+            label: 1.0 for positive samples, -1.0 for negative
+        """
+        self._update_embedding(node1, node2, label)
+
+    def set_embedding(self, node_id: str, embedding: np.ndarray) -> None:
+        """Set embedding for a node.
+
+        Args:
+            node_id: Node ID
+            embedding: Embedding vector
+        """
+        self._embeddings[node_id] = embedding
+
+    def set_all_embeddings(self, embeddings: dict[str, np.ndarray]) -> None:
+        """Set all node embeddings.
+
+        Args:
+            embeddings: Dictionary mapping node IDs to their embeddings
+        """
+        self._embeddings = embeddings.copy()
+
+    def generate_walks(self, graph: dict[str, list[str]]) -> list[list[str]]:
+        """Generate random walks for all nodes."""
+        return self._generate_walks(graph)
