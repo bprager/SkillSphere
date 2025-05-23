@@ -3,23 +3,33 @@ name = "skill-sphere-mcp"
 version = "0.1.0"
 description = "Management Control Plane for Skill Sphere"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Bernd Prager", email = "bernd@example.com"},
 ]
 dependencies = [
-    "fastapi>=0.109.0",
-    "uvicorn>=0.27.0",
-    "neo4j>=5.14.0",
-    "pydantic>=2.6.0",
-    "pydantic-settings>=2.1.0",
-    "opentelemetry-api>=1.22.0",
-    "opentelemetry-sdk>=1.22.0",
-    "opentelemetry-exporter-otlp>=1.22.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "neo4j>=5.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
     "opentelemetry-instrumentation-fastapi>=0.42b0",
     "opentelemetry-instrumentation-requests>=0.42b0",
-    "isort>=6.0.1",
-    "mypy>=1.15.0",
+    "python-dotenv>=1.0.0",
+    "numpy>=1.25.0,<3.0",
+    "scikit-learn>=1.3.0",
 ]
 requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -29,7 +39,7 @@ build-backend = "hatchling.build"
 line-length = 88
 target-version = "py39"
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
-ignore = []
+ignore = ["E501"]
 
 [tool.ruff.isort]
 known-first-party = ["skill_sphere_mcp"]
@@ -38,4 +48,22 @@ known-first-party = ["skill_sphere_mcp"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=skill_sphere_mcp"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["numpy.*", "sklearn.*"]
+ignore_missing_imports = true
 

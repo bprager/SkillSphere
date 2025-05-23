@@ -28,7 +28,7 @@ MCP provides a negotiated, machine-readable interface built on JSON-RPC 2.0 and 
 
 ## 3 · High-level architecture
 
-```plantuml
+```{ .plantuml height=50% plantuml-filename=HighLevelArchitecture.png }
 @startuml
 title SkillSphere MCP High-Level Architecture
 

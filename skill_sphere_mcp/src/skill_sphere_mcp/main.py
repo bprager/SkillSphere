@@ -9,7 +9,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.routes import router
+from .api.routes import router as api_router
+from .api.mcp_routes import router as mcp_router
 from .config.settings import get_settings
 from .db.neo4j import neo4j_conn
 from .telemetry.otel import setup_telemetry
@@ -65,7 +66,8 @@ def create_app() -> FastAPI:
     )
 
     # Include API routes
-    app.include_router(router, prefix="/api/v1")
+    app.include_router(api_router, prefix="/api/v1")
+    app.include_router(mcp_router, prefix="/api/mcp")
 
     return app
 
