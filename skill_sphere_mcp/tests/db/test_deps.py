@@ -1,15 +1,21 @@
 """Tests for database dependencies."""
 
+# pylint: disable=redefined-outer-name
+
+from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from neo4j import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
 from skill_sphere_mcp.db.neo4j import neo4j_conn
+
+get_db_session_dep = Depends(neo4j_conn.get_session)
 
 
 @pytest.fixture
@@ -17,53 +23,53 @@ def app() -> FastAPI:
     """Create a test FastAPI application."""
     test_app = FastAPI()
 
-    @test_app.get("/test")
+    @test_app.get("/test", response_model=None)
     async def test_route(
-        db_session: AsyncSession,
+        db_session: AsyncSession = get_db_session_dep,
     ) -> dict[str, Any]:
-        assert db_session is not None
+        # Use the session to trigger any potential errors
+        await db_session.run("MATCH (n) RETURN n")
         return {"status": "ok"}
+
+    @test_app.exception_handler(Exception)
+    async def generic_exception_handler(exc: Exception) -> JSONResponse:
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": str(exc)},
+        )
 
     return test_app
 
 
 @pytest.mark.asyncio
-async def test_get_db_session(test_app: FastAPI) -> None:
+async def test_get_db_session(app: FastAPI) -> None:
     """Test that get_db_session dependency returns a session."""
-    # Create a mock session
     mock_session = AsyncMock()
+    mock_result = AsyncMock()
+    mock_session.run.return_value = mock_result
 
-    # Mock the neo4j_conn.get_session method
-    with patch.object(neo4j_conn, "get_session") as mock_get_session:
-        # Set up the mock to return our mock session
-        mock_get_session.return_value = mock_session
+    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        yield mock_session
 
-        # Create a test client
-        client = TestClient(test_app)
+    app.dependency_overrides[neo4j_conn.get_session] = override_get_session
 
-        # Make a request to trigger the dependency
-        response = client.get("/test")
-
-        # Verify the response
-        assert response.status_code == HTTP_200_OK
-        assert response.json() == {"status": "ok"}
-
-        # Verify that the session was obtained from neo4j_conn
-        mock_get_session.assert_called_once()
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.get("/test")
+    assert response.status_code == HTTP_200_OK
+    assert response.json() == {"status": "ok"}
 
 
 @pytest.mark.asyncio
-async def test_get_db_session_error_handling(test_app: FastAPI) -> None:
+async def test_get_db_session_error_handling(app: FastAPI) -> None:
     """Test that get_db_session properly handles errors."""
-    # Mock the neo4j_conn.get_session method to raise an error
-    with patch.object(neo4j_conn, "get_session") as mock_get_session:
-        mock_get_session.side_effect = RuntimeError("Database error")
+    mock_session = AsyncMock()
+    mock_session.run.side_effect = RuntimeError("Database error")
 
-        # Create a test client
-        client = TestClient(test_app)
+    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        yield mock_session
 
-        # Make a request to trigger the dependency
-        response = client.get("/test")
+    app.dependency_overrides[neo4j_conn.get_session] = override_get_session
 
-        # Verify that the error is handled appropriately
-        assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.get("/test")
+    assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR

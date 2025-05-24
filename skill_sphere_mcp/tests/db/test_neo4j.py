@@ -1,9 +1,12 @@
 """Tests for Neo4j database connection management."""
 
+# pylint: disable=redefined-outer-name
+
+from builtins import anext  # type: ignore[attr-defined]
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from neo4j import AsyncGraphDatabase, AsyncSession
+from neo4j import AsyncSession
 from neo4j.exceptions import AuthError, ServiceUnavailable
 
 from skill_sphere_mcp.db.neo4j import Neo4jConnection, neo4j_conn
@@ -22,13 +25,19 @@ def mock_settings() -> MagicMock:
 @pytest.fixture
 def mock_driver() -> AsyncMock:
     """Create mock Neo4j driver."""
-    return AsyncMock(spec=AsyncGraphDatabase)
+    driver = AsyncMock()
+    driver.verify_connectivity = AsyncMock()
+    driver.close = AsyncMock()
+    driver.session = MagicMock()
+    return driver
 
 
 @pytest.fixture
 def mock_session() -> AsyncMock:
     """Create mock Neo4j session."""
-    return AsyncMock(spec=AsyncSession)
+    session = AsyncMock(spec=AsyncSession)
+    session.close = AsyncMock()
+    return session
 
 
 @pytest.fixture
@@ -45,21 +54,18 @@ def conn(mock_settings: MagicMock, mock_driver: AsyncMock) -> Neo4jConnection:
 
 
 @pytest.mark.asyncio
-async def test_connection_initialization(
-    mock_settings: MagicMock, mock_driver: AsyncMock
-) -> None:
+async def test_connection_initialization(mock_settings: MagicMock) -> None:
     """Test Neo4j connection initialization."""
+    driver_mock = AsyncMock()
     with (
         patch("skill_sphere_mcp.db.neo4j.get_settings", return_value=mock_settings),
         patch(
             "skill_sphere_mcp.db.neo4j.AsyncGraphDatabase.driver",
-            return_value=mock_driver,
-        ),
+            return_value=driver_mock,
+        ) as mock_driver_factory,
     ):
-        conn = Neo4jConnection()
-
-        # Verify driver was created with correct parameters
-        mock_driver.assert_called_once_with(
+        Neo4jConnection()
+        mock_driver_factory.assert_called_once_with(
             mock_settings.neo4j_uri,
             auth=(mock_settings.neo4j_user, mock_settings.neo4j_password),
         )
@@ -118,7 +124,7 @@ async def test_get_session(
     mock_driver.session.return_value = mock_session
 
     async for session in conn.get_session():
-        assert session == mock_session
+        assert session is mock_session
         # Verify session was created
         mock_driver.session.assert_called_once()
 
@@ -135,10 +141,11 @@ async def test_get_session_error_handling(
     mock_session.close.side_effect = RuntimeError("Close error")
 
     # Session should still be closed even if an error occurs
-    async for session in conn.get_session():
-        assert session == mock_session
-        raise RuntimeError("Test error")
-
+    with pytest.raises(RuntimeError, match="Close error"):
+        agen = conn.get_session()
+        session = await anext(agen)
+        assert session is mock_session
+        await agen.athrow(RuntimeError("Test error"))
     mock_session.close.assert_called_once()
 
 
@@ -149,11 +156,11 @@ async def test_get_session_cleanup_on_error(
     """Test session cleanup when an error occurs during session usage."""
     mock_driver.session.return_value = mock_session
 
-    with pytest.raises(RuntimeError):
-        async for session in conn.get_session():
-            assert session == mock_session
-            raise RuntimeError("Test error")
-
+    agen = conn.get_session()
+    with pytest.raises(RuntimeError, match="Test error"):
+        session = await anext(agen)
+        assert session is mock_session
+        await agen.athrow(RuntimeError("Test error"))
     # Verify session was closed even after error
     mock_session.close.assert_called_once()
 
