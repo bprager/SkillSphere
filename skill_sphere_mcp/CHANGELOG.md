@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Graceful fallback for missing sentence-transformers
   - Clear error messages
   - Proper cleanup
+- Enhanced test coverage
+  - Comprehensive unit tests for Neo4j connection
+  - Async test patterns with pytest-asyncio
+  - Mock implementations for external dependencies
+- Improved Neo4j connection management
+  - Async session handling
+  - Proper resource cleanup
+  - Connection pooling support
 
 ### Changed
 
@@ -45,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better mypy compliance
   - Stricter type checking
   - Enhanced code quality
+- Refactored Neo4j connection handling
+  - Moved to dedicated connection module
+  - Improved async patterns
+  - Better error handling
 
 ### Fixed
 
@@ -64,18 +76,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Proper startup/shutdown handling
   - Improved error handling during initialization
   - Better resource cleanup
+- Test suite improvements
+  - Fixed async test patterns
+  - Improved mock implementations
+  - Better test isolation
 
 ### Security
 
 - Enhanced PAT token validation
 - Improved error message security
 - Added input sanitization
+- Read-only Neo4j access enforcement
 
 ### Performance
 
 - Optimized vector operations
 - Improved connection management
 - Enhanced error handling
+- Better async patterns
 
 ### TODO
 
@@ -87,6 +105,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Fix remaining type checking issues in main.py
 - [ ] Add proper return type annotations for async functions
 - [ ] Implement proper FastAPI lifespan management
+- [ ] Add JSON-RPC endpoint for MCP compliance
+- [ ] Implement JSON Schema validation for tool calls
+- [ ] Add contract tests for schema drift
+- [ ] Implement PII masking in OpenTelemetry traces
+- [ ] Add rate limiting
+- [ ] Create comprehensive API documentation
+- [ ] Add Docker/Kubernetes deployment support
 
 ## [0.2.0] - 2025-05-16
 

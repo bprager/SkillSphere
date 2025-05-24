@@ -9,7 +9,7 @@ The SkillSphere MCP Server exposes Bernd Prager's skills-and-experience hypergra
 
 ### 1. Application Structure
 
-The application is organized into three main files:
+The application is organized into several key modules:
 
 - `main.py`: Application entry point and lifecycle management
   - Handles startup/shutdown events
@@ -29,6 +29,12 @@ The application is organized into three main files:
   - Semantic search functionality
   - Request/response models
 
+- `db/connection.py`: Neo4j connection management
+  - Async session handling
+  - Connection pooling
+  - Resource cleanup
+  - Error handling
+
 ### 2. API Layer
 
 - FastAPI-based REST API with OpenTelemetry instrumentation
@@ -36,6 +42,7 @@ The application is organized into three main files:
 - MCP protocol compliance (v1.0)
 - Health check and monitoring endpoints
 - CORS middleware for cross-origin requests
+- JSON-RPC endpoint (planned)
 
 ### 3. Graph Database
 
@@ -44,6 +51,7 @@ The application is organized into three main files:
 - Read-only access for security
 - Bolt protocol for efficient communication
 - Connection pooling for performance
+- Schema validation and contract testing (planned)
 
 ### 4. Semantic Search
 
@@ -53,10 +61,11 @@ The application is organized into three main files:
 - OpenTelemetry tracing for performance monitoring
 - Graceful fallback for missing dependencies
 - Efficient vector operations using numpy
+- Redis caching for embeddings (planned)
 
 ### 5. Tool Dispatcher
 
-- JSON Schema validation for all tool calls
+- JSON Schema validation for all tool calls (planned)
 - Core tools:
   - `skill.match_role`: Role suitability assessment
   - `skill.explain_match`: Evidence-based matching explanation
@@ -72,6 +81,7 @@ The application is organized into three main files:
 - No PII exposure
 - Input validation and sanitization
 - Rate limiting (planned)
+- PII masking in traces (planned)
 
 ### Observability
 
@@ -80,6 +90,7 @@ The application is organized into three main files:
 - Performance metrics and tracing
 - Error tracking and alerting
 - Request/response monitoring
+- PII masking in traces (planned)
 
 ### Performance
 
@@ -88,6 +99,7 @@ The application is organized into three main files:
 - Embedding caching (planned)
 - Efficient vector operations
 - Query optimization
+- Rate limiting (planned)
 
 ## Future Improvements
 
@@ -123,6 +135,14 @@ The application is organized into three main files:
 - [ ] Improve error messages
 - [ ] Add performance profiling tools
 
+### 5. MCP Compliance
+
+- [ ] Add JSON-RPC endpoint
+- [ ] Implement JSON Schema validation
+- [ ] Add contract tests for schema drift
+- [ ] Create comprehensive API documentation
+- [ ] Add Docker/Kubernetes deployment support
+
 ## Dependencies
 
 - FastAPI (Web framework)
@@ -132,6 +152,7 @@ The application is organized into three main files:
 - Pydantic (Data validation)
 - NumPy (Vector operations)
 - scikit-learn (Similarity metrics)
+- Redis (planned, for caching)
 
 ## Development Guidelines
 
@@ -140,14 +161,16 @@ The application is organized into three main files:
 3. Use type hints consistently
 4. Document all public APIs
 5. Keep dependencies up to date
+6. Write contract tests for schema changes
 
 ## Deployment
 
-- Docker-based deployment
-- Kubernetes support
+- Docker-based deployment (planned)
+- Kubernetes support (planned)
 - Environment-based configuration
 - Health check integration
 - Monitoring setup
+- Rate limiting (planned)
 
 © 2025 Bernd Prager – MIT License
 
