@@ -1,40 +1,15 @@
-#!/usr/bin/env python3
-"""
-MCP Server - FastAPI service exposing Skills-Graph (Neo4j) endpoints
-with OpenTelemetry instrumentation and Pydantic-powered settings.
-
-Author: Bernd Prager
-Revision: v0.2 - 2025-05-16
-
-Configuration is provided via environment variables **or** a `.env`
-file (loaded automatically in development).  See the `Settings`
-class below for full list and defaults.
-
-Dependencies (add to requirements.txt / pyproject.toml):
-    fastapi
-    uvicorn[standard]
-    neo4j>=5
-    pydantic>=2
-    pydantic-settings>=2
-    opentelemetry-api
-    opentelemetry-sdk
-    opentelemetry-exporter-otlp
-    opentelemetry-instrumentation-fastapi
-    opentelemetry-instrumentation-requests
-    python-dotenv            # optional, dev-only
-"""
-from __future__ import annotations
+"""MCP Server - FastAPI service exposing Skills-Graph (Neo4j) endpoints."""
 
 import logging
 import sys
 from functools import lru_cache
-from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from neo4j import Driver, GraphDatabase
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import FastAPI
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from skill_sphere_mcp.routes import router as api_router
 
 # Configure logging
 logging.basicConfig(
@@ -58,10 +33,6 @@ try:
 except ImportError:
     HAS_OTEL_INSTRUMENTATION = False
     logger.warning("OpenTelemetry instrumentation packages not installed")
-
-# --------------------------------------------------------------------------- #
-# Environment / settings                                                      #
-# --------------------------------------------------------------------------- #
 
 # In local development load .env first (noop in prod containers)
 try:
@@ -131,108 +102,13 @@ app = FastAPI(title="MCP Server", version="0.2.0")
 if HAS_OTEL_INSTRUMENTATION:
     FastAPIInstrumentor().instrument_app(app, tracer_provider=provider)
 
-# --------------------------------------------------------------------------- #
-# Neo4j Driver                                                                #
-# --------------------------------------------------------------------------- #
-
-
-@lru_cache(maxsize=1)
-def get_neo4j_driver() -> Driver:  # pragma: no cover
-    """Get cached Neo4j driver instance."""
-    return GraphDatabase.driver(
-        cfg.neo4j_uri, auth=(cfg.neo4j_user, cfg.neo4j_password)
-    )
-
-
-# --------------------------------------------------------------------------- #
-# Pydantic DTOs                                                               #
-# --------------------------------------------------------------------------- #
-
-
-class Entity(BaseModel):
-    """Graph entity with ID, labels, properties and optional relationships."""
-
-    id: str
-    labels: list[str]
-    properties: dict[str, Any]
-    relationships: list[dict[str, Any]] | None = None
-
-
-class SearchRequest(BaseModel):
-    """Search request with query string and optional result limit."""
-
-    query: str
-    k: int = 10  # top-k results
-
-
-class SearchResult(BaseModel):
-    """Search result with entity ID and relevance score."""
-
-    entity_id: str
-    score: float
-
-
-# --------------------------------------------------------------------------- #
-# Routes                                                                      #
-# --------------------------------------------------------------------------- #
-
-
-@app.get("/healthz", summary="Health check")
-async def health_check() -> dict[str, str]:
-    """Return service health status."""
-    logger.debug("Health check requested")
-    return {"status": "ok"}
-
-
-@app.get("/v1/entity/{entity_id}", response_model=Entity, summary="Get entity by ID")
-async def get_entity(entity_id: int) -> Entity:
-    """Get a graph entity by its ID, including its relationships."""
-    logger.info("Fetching entity with ID: %d", entity_id)
-    cypher = (
-        "MATCH (n) WHERE id(n) = $id "
-        "OPTIONAL MATCH (n)-[r]->(m) "
-        "RETURN n, collect({"
-        "    relType: type(r), "
-        "    targetId: id(m), "
-        "    targetLabels: labels(m)"
-        "}) AS rels"
-    )
-    with tracer.start_as_current_span("neo4j.get_entity"):
-        with get_neo4j_driver().session() as ses:
-            record = ses.run(cypher, id=entity_id).single()
-            if not record:
-                logger.warning("Entity not found: %d", entity_id)
-                raise HTTPException(status_code=404, detail="Entity not found")
-            node = record["n"]
-            rels = record["rels"]
-            logger.debug("Found entity with %d relationships", len(rels))
-            return Entity(
-                id=str(node.id),
-                labels=list(node.labels),
-                properties=dict(node),
-                relationships=rels,
-            )
-
-
-@app.post(
-    "/v1/search", response_model=list[SearchResult], summary="Semantic / graph search"
-)
-async def search(request: SearchRequest) -> list[SearchResult]:
-    """Search for entities using semantic or graph-based queries."""
-    logger.info("Search request: %s (k=%d)", request.query, request.k)
-    # Placeholder for future vector search
-    logger.warning("Semantic search not implemented yet")
-    raise HTTPException(
-        status_code=501,
-        detail="Free-text semantic search not implemented yet - embed the query first.",
-    )
+# Include API routes
+app.include_router(api_router)
 
 
 # --------------------------------------------------------------------------- #
 # Entrypoint - `python mcp_server.py`                                         #
 # --------------------------------------------------------------------------- #
-
-
 def main() -> None:  # pragma: no cover
     """Run the FastAPI server with uvicorn."""
     logger.info("Starting MCP server on %s:%d", cfg.host, cfg.port)

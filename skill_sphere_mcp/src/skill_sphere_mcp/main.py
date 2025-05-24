@@ -1,85 +1,56 @@
-"""Main application module."""
+"""Application entry point for the MCP server."""
 
 import logging
-import sys
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-from .api.mcp_routes import router as mcp_router
-from .api.routes import router as api_router
-from .config.settings import get_settings
-from .db.neo4j import neo4j_conn
-from .telemetry.otel import setup_telemetry
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+from skill_sphere_mcp.mcp_server import app, cfg, get_neo4j_driver, setup_telemetry
+from skill_sphere_mcp.routes import router
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
-    # Setup OpenTelemetry
+    # Startup
+    logger.info("Starting up MCP server...")
+
+    # Initialize OpenTelemetry
     tracer = setup_telemetry()
     if tracer:
-        logger.info("OpenTelemetry configured successfully")
         app.state.tracer = tracer
 
-    # Verify Neo4j connection
-    if await neo4j_conn.verify_connectivity():
-        logger.info("Neo4j connection verified")
-    else:
+    # Verify Neo4j connectivity
+    if not await get_neo4j_driver().verify_connectivity():
         logger.error("Failed to connect to Neo4j")
-        sys.exit(1)
+        raise RuntimeError("Neo4j connection failed")
+
+    # Include routes
+    app.include_router(router)
 
     yield
 
-    # Cleanup
-    await neo4j_conn.close()
-    logger.info("Application shutdown complete")
+    # Shutdown
+    logger.info("Shutting down MCP server...")
+    await get_neo4j_driver().close()
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    app = FastAPI(
-        title="Skill Sphere MCP",
-        description="Management Control Plane for Skill Sphere",
-        version="0.1.0",
-        lifespan=lifespan,
-    )
-
-    # Configure CORS
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    # Include API routes
-    app.include_router(api_router, prefix="/api/v1")
-    app.include_router(mcp_router, prefix="/api/mcp")
-
+    app.lifespan = lifespan
     return app
 
 
 def main() -> None:
-    """Application entry point."""
-    settings = get_settings()
+    """Run the FastAPI server with uvicorn."""
+    logger.info("Starting MCP server on %s:%d", cfg.host, cfg.port)
     uvicorn.run(
         "skill_sphere_mcp.main:create_app",
-        host=settings.host,
-        port=settings.port,
+        host=cfg.host,
+        port=cfg.port,
         factory=True,
         reload=True,
     )
