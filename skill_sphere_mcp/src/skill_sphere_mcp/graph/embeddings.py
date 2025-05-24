@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 from neo4j import AsyncSession
-from node2vec import Node2Vec  # type: ignore[import-untyped]
+from node2vec import Node2Vec
 from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)

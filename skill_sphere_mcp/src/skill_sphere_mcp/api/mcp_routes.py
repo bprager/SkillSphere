@@ -1,7 +1,7 @@
 """MCP (Model Context Protocol) route definitions and handlers."""
 
 import logging
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,7 +18,7 @@ router = APIRouter()
 
 # Initialize the model at module level
 try:
-    MODEL: Optional[SentenceTransformer] = SentenceTransformer("all-MiniLM-L6-v2")
+    MODEL: SentenceTransformer | None = SentenceTransformer("all-MiniLM-L6-v2")
 except ImportError:
     MODEL = None
     logger.warning("sentence-transformers not installed, will use random embeddings")
@@ -201,6 +201,8 @@ async def get_resource(
         raise HTTPException(
             status_code=400, detail="Invalid resource ID format"
         ) from None
+    except HTTPException:
+        raise  # propagate HTTPException (e.g., 404)
     except Exception as exc:
         logger.error("Failed to get resource: %s", exc)
         raise HTTPException(
@@ -229,7 +231,13 @@ async def dispatch_tool(
             status_code=400, detail=f"Unknown tool: {request.tool_name}"
         )
 
-    return await tool_handlers[request.tool_name](request.parameters, session)
+    try:
+        return await tool_handlers[request.tool_name](request.parameters, session)
+    except HTTPException:
+        raise  # propagate HTTPException
+    except Exception as exc:
+        logger.error("Tool handler error: %s", exc)
+        raise HTTPException(status_code=500, detail="Tool handler error") from exc
 
 
 async def match_role(
@@ -278,8 +286,10 @@ async def match_role(
     match_score = len(matching_skills) / len(request.required_skills)
 
     return MatchRoleResponse(
-        match_score=match_score, skill_gaps=skill_gaps, matching_skills=matching_skills
-    ).dict()
+        match_score=match_score,
+        skill_gaps=skill_gaps,
+        matching_skills=matching_skills,
+    ).model_dump()
 
 
 async def explain_match(
@@ -360,7 +370,8 @@ async def generate_cv(
             status_code=501, detail=f"Format not implemented: {request.format}"
         )
 
-    return GenerateCVResponse(content=content, format=request.format).dict()
+    response = GenerateCVResponse(content=content, format=request.format)
+    return response.model_dump()
 
 
 async def graph_search(

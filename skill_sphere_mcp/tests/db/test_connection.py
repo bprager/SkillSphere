@@ -2,7 +2,7 @@
 
 # pylint: disable=redefined-outer-name
 
-from builtins import anext  # type: ignore[attr-defined]
+from builtins import anext
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

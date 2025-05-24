@@ -18,6 +18,7 @@ dependencies = [
     "opentelemetry-instrumentation-requests>=0.42b0",
     "python-dotenv>=1.0.0",
     "numpy>=1.25.0,<3.0",
+    "scipy>=1.11.0",
     "scikit-learn>=1.3.0",
     "networkx>=3.4.2",
     "node2vec>=0.4.3",
@@ -43,7 +44,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
 ignore = ["E501"]
 
@@ -74,3 +75,7 @@ module = ["numpy.*", "sklearn.*"]
 ignore_missing_imports = true
 
 [dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest-cov>=6.1.1",
+]

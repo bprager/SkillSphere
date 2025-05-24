@@ -9,7 +9,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from ..config.settings import get_settings
+from skill_sphere_mcp.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,6 @@ def setup_telemetry() -> Optional[trace.Tracer]:
         trace.set_tracer_provider(provider)
 
         return trace.get_tracer(__name__)
-    except Exception as exc:
+    except (ValueError, RuntimeError) as exc:
         logger.error("Failed to setup OpenTelemetry: %s", exc)
         return None
