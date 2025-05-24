@@ -3,11 +3,11 @@
 """Tests for PAT authentication."""
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
-from unittest.mock import patch
 
 from skill_sphere_mcp.auth.pat import PAT, PATAuth, get_current_token
 
