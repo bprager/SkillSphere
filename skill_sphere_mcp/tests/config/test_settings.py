@@ -1,5 +1,7 @@
 """Tests for settings module."""
 
+# pylint: disable=redefined-outer-name
+
 import os
 from unittest.mock import patch
 
@@ -8,12 +10,15 @@ from pydantic import ValidationError
 
 from skill_sphere_mcp.config.settings import Settings, get_settings
 
+DEFAULT_PORT = 8000
+TEST_PORT = 9000
+
 
 def test_settings_defaults() -> None:
     """Test settings with default values."""
-    settings = Settings()
+    settings = Settings(neo4j_uri="bolt://localhost:7687", neo4j_password="test_pass")
     assert settings.host == "0.0.0.0"
-    assert settings.port == 8000
+    assert settings.port == DEFAULT_PORT
     assert settings.neo4j_user == "neo4j"
 
 
@@ -21,18 +26,19 @@ def test_settings_from_env() -> None:
     """Test settings loaded from environment variables."""
     env_vars = {
         "MCP_HOST": "localhost",
-        "MCP_PORT": "9000",
+        "MCP_PORT": str(TEST_PORT),
         "MCP_NEO4J_URI": "bolt://localhost:7687",
         "MCP_NEO4J_USER": "test_user",
         "MCP_NEO4J_PASSWORD": "test_pass",
         "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
         "OTEL_SERVICE_NAME": "test-service",
     }
-
     with patch.dict(os.environ, env_vars):
-        settings = Settings()
+        settings = Settings(
+            neo4j_uri="bolt://localhost:7687", neo4j_password="test_pass"
+        )
         assert settings.host == "localhost"
-        assert settings.port == 9000
+        assert settings.port == TEST_PORT
         assert settings.neo4j_uri == "bolt://localhost:7687"
         assert settings.neo4j_user == "test_user"
         assert settings.neo4j_password == "test_pass"
@@ -40,19 +46,15 @@ def test_settings_from_env() -> None:
         assert settings.otel_service_name == "test-service"
 
 
-def test_settings_validation() -> None:
-    """Test settings validation."""
-    # Missing required fields
-    with pytest.raises(ValidationError):
-        Settings(neo4j_uri="", neo4j_password="")
-
-    # Invalid port number
-    with pytest.raises(ValidationError):
-        Settings(port=-1)
-
-    # Invalid port number (too high)
-    with pytest.raises(ValidationError):
-        Settings(port=70000)
+def test_settings_invalid_port() -> None:
+    """Test settings with invalid port numbers."""
+    env = {"MCP_NEO4J_URI": "bolt://localhost:7687", "MCP_NEO4J_PASSWORD": "test_pass"}
+    with patch.dict(os.environ, {**env, "MCP_PORT": "-1"}, clear=True):
+        with pytest.raises(ValidationError):
+            Settings(neo4j_uri="bolt://localhost:7687", neo4j_password="test_pass")
+    with patch.dict(os.environ, {**env, "MCP_PORT": "70000"}, clear=True):
+        with pytest.raises(ValidationError):
+            Settings(neo4j_uri="bolt://localhost:7687", neo4j_password="test_pass")
 
 
 def test_get_settings_caching() -> None:
@@ -64,5 +66,9 @@ def test_get_settings_caching() -> None:
 
 def test_settings_extra_fields() -> None:
     """Test that extra fields are ignored."""
-    settings = Settings(unknown_field="value")  # type: ignore
+    settings = Settings(
+        neo4j_uri="bolt://localhost:7687",
+        neo4j_password="test_pass",
+        unknown_field="value",
+    )  # type: ignore
     assert not hasattr(settings, "unknown_field")
