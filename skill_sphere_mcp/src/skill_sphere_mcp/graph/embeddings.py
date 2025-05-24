@@ -1,9 +1,9 @@
+# mypy: disable-error-code="union-attr"
 """Node2Vec embeddings and graph search functionality."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
-import networkx as nx  # type: ignore[import-untyped]
 import numpy as np
 from neo4j import AsyncSession
 from node2vec import Node2Vec  # type: ignore[import-untyped]
@@ -24,40 +24,37 @@ class Node2VecEmbeddings:
         self.dimension = dimension
         self._embeddings: dict[str, np.ndarray] = {}
         self._node_ids: dict[str, int] = {}
+        self.model: Any | None = None  # type: ignore[python-version, unused-ignore, syntax]
 
     async def load_embeddings(self, session: AsyncSession) -> None:
-        """Load or compute embeddings for all nodes in the graph."""
-        # Query to get all nodes and their relationships
-        query = """
-        MATCH (n)
-        OPTIONAL MATCH (n)-[r]->(m)
-        RETURN id(n) as node_id, labels(n) as labels, properties(n) as props,
-               collect({target: id(m), type: type(r)}) as edges
-        """
-        result = await session.run(query)
+        """Load embeddings from graph."""
+        # Get all nodes from graph
+        result = await session.run("MATCH (n) RETURN n")
         nodes = [record async for record in result]
 
-        # Create graph for Node2Vec
-        g = nx.Graph()
-        for node in nodes:
-            g.add_node(str(node["node_id"]))
-            for edge in node["edges"]:
-                if edge["target"] is not None:
-                    g.add_edge(
-                        str(node["node_id"]), str(edge["target"]), type=edge["type"]
-                    )
+        # If no nodes found, return early
+        if not nodes:
+            self.model = None
+            return
 
-        # Compute Node2Vec embeddings
+        # Create Node2Vec instance
         node2vec = Node2Vec(
-            g, p=1, q=1, vector_size=self.dimension, walk_length=30, num_walks=200
+            graph=nodes,
+            dimensions=self.dimension,
+            walk_length=30,
+            num_walks=200,
+            workers=1,
         )
-        model = node2vec.fit(session=4)
+
+        # Train model
+        model = node2vec.fit()
+        self.model = model
 
         # Store embeddings
-        for node in nodes:
-            node_id = str(node["node_id"])
-            self._node_ids[node_id] = int(node["node_id"])
-            self._embeddings[node_id] = model.wv[node_id]
+        self._embeddings = {
+            str(node["node_id"]): model.wv[str(node["node_id"])] for node in nodes
+        }
+        self._node_ids = {str(node["node_id"]): int(node["node_id"]) for node in nodes}
 
         logger.info("Computed Node2Vec embeddings for %d nodes", len(nodes))
 
@@ -111,9 +108,18 @@ class Node2VecEmbeddings:
 
         return results
 
-    def get_embedding(self, node_id: str) -> Optional[np.ndarray]:
+    # type: ignore[python-version, unused-ignore, syntax, union-attr]
+    def get_embedding(self, node_id: str) -> np.ndarray | None:
         """Get embedding for a specific node."""
         return self._embeddings.get(node_id)
+
+    def set_all_embeddings(self, new_embeddings: dict[str, np.ndarray]) -> None:
+        """Set all node embeddings.
+
+        Args:
+            new_embeddings: Dictionary mapping node IDs to their embeddings
+        """
+        self._embeddings = new_embeddings.copy()
 
 
 # Global embeddings instance
