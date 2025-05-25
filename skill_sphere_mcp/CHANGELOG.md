@@ -6,168 +6,72 @@ All notable changes to the SkillSphere MCP Server will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2025-05-16
 
 ### Added
 
-- Codebase reorganization for better maintainability
-  - Separated routes into dedicated `routes.py` module
-  - Streamlined `main.py` as application entry point
-  - Enhanced `mcp_server.py` for core configuration
-- Semantic search implementation using Sentence Transformers
-  - Integration with all-MiniLM-L6-v2 model
-  - Cosine similarity search for graph nodes
-  - Efficient vector operations using numpy
-- OpenTelemetry tracing for search operations
-  - Performance monitoring
-  - Error tracking
-  - Request tracing
-- Error handling for missing dependencies
-  - Graceful fallback for missing sentence-transformers
-  - Clear error messages
-  - Proper cleanup
-- Enhanced test coverage
-  - Comprehensive unit tests for Neo4j connection
-  - Async test patterns with pytest-asyncio
-  - Mock implementations for external dependencies
-- Improved Neo4j connection management
-  - Async session handling
-  - Proper resource cleanup
-  - Connection pooling support
-
-### Changed
-
-- Reorganized application structure
-  - Moved route handlers to dedicated module
-  - Simplified main application entry point
-  - Enhanced core configuration management
-- Updated architecture documentation
-  - Added semantic search details
-  - Enhanced component descriptions
-  - Improved future improvements section
-- Enhanced search endpoint
-  - Better error handling
-  - Improved type safety
-  - More efficient vector operations
-- Improved type annotations
-  - Better mypy compliance
-  - Stricter type checking
-  - Enhanced code quality
-- Refactored Neo4j connection handling
-  - Moved to dedicated connection module
-  - Improved async patterns
-  - Better error handling
-
-### Fixed
-
-- Type checking issues in search implementation
-  - Proper return type annotations
-  - Fixed Any type usage
-  - Added type ignores where necessary
-- Error handling for missing sentence-transformers package
-  - Graceful degradation
-  - Clear error messages
-  - Proper cleanup
-- Neo4j session management
-  - Proper session cleanup
-  - Connection pooling
-  - Error handling
-- Application lifecycle management
-  - Proper startup/shutdown handling
-  - Improved error handling during initialization
-  - Better resource cleanup
-- Test suite improvements
-  - Fixed async test patterns
-  - Improved mock implementations
-  - Better test isolation
-
-### Security
-
-- Enhanced PAT token validation
-- Improved error message security
-- Added input sanitization
-- Read-only Neo4j access enforcement
-
-### Performance
-
-- Optimized vector operations
-- Improved connection management
-- Enhanced error handling
-- Better async patterns
-
-### TODO
-
-- [ ] Add Redis-based caching for frequently used embeddings
-- [ ] Implement filtering by node type and properties
-- [ ] Add comprehensive tests for semantic search functionality
-- [ ] Support hybrid search (semantic + keyword)
-- [ ] Add relevance feedback mechanism
-- [ ] Fix remaining type checking issues in main.py
-- [ ] Add proper return type annotations for async functions
-- [ ] Implement proper FastAPI lifespan management
-- [ ] Add JSON-RPC endpoint for MCP compliance
-- [ ] Implement JSON Schema validation for tool calls
-- [ ] Add contract tests for schema drift
-- [ ] Implement PII masking in OpenTelemetry traces
-- [ ] Add rate limiting
-- [ ] Create comprehensive API documentation
-- [ ] Add Docker/Kubernetes deployment support
-
-## [0.2.0] - 2025-05-16
-
-### Added
-
-- Initial MCP server implementation
-  - FastAPI-based REST API
-  - MCP protocol compliance
-  - Basic routing
-- Neo4j integration
-  - Async connection management
-  - Basic CRUD operations
-  - Error handling
+- Initial release of SkillSphere MCP Server
+- JSON-RPC 2.0 compliant API implementation
+- Model Context Protocol (MCP) support
+- Neo4j graph database integration
+- Semantic search with Node2Vec embeddings
 - OpenTelemetry instrumentation
-  - Request tracing
-  - Performance monitoring
-  - Error tracking
-- PAT authentication
-  - Token generation
-  - Validation
-  - Expiration
-- Basic health check endpoints
-  - Liveness probe
-  - Readiness probe
-  - Status endpoint
+- Tool dispatching system
+- Health check endpoint
+- Environment-based configuration
 
 ### Changed
 
-- Updated project structure
-  - Modular organization
-  - Clear separation of concerns
-  - Better maintainability
-- Enhanced documentation
-  - API documentation
-  - Architecture overview
-  - Development guidelines
+- Consolidated server setup into `app.py`
+- Removed redundant `main.py` and `mcp_server.py`
+- Updated documentation to reflect new server structure
+- Improved type hints and error handling
 
 ### Fixed
 
-- Various type checking issues
-  - Added missing type hints
-  - Fixed incorrect types
-  - Improved type safety
-- Connection management improvements
-  - Better error handling
-  - Proper cleanup
-  - Connection pooling
+- Type mismatch in `rpc_search` function
+- Session handling in `rpc_tool` function
+- Linter errors in API routes
 
-### Security
+## [0.3.0] - 2025-05-01
 
-- Initial PAT implementation
-- Basic input validation
-- Error message sanitization
+### Added
 
-### Performance
+- Node2Vec embeddings for semantic search
+- Graph search tool implementation
+- Resource schema definitions
+- Tool parameter validation
 
-- Initial async implementation
-- Basic connection pooling
-- Simple caching
+### Changed
+
+- Updated API documentation
+- Improved error handling
+- Enhanced test coverage
+
+## [0.2.0] - 2025-04-15
+
+### Added
+
+- Basic MCP protocol implementation
+- Neo4j connection management
+- OpenTelemetry integration
+- Initial test suite
+
+### Changed
+
+- Refactored API structure
+- Updated configuration management
+
+## [0.1.0] - 2025-04-01
+
+### Added
+
+- Initial project setup
+- FastAPI application structure
+- Basic configuration
+- Development environment setup
+
+[0.4.0]: https://github.com/yourusername/skill-sphere-mcp/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/yourusername/skill-sphere-mcp/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/yourusername/skill-sphere-mcp/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/yourusername/skill-sphere-mcp/releases/tag/v0.1.0

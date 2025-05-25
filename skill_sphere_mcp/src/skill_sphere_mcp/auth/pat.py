@@ -2,30 +2,35 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
+# HTTP status codes
+HTTP_UNAUTHORIZED = 401
+
+# Security scheme
 security = HTTPBearer()
-get_credentials = Depends(security)
 
 
 class PAT(BaseModel):
     """Personal Access Token model."""
 
     token: str
-    expires_at: datetime
     description: str
+    created_at: datetime
+    expires_at: datetime
 
 
 class PATAuth:
-    """PAT authentication handler."""
+    """PAT authentication manager."""
 
     def __init__(self) -> None:
-        """Initialize PAT authentication."""
+        """Initialize PAT auth manager."""
         self._tokens: dict[str, PAT] = {}
 
     def create_token(self, description: str, expires_in_days: int = 30) -> PAT:
@@ -33,16 +38,19 @@ class PATAuth:
 
         Args:
             description: Token description
-            expires_in_days: Token validity in days
+            expires_in_days: Days until token expires
 
         Returns:
-            New PAT instance
+            Created PAT
         """
-        # Generate a random token (in production, use a proper token generator)
-        token = f"pat_{datetime.now(timezone.utc).timestamp()}"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
-
-        pat = PAT(token=token, expires_at=expires_at, description=description)
+        token = f"pat_{uuid4().hex}"
+        now = datetime.now(timezone.utc)
+        pat = PAT(
+            token=token,
+            description=description,
+            created_at=now,
+            expires_at=now + timedelta(days=expires_in_days),
+        )
         self._tokens[token] = pat
         logger.info("Created new PAT: %s", description)
         return pat
@@ -56,14 +64,14 @@ class PATAuth:
         Returns:
             True if token is valid
         """
-        if token not in self._tokens:
+        if not token:
             return False
-
-        pat = self._tokens[token]
-        if datetime.now(timezone.utc) > pat.expires_at:
+        pat = self._tokens.get(token)
+        if not pat:
+            return False
+        if pat.expires_at <= datetime.now(timezone.utc):
             del self._tokens[token]
             return False
-
         return True
 
     def revoke_token(self, token: str) -> None:
@@ -72,9 +80,8 @@ class PATAuth:
         Args:
             token: Token to revoke
         """
-        if token in self._tokens:
-            del self._tokens[token]
-            logger.info("Revoked PAT")
+        self._tokens.pop(token, None)
+        logger.info("Revoked PAT")
 
 
 # Global PAT auth instance
@@ -82,20 +89,42 @@ pat_auth = PATAuth()
 
 
 async def get_current_token(
-    credentials: HTTPAuthorizationCredentials = get_credentials,
+    credentials: HTTPAuthorizationCredentials = Security(security),
 ) -> str:
-    """Get and validate the current PAT.
+    """Get current PAT from request.
 
     Args:
         credentials: HTTP authorization credentials
 
     Returns:
-        Valid token string
+        Valid PAT
 
     Raises:
         HTTPException: If token is invalid
     """
+    if credentials.scheme != "Bearer":
+        raise HTTPException(
+            status_code=HTTP_UNAUTHORIZED,
+            detail="Invalid authentication scheme",
+        )
     token = credentials.credentials
     if not pat_auth.validate_token(token):
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=HTTP_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
     return token
+
+
+async def verify_pat(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> None:
+    """Verify PAT authentication.
+
+    Args:
+        credentials: HTTP authorization credentials
+
+    Raises:
+        HTTPException: If token is invalid
+    """
+    await get_current_token(credentials)

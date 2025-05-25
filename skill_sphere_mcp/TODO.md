@@ -1,4 +1,4 @@
-## Architectural Overview
+# Architectural Overview
 
 Drawing on the **SkillSphere MCP** product-design document (PDD) , we’ll structure the server into **five core layers**:
 
@@ -101,4 +101,3 @@ skill_sphere_mcp/
 * **Dev ergonomics**: `cli.py` can wire into the same RPC dispatcher for interactive use (`mcp[cli]`), while the FastAPI app handles production traffic.
 
 This structure ensures the **SkillSphere MCP** remains maintainable, scalable, and ready for future capabilities like live subscriptions, write-back tooling, or interview simulations.
-

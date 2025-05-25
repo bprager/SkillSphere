@@ -1,8 +1,9 @@
 """Node2Vec implementation for graph embeddings."""
 
 import logging
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Any
 
 import numpy as np
 from neo4j import AsyncSession
@@ -26,27 +27,58 @@ class Node2VecConfig:
     epochs: int = 5
 
 
+@dataclass
+class TransitionConfig:
+    """Configuration for transition probabilities."""
+
+    p: float
+    q: float
+    weight_key: str
+    directed: bool
+    unweighted: bool
+
+
+@dataclass
+class PreprocessConfig:
+    """Configuration for graph preprocessing."""
+
+    p: float = 1.0
+    q: float = 1.0
+    weight_key: str = "weight"
+    directed: bool = False
+    unweighted: bool = False
+
+
+# pylint: disable=too-many-instance-attributes
 class Node2Vec:
     """Node2Vec implementation for graph embeddings."""
 
-    def __init__(self, config: Union[Node2VecConfig, None] = None):
-        """Initialize Node2Vec."""
-        config = config or Node2VecConfig()
-        self.dimension = config.dimension
-        self.walk_length = config.walk_length
-        self.num_walks = config.num_walks
-        self.p = config.p
-        self.q = config.q
-        self.window_size = config.window_size
-        self.num_neg_samples = config.num_neg_samples
-        self.learning_rate = config.learning_rate
-        self.epochs = config.epochs
+    def __init__(self, config: Node2VecConfig | None = None):
+        """Initialize Node2Vec.
+
+        Args:
+            config: Node2Vec configuration parameters
+        """
+        self.config = config or Node2VecConfig()
+        self.dimension = self.config.dimension
+        self.walk_length = self.config.walk_length
+        self.num_walks = self.config.num_walks
+        self.p = self.config.p
+        self.q = self.config.q
+        self.window_size = self.config.window_size
+        self.num_neg_samples = self.config.num_neg_samples
+        self.learning_rate = self.config.learning_rate
+        self.epochs = self.config.epochs
         self._rng = np.random.default_rng(42)  # Fixed seed for reproducibility
 
         self._embeddings: dict[str, np.ndarray] = {}
         self._node_ids: dict[str, int] = {}
         self._alias_nodes: dict[str, dict[str, list[int]]] = {}
         self._alias_edges: dict[tuple[str, str], dict[str, list[int]]] = {}
+        self._walks: list[list[str]] = []
+        self._model: Any = None
+        self._graph: dict[str, list[str]] = {}
+        self._preprocessed = False
 
     async def _get_graph(self, session: AsyncSession) -> dict[str, list[str]]:
         """Get graph structure from Neo4j.
@@ -70,15 +102,28 @@ class Node2Vec:
             graph[node_id] = neighbors
         return graph
 
-    def _preprocess_transition_probs(self, graph: dict[str, list[str]]) -> None:
-        """Preprocess transition probabilities for random walks.
+    def _preprocess_transition_probs(
+        self,
+        config: TransitionConfig,
+        nodes: list[str],
+        edges: list[tuple[str, str, float]],
+    ) -> None:
+        """Preprocess transition probabilities for random walks."""
+        self._alias_nodes = {}
+        self._alias_edges = {}
+        self._graph = defaultdict(list)
 
-        Args:
-            graph: Dictionary mapping node IDs to their neighbors
-        """
+        # Build graph
+        for src, dst, _ in edges:
+            self._graph[src].append(dst)
+            if not config.directed:
+                self._graph[dst].append(src)
+
         # Preprocess node transition probabilities
-        for node, neighbors in graph.items():
-            unnormalized_probs = [1.0] * len(neighbors)
+        for node in nodes:
+            unnormalized_probs = [
+                self._get_edge_weight() for _ in sorted(self._graph[node])
+            ]
             norm_const = sum(unnormalized_probs)
             normalized_probs = [
                 float(u_prob) / norm_const for u_prob in unnormalized_probs
@@ -86,23 +131,21 @@ class Node2Vec:
             self._alias_nodes[node] = self._alias_setup(normalized_probs)
 
         # Preprocess edge transition probabilities
-        for node, neighbors in graph.items():
-            for neighbor in neighbors:
-                unnormalized_probs = []
-                for next_node in graph[neighbor]:
-                    if next_node == node:
-                        unnormalized_probs.append(1.0 / self.p)
-                    elif next_node in neighbors:
-                        unnormalized_probs.append(1.0)
-                    else:
-                        unnormalized_probs.append(1.0 / self.q)
-                norm_const = sum(unnormalized_probs)
-                normalized_probs = [
-                    float(u_prob) / norm_const for u_prob in unnormalized_probs
-                ]
-                self._alias_edges[(node, neighbor)] = self._alias_setup(
-                    normalized_probs
-                )
+        for edge in edges:
+            src, dst, _ = edge
+            unnormalized_probs = []
+            for dst_nbr in sorted(self._graph[dst]):
+                if dst_nbr == src:
+                    unnormalized_probs.append(self._get_edge_weight() / config.p)
+                elif dst_nbr in self._graph[src]:
+                    unnormalized_probs.append(self._get_edge_weight())
+                else:
+                    unnormalized_probs.append(self._get_edge_weight() / config.q)
+            norm_const = sum(unnormalized_probs)
+            normalized_probs = [
+                float(u_prob) / norm_const for u_prob in unnormalized_probs
+            ]
+            self._alias_edges[edge[:2]] = self._alias_setup(normalized_probs)
 
     def _alias_setup(self, probs: list[float]) -> dict[str, list[int]]:
         """Set up alias sampling.
@@ -258,7 +301,15 @@ class Node2Vec:
         graph = await self._get_graph(session)
 
         logger.info("Preprocessing transition probabilities...")
-        self._preprocess_transition_probs(graph)
+        nodes = list(graph.keys())
+        edges = [(src, dst, 1.0) for src, dsts in graph.items() for dst in dsts]
+        self._preprocess_transition_probs(
+            TransitionConfig(
+                p=1.0, q=1.0, weight_key="weight", directed=False, unweighted=True
+            ),
+            nodes,
+            edges,
+        )
 
         logger.info("Generating random walks...")
         walks = self._generate_walks(graph)
@@ -268,7 +319,7 @@ class Node2Vec:
 
         logger.info("Node2Vec training complete")
 
-    def get_embedding(self, node_id: str) -> Optional[np.ndarray]:
+    def get_embedding(self, node_id: str) -> np.ndarray | None:
         """Get embedding for a node.
 
         Args:
@@ -292,12 +343,20 @@ class Node2Vec:
         return await self._get_graph(session)
 
     def preprocess_transition_probs(self, graph: dict[str, list[str]]) -> None:
-        """Preprocess transition probabilities for random walks.
+        """Preprocess transition probabilities for the graph.
 
         Args:
             graph: Dictionary mapping node IDs to their neighbors
         """
-        self._preprocess_transition_probs(graph)
+        nodes = list(graph.keys())
+        edges = [(src, dst, 1.0) for src, dsts in graph.items() for dst in dsts]
+        self._preprocess_transition_probs(
+            TransitionConfig(
+                p=1.0, q=1.0, weight_key="weight", directed=False, unweighted=True
+            ),
+            nodes,
+            edges,
+        )
 
     def get_alias_nodes(self) -> dict[str, dict[str, list[int]]]:
         """Get the alias nodes dictionary."""
@@ -382,3 +441,32 @@ class Node2Vec:
     def generate_walks(self, graph: dict[str, list[str]]) -> list[list[str]]:
         """Generate random walks for all nodes."""
         return self._generate_walks(graph)
+
+    async def preprocess(
+        self,
+        session: AsyncSession,
+        config: PreprocessConfig | None = None,
+    ) -> None:
+        """Preprocess the graph for random walks."""
+        if self._preprocessed:
+            return
+
+        self._graph = await self._get_graph(session)
+        nodes = list(self._graph.keys())
+        edges = [(src, dst, 1.0) for src, dsts in self._graph.items() for dst in dsts]
+
+        if config is None:
+            config = PreprocessConfig()
+        transition_config = TransitionConfig(
+            p=config.p,
+            q=config.q,
+            weight_key=config.weight_key,
+            directed=config.directed,
+            unweighted=config.unweighted,
+        )
+        self._preprocess_transition_probs(transition_config, nodes, edges)
+        self._preprocessed = True
+
+    def _get_edge_weight(self) -> float:
+        """Get edge weight between two nodes."""
+        return 1.0  # Default weight since we don't store edge properties

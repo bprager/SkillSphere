@@ -17,21 +17,19 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.42b0",
     "opentelemetry-instrumentation-requests>=0.42b0",
     "python-dotenv>=1.0.0",
-    "numpy>=1.25.0,<3.0",
-    "scipy>=1.11.0",
+    "scipy>=1.11.0,<1.14.0", # Pin scipy to compatible version
     "scikit-learn>=1.3.0",
-    "networkx>=3.4.2",
-    "node2vec>=0.4.3",
+    "networkx>=3.4.2", # Updated to newer version
     "sentence-transformers>=4.1.0",
     "pytest>=8.3.5",
+    "node2vec>=0.4.3",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 dev = [
     "isort>=6.0.1",
     "mypy>=1.15.0",
-    "mypy>=1.5.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "pytest>=7.4.0",
@@ -46,7 +44,7 @@ build-backend = "hatchling.build"
 line-length = 88
 target-version = "py310"
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
-ignore = ["E501"]
+ignore = ["E501", "B002"]
 
 [tool.ruff.isort]
 known-first-party = ["skill_sphere_mcp"]
@@ -55,6 +53,7 @@ known-first-party = ["skill_sphere_mcp"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=skill_sphere_mcp"
+pythonpath = ["src"]  # Add this line to fix import paths
 
 [tool.mypy]
 python_version = "3.9"
@@ -71,11 +70,16 @@ warn_no_return = true
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["numpy.*", "sklearn.*"]
+module = ["numpy.*", "sklearn.*", "gensim.*", "node2vec.*"]
 ignore_missing_imports = true
 
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "markitdown>=0.1.1",
+    "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
 ]
+
+[tool.poetry.dependencies]
+gensim = "<4.3.0"

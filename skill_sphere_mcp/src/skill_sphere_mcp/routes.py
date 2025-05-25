@@ -10,18 +10,15 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from skill_sphere_mcp.db.connection import neo4j_conn
+from skill_sphere_mcp.models.embedding import get_embedding_model
 
 logger = logging.getLogger(__name__)
 
 # Initialize router
 router = APIRouter(prefix="/v1")
 
-# Initialize the model at module level
-try:
-    MODEL: SentenceTransformer | None = SentenceTransformer("all-MiniLM-L6-v2")
-except ImportError:
-    MODEL = None
-    logger.warning("sentence-transformers not installed, will use random embeddings")
+# Get the model instance
+MODEL = get_embedding_model()
 
 
 class Entity(BaseModel):

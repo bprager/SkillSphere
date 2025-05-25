@@ -1,17 +1,17 @@
 # Product Description Document (SkillSphere MCP Server)
 
-*A hypergraph-backed talent API for AI agents*
+## A hypergraph-backed talent API for AI agents
 
 ---
 
 ## 1 · Why this server exists
 
-Recruiters, hiring bots and “smart-CV” tools keep asking the same questions:
+Recruiters, hiring bots and "smart-CV" tools keep asking the same questions:
 
-* *“Does Bernd have the skills for **this** role?”*
-* *“Generate a résumé tailored to **that** job description.”*
+* "Does Bernd have the skills for **this** role?"
+* "Generate a résumé tailored to **that** job description."
 
-The SkillSphere server exposes Bernd Prager’s **skills-and-experience hypergraph** through the **Model Context Protocol (MCP)** so any LLM agent can reason over a single, always-up-to-date knowledge source rather than scraping LinkedIn or PDFs.
+The SkillSphere server exposes Bernd Prager's **skills-and-experience hypergraph** through the **Model Context Protocol (MCP)** so any LLM agent can reason over a single, always-up-to-date knowledge source rather than scraping LinkedIn or PDFs.
 
 MCP provides a negotiated, machine-readable interface built on JSON-RPC 2.0 and supports both **read-only resources** and **callable tools** ([Philschmid][1]).  During the **`initialize` handshake** client and server agree on protocol revision and capabilities ([Model Context Protocol][2], [Medium][3]).
 
@@ -21,8 +21,8 @@ MCP provides a negotiated, machine-readable interface built on JSON-RPC 2.0 and 
 
 | # | Actor                                                      | Goal                                       | Typical questions                                                                                      |
 | - | ---------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| 1 | **Suitability agent** (recruiter bot, opportunity-matcher) | Decide if Bernd fits a role / project      | *“List critical skill gaps.”*<br>*“Explain his most relevant experience for a fintech data-platform.”* |
-| 2 | **CV generator agent**                                     | Produce a role-targeted CV or cover letter | *“Give me a one-page résumé emphasising Go & Kubernetes.”*                                             |
+| 1 | **Suitability agent** (recruiter bot, opportunity-matcher) | Decide if Bernd fits a role / project      | *"List critical skill gaps."* \| *"Explain his most relevant experience for a fintech data-platform."* |
+| 2 | **CV generator agent**                                     | Produce a role-targeted CV or cover letter | *"Give me a one-page résumé emphasising Go & Kubernetes."*                                             |
 
 ---
 
@@ -50,7 +50,7 @@ MCP --> OTEL : OTLP Traces
 
 *FastAPI* provides HTTP transport ([Model Context Protocol][4]); an adapter routes `/rpc` to the JSON-RPC dispatcher.
 *Neo4j* stores the hypergraph (nodes: *organization, document, person, geo, event, advisory, address, coverage, damage, finances, product, profession, property, risk*).
-*OpenTelemetry* ships traces to the team’s collector.
+*OpenTelemetry* ships traces to the team's collector.
 
 ---
 
@@ -74,7 +74,7 @@ Agents fetch resources with the standard `resources/get` and enumerate with `res
 
 | Tool name                 | Description                                                                                                | Params                                        | Return                                                  |                                          |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- | ---------------------------------------- |
-| **`skill.match_role`**    | Compute similarity between a job’s required skills and Bernd’s graph. Optionally suggest mitigation steps. | `requirements: string[]` `top_k: int=10`      | `{score: 0-1, gaps: string[], supporting_nodes: int[]}` |                                          |
+| **`skill.match_role`**    | Compute similarity between a job's required skills and Bernd's graph. Optionally suggest mitigation steps. | `requirements: string[]` `top_k: int=10`      | `{score: 0-1, gaps: string[], supporting_nodes: int[]}` |                                          |
 | **`skill.explain_match`** | Explain *why* a particular node (experience, project, certification) supports the match.                   | `node_id: int` `requirement: string`          | `{markdown: string}`                                    |                                          |
 | **`cv.generate`**         | Produce a résumé or cover letter emphasising provided requirements and tone.                               | `requirements: string[]` \`format: "markdown" | "pdf"\`                                                 | `{markdown?: string, pdf_file?: string}` |
 | **`graph.search`**        | Vector / semantic search over Node2Vec embeddings stored on nodes.                                         | `query: string` `k: int=15`                   | `{hits: [{node_id, score}]}`                            |                                          |
@@ -96,7 +96,7 @@ Agents fetch resources with the standard `resources/get` and enumerate with `res
       "logging":   { "structured": true }
     },
     "serverInfo": { "name": "SkillSphere MCP", "version": "0.3.0" },
-    "instructions": "You are connected to Bernd Prager’s skills-graph. \
+    "instructions": "You are connected to Bernd Prager's skills-graph. \
 Use `graph.search` or traverse `skills.node` to gather evidence, \
 then call `skill.match_role` or `cv.generate` as appropriate. \
 Prefer nodes labelled 'JOB' or 'CERTIFICATION' for hard evidence. \
@@ -105,7 +105,7 @@ If a requirement is missing, suggest relevant up-skilling."
 }
 ```
 
-*Rationale*
+### Rationale
 
 * `resources.listChanged=true` lets future versions push live updates (e.g., a new paper Bernd publishes).
 * No writable side effects are exposed (read-only hypergraph), so `subscribe=false`.
@@ -145,7 +145,7 @@ If a requirement is missing, suggest relevant up-skilling."
 
 ## 9 · Security & privacy
 
-* 🔒 Server is **read-only**; no private data beyond Bernd’s public résumé content.
+* 🔒 Server is **read-only**; no private data beyond Bernd's public résumé content.
 * OAuth2 (PAT) optional for write-capable future endpoints.
 * OpenTelemetry traces exclude PII.
 
@@ -175,10 +175,9 @@ curl -s -X POST http://localhost:8000/rpc -d \
 
 ---
 
-> **SkillSphere MCP** turns Bernd’s 25 years of architecture, AI and leadership experience into a first-class, LLM-navigable knowledge graph—ready for any hiring or résumé agent to consume.
+> **SkillSphere MCP** turns Bernd's 25 years of architecture, AI and leadership experience into a first-class, LLM-navigable knowledge graph—ready for any hiring or résumé agent to consume.
 
 [1]: https://www.philschmid.de/mcp-introduction?utm_source=chatgpt.com "Model Context Protocol (MCP) an overview - Philschmid"
 [2]: https://modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle?utm_source=chatgpt.com "Lifecycle - Model Context Protocol"
 [3]: https://medium.com/%40nimritakoul01/the-model-context-protocol-mcp-a-complete-tutorial-a3abe8a7f4ef?utm_source=chatgpt.com "The Model Context Protocol (MCP) — A Complete Tutorial - Medium"
 [4]: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports?utm_source=chatgpt.com "Transports - Model Context Protocol"
-

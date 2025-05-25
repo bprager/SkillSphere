@@ -9,7 +9,7 @@ import pytest
 from neo4j import AsyncSession
 from neo4j.exceptions import AuthError, ServiceUnavailable
 
-from skill_sphere_mcp.db.neo4j import Neo4jConnection, neo4j_conn
+from skill_sphere_mcp.db.connection import Neo4jConnection, neo4j_conn
 
 
 @pytest.fixture
@@ -44,9 +44,11 @@ def mock_session() -> AsyncMock:
 def conn(mock_settings: MagicMock, mock_driver: AsyncMock) -> Neo4jConnection:
     """Create Neo4jConnection instance with mocked dependencies."""
     with (
-        patch("skill_sphere_mcp.db.neo4j.get_settings", return_value=mock_settings),
         patch(
-            "skill_sphere_mcp.db.neo4j.AsyncGraphDatabase.driver",
+            "skill_sphere_mcp.db.connection.get_settings", return_value=mock_settings
+        ),
+        patch(
+            "skill_sphere_mcp.db.connection.AsyncGraphDatabase.driver",
             return_value=mock_driver,
         ),
     ):
@@ -58,9 +60,11 @@ async def test_connection_initialization(mock_settings: MagicMock) -> None:
     """Test Neo4j connection initialization."""
     driver_mock = AsyncMock()
     with (
-        patch("skill_sphere_mcp.db.neo4j.get_settings", return_value=mock_settings),
         patch(
-            "skill_sphere_mcp.db.neo4j.AsyncGraphDatabase.driver",
+            "skill_sphere_mcp.db.connection.get_settings", return_value=mock_settings
+        ),
+        patch(
+            "skill_sphere_mcp.db.connection.AsyncGraphDatabase.driver",
             return_value=driver_mock,
         ) as mock_driver_factory,
     ):

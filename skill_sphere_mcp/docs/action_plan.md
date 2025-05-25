@@ -90,7 +90,7 @@ The timeline in the PRD suggests a phased approach with two-week sprints. The fo
 
 ## V. Cross-Cutting Concerns
 
-* **Security:** Implement PAT authentication and ensure read-only permissions are enforced in Neo4j (NFR - Security). Adhere to OWASP ASVS L1 standards.
+* **Security:** Server is publicly accessible with read-only permissions enforced in Neo4j (NFR - Security). Adhere to OWASP ASVS L1 standards.
 * **Reliability:** Aim for ≥ 99.5% API uptime (NFR - Reliability).
 * **Scalability:** Design for horizontal pod auto-scaling to handle 10 concurrent agent sessions and 50 RPS bursts (NFR - Scalability).
 * **Compliance:** Ensure no personal data beyond public résumé is exported, adhering to GDPR Art. 6 (legitimate interest) (NFR - Compliance).

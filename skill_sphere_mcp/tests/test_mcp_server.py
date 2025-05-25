@@ -12,8 +12,9 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
+from skill_sphere_mcp.app import create_app
+from skill_sphere_mcp.config.settings import get_settings
 from skill_sphere_mcp.db.connection import Neo4jConnection
-from skill_sphere_mcp.mcp_server import app, get_settings
 from tests.graph.test_node2vec import AsyncIterator
 
 # Disable OpenTelemetry before any imports
@@ -50,7 +51,7 @@ def disable_tracing() -> Generator[None, None, None]:
 @pytest.fixture
 def client() -> TestClient:
     """Create a test client for the FastAPI app."""
-    return TestClient(app)
+    return TestClient(create_app())
 
 
 def test_get_settings() -> None:

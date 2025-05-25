@@ -3,145 +3,139 @@
 
 ## Overview
 
-The SkillSphere MCP Server exposes Bernd Prager's skills-and-experience hypergraph through the Model Context Protocol (MCP) for LLM agents to reason over. The system combines graph-based knowledge representation with semantic search capabilities to provide intelligent skill matching and CV generation.
+The SkillSphere MCP Server is a FastAPI-based application that provides a JSON-RPC 2.0 compliant interface for interacting with the SkillSphere graph database. It supports semantic search, graph queries, and tool dispatching.
 
-## Core Components
+## Application Structure
 
-### 1. Application Structure
+### Core Components
 
-The application is organized into several key modules:
+1. **API Layer**
+   - FastAPI application with JSON-RPC 2.0 support
+   - MCP-compliant endpoints
+   - Authentication middleware
+   - Request/response validation
 
-- `main.py`: Application entry point and lifecycle management
-  - Handles startup/shutdown events
-  - Configures OpenTelemetry
-  - Verifies Neo4j connectivity
-  - Mounts API routes
+2. **Graph Database**
+   - Neo4j connection management
+   - Read-only access enforcement
+   - Vector similarity search
+   - Graph query execution
 
-- `mcp_server.py`: Core application configuration
-  - Settings management
-  - OpenTelemetry setup
-  - Neo4j driver configuration
-  - FastAPI application instance
+3. **Semantic Search**
+   - Sentence Transformers integration
+   - Vector embeddings
+   - Similarity scoring
+   - Result ranking
 
-- `routes.py`: API route handlers
-  - Health check endpoint
-  - Entity retrieval
-  - Semantic search functionality
-  - Request/response models
+4. **Tool Dispatcher**
+   - Method registration
+   - Parameter validation
+   - Error handling
+   - Response formatting
 
-- `db/connection.py`: Neo4j connection management
-  - Async session handling
-  - Connection pooling
-  - Resource cleanup
-  - Error handling
+### Cross-Cutting Concerns
 
-### 2. API Layer
+1. **Security**
+   - PAT authentication
+   - Read-only Neo4j access
+   - Input validation
+   - Error message sanitization
 
-- FastAPI-based REST API with OpenTelemetry instrumentation
-- PAT-based authentication with token validation
-- MCP protocol compliance (v1.0)
-- Health check and monitoring endpoints
-- CORS middleware for cross-origin requests
-- JSON-RPC endpoint (planned)
+2. **Observability**
+   - OpenTelemetry integration
+   - Request tracing
+   - Performance monitoring
+   - Error tracking
 
-### 3. Graph Database
+3. **Performance**
+   - Connection pooling
+   - Async operations
+   - Vector optimization
+   - Caching (planned)
 
-- Neo4j backend for skills hypergraph
-- Async connection management with proper session cleanup
-- Read-only access for security
-- Bolt protocol for efficient communication
-- Connection pooling for performance
-- Schema validation and contract testing (planned)
+## Module Decomposition
 
-### 4. Semantic Search
-
-- Sentence Transformer-based query encoding (all-MiniLM-L6-v2 model)
-- Cosine similarity search for semantic matching
-- Node2Vec embeddings for graph nodes
-- OpenTelemetry tracing for performance monitoring
-- Graceful fallback for missing dependencies
-- Efficient vector operations using numpy
-- Redis caching for embeddings (planned)
-
-### 5. Tool Dispatcher
-
-- JSON Schema validation for all tool calls (planned)
-- Core tools:
-  - `skill.match_role`: Role suitability assessment
-  - `skill.explain_match`: Evidence-based matching explanation
-  - `cv.generate`: Targeted CV generation
-  - `graph.search`: Semantic graph search
-
-## Cross-Cutting Concerns
-
-### Security
-
-- PAT authentication with token expiration
-- Read-only Neo4j access
-- No PII exposure
-- Input validation and sanitization
-- Rate limiting (planned)
-- PII masking in traces (planned)
-
-### Observability
-
-- OpenTelemetry integration with OTLP exporter
-- Structured logging with correlation IDs
-- Performance metrics and tracing
-- Error tracking and alerting
-- Request/response monitoring
-- PII masking in traces (planned)
-
-### Performance
-
-- Async I/O for concurrent operations
-- Connection pooling for Neo4j
-- Embedding caching (planned)
-- Efficient vector operations
-- Query optimization
-- Rate limiting (planned)
+| Module | Responsibility |
+|--------|----------------|
+| `api.jsonrpc` | JSON-RPC 2.0 request/response handling |
+| `api.mcp_routes` | MCP-compliant endpoint definitions |
+| `auth.pat` | PAT token validation |
+| `db.connection` | Neo4j connection management |
+| `models.embedding` | Vector embedding generation |
+| `models.graph` | Graph data models |
+| `tools.dispatcher` | Tool method dispatching |
+| `app.py` | FastAPI application setup and configuration |
 
 ## Future Improvements
 
-### 1. Search Enhancements
+1. **Search Enhancements**
+   - Redis-based caching
+   - Hybrid search support
+   - Filtering by node type
+   - Result pagination
 
-- [ ] Add Redis-based caching for frequently used embeddings
-- [ ] Implement filtering by node type and properties
-- [ ] Add comprehensive tests for semantic search functionality
-- [ ] Support hybrid search (semantic + keyword)
-- [ ] Add relevance feedback mechanism
+2. **Graph Features**
+   - Relationship traversal
+   - Path finding
+   - Graph analytics
+   - Schema validation
 
-### 2. Graph Features
+3. **Performance**
+   - Connection pooling
+   - Query optimization
+   - Caching strategy
+   - Rate limiting
 
-- [ ] Replace Node2Vec with Graph-RAG embeddings
-- [ ] Add write-back for interview feedback
-- [ ] Support multi-tenant mode
-- [ ] Implement graph versioning
-- [ ] Add relationship strength analysis
+4. **Developer Experience**
+   - API documentation
+   - Example clients
+   - Development tools
+   - Testing utilities
 
-### 3. Performance & Scalability
+## API Endpoints
 
-- [ ] Add Redis caching layer for hot data
-- [ ] Implement connection pooling with health checks
-- [ ] Add load balancing support
-- [ ] Implement request queuing
-- [ ] Add performance benchmarks
+### JSON-RPC 2.0 Endpoint
 
-### 4. Developer Experience
+- **POST /mcp/rpc**
+  - Handles all JSON-RPC 2.0 requests
+  - Publicly accessible
+  - Supports method registration via decorator
+  - Validates request format
+  - Returns standardized responses
+  - Methods:
+    - `initialize` - Protocol handshake
+    - `resources/list` - List available resources
+    - `resources/get` - Get resource schema
+    - `search` - Semantic search
+    - `tool` - Dispatch tool calls
 
-- [ ] Add comprehensive API documentation
-- [ ] Implement development containers
-- [ ] Add integration tests
-- [ ] Improve error messages
-- [ ] Add performance profiling tools
+### MCP Resources
 
-### 5. MCP Compliance
+- **GET /mcp/resources/list**
+  - Lists available resources
+  - Returns resource metadata
+  - Publicly accessible
 
-- [ ] Add JSON-RPC endpoint
-- [ ] Implement JSON Schema validation
-- [ ] Add contract tests for schema drift
-- [ ] Create comprehensive API documentation
-- [ ] Add Docker/Kubernetes deployment support
+- **GET /mcp/resources/get/{resource}**
+  - Returns resource schema
+  - Validates resource existence
+  - Publicly accessible
+
+### Search
+
+- **POST /mcp/search**
+  - Performs semantic search
+  - Returns ranked results
+  - Supports pagination
+  - Publicly accessible
+
+### Tools
+
+- **POST /mcp/tool**
+  - Dispatches tool calls
+  - Validates parameters
+  - Returns tool results
+  - Publicly accessible
 
 ## Dependencies
 
@@ -171,6 +165,46 @@ The application is organized into several key modules:
 - Health check integration
 - Monitoring setup
 - Rate limiting (planned)
+
+## Application Lifecycle
+
+The application follows a clear lifecycle managed by FastAPI's lifespan events:
+
+1. **Startup**
+   - Load environment variables
+   - Configure logging
+   - Initialize OpenTelemetry
+   - Create FastAPI application
+   - Register routes and middleware
+
+2. **Runtime**
+   - Handle JSON-RPC requests
+   - Manage database connections
+   - Process tool dispatches
+   - Track metrics and traces
+
+3. **Shutdown**
+   - Close database connections
+   - Flush telemetry data
+   - Clean up resources
+
+## Entry Points
+
+The application can be started in two ways:
+
+1. **Python Module**
+
+   ```bash
+   python -m skill_sphere_mcp.app
+   ```
+
+2. **CLI Script**
+
+   ```bash
+   mcp-server
+   ```
+
+Both methods use the same application factory pattern in `app.py` to ensure consistent initialization.
 
 © 2025 Bernd Prager – MIT License
 
@@ -281,8 +315,21 @@ api --> "otel-collector" : OTLP traces
 1. **Suitability check** – `skill.match_role`
 
    1. Agent posts `tools/call` → dispatcher
-   2. `SkillService.match_role()` loads Node2Vec embeddings from Neo4j, computes cosine similarity, returns score & gap list.
-   3. Handler serialises result for JSON-RPC.
+   2. `SkillService.match_role()` implements a sophisticated matching algorithm:
+      - **Semantic Similarity**: Uses Node2Vec embeddings to find semantically similar skills
+      - **Experience Matching**: Considers years of experience with weighted scoring
+      - **Evidence Collection**: Gathers supporting evidence from related nodes
+      - **Gap Analysis**: Identifies missing skills and experience gaps
+   3. Scoring components:
+      - 60% skill match (exact or semantic)
+      - 40% experience match
+      - Threshold of 0.7 for considering a match
+   4. Returns comprehensive response:
+      - Overall match score
+      - Matching skills with evidence
+      - Skill gaps
+      - Supporting nodes for verification
+
 2. **Targeted CV generation** – `cv.generate`
 
    1. Handler invokes `CVService.generate()` → Jinja2 template → Markdown (or PDF via `weasyprint`).

@@ -27,5 +27,5 @@ ENV PYTHONPATH=/app/src
 EXPOSE 8000
 
 # Run Uvicorn
-CMD ["uvicorn", "skill_sphere_mcp.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "skill_sphere_mcp.app:app", "--host", "0.0.0.0", "--port", "8000"]
 

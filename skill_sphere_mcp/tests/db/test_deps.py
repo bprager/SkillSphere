@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from neo4j import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
-from skill_sphere_mcp.db.neo4j import neo4j_conn
+from skill_sphere_mcp.db.connection import neo4j_conn
 
 get_db_session_dep = Depends(neo4j_conn.get_session)
 
