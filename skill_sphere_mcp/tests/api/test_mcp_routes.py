@@ -9,25 +9,16 @@ from fastapi import HTTPException
 from neo4j import AsyncSession
 
 from skill_sphere_mcp.api import mcp_routes
-from skill_sphere_mcp.api.jsonrpc import (
-    ERROR_INTERNAL,
-    ERROR_INVALID_PARAMS,
-    ERROR_METHOD_NOT_FOUND,
-)
-from skill_sphere_mcp.api.mcp_routes import (
-    SKILL_MATCH_THRESHOLD,
-    InitializeRequest,
-    InitializeResponse,
-    JSONRPCRequest,
-    JSONRPCResponse,
-    ToolRequest,
-    dispatch_tool,
-    get_resource,
-    initialize,
-    list_resources,
-    rpc_handler,
-    rpc_match_role_handler,
-)
+from skill_sphere_mcp.api.jsonrpc import (ERROR_INTERNAL, ERROR_INVALID_PARAMS,
+                                          ERROR_METHOD_NOT_FOUND)
+from skill_sphere_mcp.api.mcp_routes import (SKILL_MATCH_THRESHOLD,
+                                             InitializeRequest,
+                                             InitializeResponse,
+                                             JSONRPCRequest, JSONRPCResponse,
+                                             ToolRequest, dispatch_tool,
+                                             get_resource, initialize,
+                                             list_resources, rpc_handler,
+                                             rpc_match_role_handler)
 
 # Test data
 MOCK_SKILL_ID = "123"

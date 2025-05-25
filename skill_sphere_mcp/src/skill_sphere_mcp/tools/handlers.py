@@ -37,7 +37,7 @@ async def match_role(
 
     # Type check for years_experience values
     for skill, years in years_experience.items():
-        if not (isinstance(years, int) and type(years) is int):
+        if not isinstance(years, int):
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid years_experience for skill '{skill}': {years} (must be int)",
@@ -130,21 +130,21 @@ async def explain_match(
     explanation = f"Skill '{skill['name']}' matches '{role_requirement}' based on:\n"
     for item in evidence:
         if item["type"] == "HAS_EXPERIENCE":
-            explanation += f"- {item['target']['name']} experience: {item['properties'].get('years', 0)} years\n"
+            explanation += (
+                f"- {item['target']['name']} experience: "
+                f"{item['properties'].get('years', 0)} years\n"
+            )
         elif item["type"] == "RELATED_TO":
             explanation += f"- Related to: {item['target']['name']}\n"
 
     return {"explanation": explanation, "evidence": evidence}
 
 
-async def generate_cv(
-    parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
+async def generate_cv(parameters: dict[str, Any]) -> dict[str, Any]:
     """Generate a CV based on target keywords.
 
     Args:
         parameters: Tool parameters
-        session: Database session
 
     Returns:
         Generated CV

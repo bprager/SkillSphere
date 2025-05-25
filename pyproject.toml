@@ -6,12 +6,11 @@ name = "myjobagent"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10, <=3.10.17"
 dependencies = [
     "faiss-cpu>=1.11.0",
     "langchain-community>=0.3.24",
     "langchain-ollama>=0.3.3",
-    "markitdown>=0.0.1a3",
     "neo4j>=5.28.1",
     "owlready2>=0.47",
     "pandoc-plantuml-filter>=0.1.5",

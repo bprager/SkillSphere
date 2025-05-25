@@ -122,7 +122,7 @@ class JSONRPCHandler:
         try:
             result = await handler(request.params or {})
             return JSONRPCResponse(jsonrpc="2.0", result=result, id=request.id)
-        except Exception as e:
+        except (TypeError, ValueError, KeyError, RuntimeError) as e:
             logger.exception("Error handling request")
             return JSONRPCResponse(
                 jsonrpc="2.0",

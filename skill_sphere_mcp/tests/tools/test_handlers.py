@@ -10,12 +10,8 @@ from neo4j import AsyncSession
 from starlette.status import HTTP_400_BAD_REQUEST
 
 from skill_sphere_mcp.graph.skill_matching import MatchResult, SkillMatch
-from skill_sphere_mcp.tools.handlers import (
-    explain_match,
-    generate_cv,
-    graph_search,
-    match_role,
-)
+from skill_sphere_mcp.tools.handlers import (explain_match, generate_cv,
+                                             graph_search, match_role)
 
 logger = logging.getLogger(__name__)
 

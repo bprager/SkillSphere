@@ -6,7 +6,6 @@ from typing import Any
 import numpy as np
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from skill_sphere_mcp.db.connection import neo4j_conn

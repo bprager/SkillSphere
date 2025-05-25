@@ -3,7 +3,6 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 from neo4j import AsyncSession
@@ -13,18 +12,32 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Node2VecConfig:
-    """Node2Vec configuration parameters."""
+class Node2VecTrainingConfig:
+    """Node2Vec training parameters."""
 
-    dimension: int = 128
     walk_length: int = 80
     num_walks: int = 10
-    p: float = 1.0
-    q: float = 1.0
     window_size: int = 5
     num_neg_samples: int = 5
     learning_rate: float = 0.025
     epochs: int = 5
+
+
+@dataclass
+class Node2VecModelConfig:
+    """Node2Vec model parameters."""
+
+    dimension: int = 128
+    p: float = 1.0
+    q: float = 1.0
+
+
+@dataclass
+class Node2VecConfig:
+    """Node2Vec configuration parameters."""
+
+    model: Node2VecModelConfig = Node2VecModelConfig()
+    training: Node2VecTrainingConfig = Node2VecTrainingConfig()
 
 
 @dataclass
@@ -49,6 +62,29 @@ class PreprocessConfig:
     unweighted: bool = False
 
 
+@dataclass
+class Node2VecState:
+    """Node2Vec state attributes."""
+
+    embeddings: dict[str, np.ndarray] | None = None
+    node_ids: dict[str, int] | None = None
+    alias_nodes: dict[str, dict[str, list[int]]] | None = None
+    alias_edges: dict[tuple[str, str], dict[str, list[int]]] | None = None
+    walks: list[list[str]] | None = None
+    graph: dict[str, list[str]] | None = None
+    preprocessed: bool = False
+
+    def __post_init__(self):
+        """Initialize default values."""
+        self.embeddings = {}
+        self.node_ids = {}
+        self.alias_nodes = {}
+        self.alias_edges = {}
+        self.walks = []
+        self.graph = {}
+        self.preprocessed = False
+
+
 # pylint: disable=too-many-instance-attributes
 class Node2Vec:
     """Node2Vec implementation for graph embeddings."""
@@ -60,25 +96,9 @@ class Node2Vec:
             config: Node2Vec configuration parameters
         """
         self.config = config or Node2VecConfig()
-        self.dimension = self.config.dimension
-        self.walk_length = self.config.walk_length
-        self.num_walks = self.config.num_walks
-        self.p = self.config.p
-        self.q = self.config.q
-        self.window_size = self.config.window_size
-        self.num_neg_samples = self.config.num_neg_samples
-        self.learning_rate = self.config.learning_rate
-        self.epochs = self.config.epochs
         self._rng = np.random.default_rng(42)  # Fixed seed for reproducibility
-
-        self._embeddings: dict[str, np.ndarray] = {}
-        self._node_ids: dict[str, int] = {}
-        self._alias_nodes: dict[str, dict[str, list[int]]] = {}
-        self._alias_edges: dict[tuple[str, str], dict[str, list[int]]] = {}
-        self._walks: list[list[str]] = []
-        self._model: Any = None
-        self._graph: dict[str, list[str]] = {}
-        self._preprocessed = False
+        self._state = Node2VecState()
+        self.model = None
 
     async def _get_graph(self, session: AsyncSession) -> dict[str, list[str]]:
         """Get graph structure from Neo4j.
@@ -109,35 +129,35 @@ class Node2Vec:
         edges: list[tuple[str, str, float]],
     ) -> None:
         """Preprocess transition probabilities for random walks."""
-        self._alias_nodes = {}
-        self._alias_edges = {}
-        self._graph = defaultdict(list)
+        self._state.alias_nodes = {}
+        self._state.alias_edges = {}
+        self._state.graph = defaultdict(list)
 
         # Build graph
         for src, dst, _ in edges:
-            self._graph[src].append(dst)
+            self._state.graph[src].append(dst)
             if not config.directed:
-                self._graph[dst].append(src)
+                self._state.graph[dst].append(src)
 
         # Preprocess node transition probabilities
         for node in nodes:
             unnormalized_probs = [
-                self._get_edge_weight() for _ in sorted(self._graph[node])
+                self._get_edge_weight() for _ in sorted(self._state.graph[node])
             ]
             norm_const = sum(unnormalized_probs)
             normalized_probs = [
                 float(u_prob) / norm_const for u_prob in unnormalized_probs
             ]
-            self._alias_nodes[node] = self._alias_setup(normalized_probs)
+            self._state.alias_nodes[node] = self._alias_setup(normalized_probs)
 
         # Preprocess edge transition probabilities
         for edge in edges:
             src, dst, _ = edge
             unnormalized_probs = []
-            for dst_nbr in sorted(self._graph[dst]):
+            for dst_nbr in sorted(self._state.graph[dst]):
                 if dst_nbr == src:
                     unnormalized_probs.append(self._get_edge_weight() / config.p)
-                elif dst_nbr in self._graph[src]:
+                elif dst_nbr in self._state.graph[src]:
                     unnormalized_probs.append(self._get_edge_weight())
                 else:
                     unnormalized_probs.append(self._get_edge_weight() / config.q)
@@ -145,7 +165,7 @@ class Node2Vec:
             normalized_probs = [
                 float(u_prob) / norm_const for u_prob in unnormalized_probs
             ]
-            self._alias_edges[edge[:2]] = self._alias_setup(normalized_probs)
+            self._state.alias_edges[edge[:2]] = self._alias_setup(normalized_probs)
 
     def _alias_setup(self, probs: list[float]) -> dict[str, list[int]]:
         """Set up alias sampling.
@@ -192,25 +212,19 @@ class Node2Vec:
         return j[idx]
 
     def _node2vec_walk(self, start_node: str, graph: dict[str, list[str]]) -> list[str]:
-        """Generate a random walk starting from a node.
-
-        Args:
-            start_node: Starting node ID
-            graph: Dictionary mapping node IDs to their neighbors
-
-        Returns:
-            List of node IDs in the walk
-        """
+        """Generate a random walk starting from a node."""
         walk = [start_node]
-        while len(walk) < self.walk_length:
+        while len(walk) < self.config.training.walk_length:
             cur = walk[-1]
             if len(graph[cur]) > 0:
                 if len(walk) == 1:
-                    walk.append(graph[cur][self._alias_draw(self._alias_nodes[cur], 0)])
+                    walk.append(
+                        graph[cur][self._alias_draw(self._state.alias_nodes[cur], 0)]
+                    )
                 else:
                     prev = walk[-2]
                     next_node = graph[cur][
-                        self._alias_draw(self._alias_edges[(prev, cur)], 0)
+                        self._alias_draw(self._state.alias_edges[(prev, cur)], 0)
                     ]
                     walk.append(next_node)
             else:
@@ -221,7 +235,7 @@ class Node2Vec:
         """Generate random walks for all nodes."""
         walks = []
         nodes = list(graph.keys())
-        for _ in range(self.num_walks):
+        for _ in range(self.config.training.num_walks):
             self._rng.shuffle(nodes)
             for node in nodes:
                 walks.append(self._node2vec_walk(node, graph))
@@ -230,13 +244,17 @@ class Node2Vec:
     def _initialize_embeddings(self, nodes: set[str]) -> None:
         """Initialize random embeddings for nodes."""
         for node in nodes:
-            self._embeddings[node] = self._rng.standard_normal(self.dimension)
-            self._embeddings[node] = normalize(self._embeddings[node].reshape(1, -1))[0]
+            self._state.embeddings[node] = self._rng.standard_normal(
+                self.config.model.dimension
+            )
+            self._state.embeddings[node] = normalize(
+                self._state.embeddings[node].reshape(1, -1)
+            )[0]
 
     def _get_context_nodes(self, walk: list[str], center_idx: int) -> list[str]:
         """Get context nodes within window size."""
-        start = max(0, center_idx - self.window_size)
-        end = min(len(walk), center_idx + self.window_size + 1)
+        start = max(0, center_idx - self.config.training.window_size)
+        end = min(len(walk), center_idx + self.config.training.window_size + 1)
         return walk[start:end]
 
     def _process_positive_samples(self, node: str, context_nodes: list[str]) -> None:
@@ -249,19 +267,17 @@ class Node2Vec:
         self, node: str, context_nodes: list[str], nodes: set[str]
     ) -> None:
         """Process negative samples for a node."""
-        for _ in range(self.num_neg_samples):
+        for _ in range(self.config.training.num_neg_samples):
             neg_node = self._rng.choice(list(nodes))
             if neg_node not in context_nodes:
                 self._update_embedding(node, neg_node, -1.0)
 
     def _train_embeddings(self, walks: list[list[str]]) -> None:
         """Train embeddings using skip-gram model."""
-        # Initialize embeddings
         nodes = {node for walk in walks for node in walk}
         self._initialize_embeddings(nodes)
 
-        # Train embeddings
-        for _ in range(self.epochs):
+        for _ in range(self.config.training.epochs):
             for walk in walks:
                 for i, node in enumerate(walk):
                     context_nodes = self._get_context_nodes(walk, i)
@@ -269,27 +285,26 @@ class Node2Vec:
                     self._process_negative_samples(node, context_nodes, nodes)
 
     def _update_embedding(self, node1: str, node2: str, label: float) -> None:
-        """Update embeddings using gradient descent.
+        """Update embeddings using gradient descent."""
+        vec1 = self._state.embeddings[node1]
+        vec2 = self._state.embeddings[node2]
 
-        Args:
-            node1: First node ID
-            node2: Second node ID
-            label: 1.0 for positive samples, -1.0 for negative
-        """
-        vec1 = self._embeddings[node1]
-        vec2 = self._embeddings[node2]
-
-        # Compute gradient
         score = np.dot(vec1, vec2)
         grad = label * (1.0 - 1.0 / (1.0 + np.exp(-score)))
 
-        # Update embeddings
-        self._embeddings[node1] += self.learning_rate * grad * vec2
-        self._embeddings[node2] += self.learning_rate * grad * vec1
+        self._state.embeddings[node1] += (
+            self.config.training.learning_rate * grad * vec2
+        )
+        self._state.embeddings[node2] += (
+            self.config.training.learning_rate * grad * vec1
+        )
 
-        # Normalize
-        self._embeddings[node1] = normalize(self._embeddings[node1].reshape(1, -1))[0]
-        self._embeddings[node2] = normalize(self._embeddings[node2].reshape(1, -1))[0]
+        self._state.embeddings[node1] = normalize(
+            self._state.embeddings[node1].reshape(1, -1)
+        )[0]
+        self._state.embeddings[node2] = normalize(
+            self._state.embeddings[node2].reshape(1, -1)
+        )[0]
 
     async def fit(self, session: AsyncSession) -> None:
         """Train Node2Vec embeddings.
@@ -328,7 +343,7 @@ class Node2Vec:
         Returns:
             Node embedding vector or None if not found
         """
-        return self._embeddings.get(node_id)
+        return self._state.embeddings.get(node_id)
 
     def get_all_embeddings(self) -> dict[str, np.ndarray]:
         """Get all node embeddings.
@@ -336,7 +351,7 @@ class Node2Vec:
         Returns:
             Dictionary mapping node IDs to their embeddings
         """
-        return self._embeddings.copy()
+        return self._state.embeddings.copy()
 
     async def get_graph(self, session: AsyncSession) -> dict[str, list[str]]:
         """Get the graph structure from Neo4j."""
@@ -360,11 +375,11 @@ class Node2Vec:
 
     def get_alias_nodes(self) -> dict[str, dict[str, list[int]]]:
         """Get the alias nodes dictionary."""
-        return self._alias_nodes.copy()
+        return self._state.alias_nodes.copy()
 
     def get_alias_edges(self) -> dict[tuple[str, str], dict[str, list[int]]]:
         """Get the alias edges dictionary."""
-        return self._alias_edges.copy()
+        return self._state.alias_edges.copy()
 
     def alias_setup(self, probs: list[float]) -> dict[str, list[int]]:
         """Set up alias sampling.
@@ -428,7 +443,7 @@ class Node2Vec:
             node_id: Node ID
             embedding: Embedding vector
         """
-        self._embeddings[node_id] = embedding
+        self._state.embeddings[node_id] = embedding
 
     def set_all_embeddings(self, embeddings: dict[str, np.ndarray]) -> None:
         """Set all node embeddings.
@@ -436,7 +451,7 @@ class Node2Vec:
         Args:
             embeddings: Dictionary mapping node IDs to their embeddings
         """
-        self._embeddings = embeddings.copy()
+        self._state.embeddings = embeddings.copy()
 
     def generate_walks(self, graph: dict[str, list[str]]) -> list[list[str]]:
         """Generate random walks for all nodes."""
@@ -448,12 +463,14 @@ class Node2Vec:
         config: PreprocessConfig | None = None,
     ) -> None:
         """Preprocess the graph for random walks."""
-        if self._preprocessed:
+        if self._state.preprocessed:
             return
 
-        self._graph = await self._get_graph(session)
-        nodes = list(self._graph.keys())
-        edges = [(src, dst, 1.0) for src, dsts in self._graph.items() for dst in dsts]
+        self._state.graph = await self._get_graph(session)
+        nodes = list(self._state.graph.keys())
+        edges = [
+            (src, dst, 1.0) for src, dsts in self._state.graph.items() for dst in dsts
+        ]
 
         if config is None:
             config = PreprocessConfig()
@@ -465,7 +482,7 @@ class Node2Vec:
             unweighted=config.unweighted,
         )
         self._preprocess_transition_probs(transition_config, nodes, edges)
-        self._preprocessed = True
+        self._state.preprocessed = True
 
     def _get_edge_weight(self) -> float:
         """Get edge weight between two nodes."""

@@ -115,7 +115,7 @@ class GraphSearchRequest(BaseModel):
 
 
 @router.post("/initialize")
-async def initialize(request: InitializeRequest) -> InitializeResponse:
+async def initialize() -> InitializeResponse:
     """Initialize the MCP server."""
     return InitializeResponse(
         protocol_version="1.0",
@@ -141,12 +141,12 @@ async def get_resource(resource: str) -> dict[str, Any]:
             "type": "collection",
             "schema": GraphNode.schema(),
         }
-    elif resource == "relationships":
+    if resource == "relationships":
         return {
             "type": "collection",
             "schema": GraphRelationship.schema(),
         }
-    elif resource == "search":
+    if resource == "search":
         return {
             "type": "action",
             "schema": {
@@ -158,7 +158,7 @@ async def get_resource(resource: str) -> dict[str, Any]:
                 "required": ["query"],
             },
         }
-    elif resource == RESOURCE_SKILLS_NODE:
+    if resource == RESOURCE_SKILLS_NODE:
         return {
             "type": "collection",
             "schema": {
@@ -171,7 +171,7 @@ async def get_resource(resource: str) -> dict[str, Any]:
                 "required": ["id", "name"],
             },
         }
-    elif resource == RESOURCE_SKILLS_RELATION:
+    if resource == RESOURCE_SKILLS_RELATION:
         return {
             "type": "collection",
             "schema": {
@@ -185,7 +185,7 @@ async def get_resource(resource: str) -> dict[str, Any]:
                 "required": ["source_id", "target_id", "type"],
             },
         }
-    elif resource == RESOURCE_PROFILES_DETAIL:
+    if resource == RESOURCE_PROFILES_DETAIL:
         return {
             "type": "collection",
             "schema": {
@@ -208,18 +208,15 @@ async def get_resource(resource: str) -> dict[str, Any]:
                 "required": ["id", "name"],
             },
         }
-    else:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid resource type: {resource}"
-        )
+    raise HTTPException(status_code=400, detail=f"Invalid resource type: {resource}")
 
 
 @router.get("/resources/get/{resource}")
 async def get_resource_mcp(
-    request: ResourceRequest,
+    resource: str,
 ) -> dict[str, Any]:
     """Get resource information."""
-    return await get_resource(request.resource_type)
+    return await get_resource(resource)
 
 
 @router.post("/rpc")
@@ -231,10 +228,9 @@ async def rpc_endpoint(
 
 
 @rpc_handler.register("initialize")
-async def rpc_initialize(params: dict[str, Any]) -> dict[str, Any]:
+async def rpc_initialize() -> dict[str, Any]:
     """Handle initialize RPC method."""
-    request = InitializeRequest(**params)
-    response = await initialize(request)
+    response = await initialize()
     return response.model_dump()
 
 
@@ -245,9 +241,7 @@ async def rpc_list_resources(_: dict[str, Any]) -> list[str]:
 
 
 @rpc_handler.register("resources/get")
-async def rpc_get_resource(
-    params: dict[str, Any], session: AsyncSession = get_db_session
-) -> dict[str, Any]:
+async def rpc_get_resource(params: dict[str, Any]) -> dict[str, Any]:
     """Handle resources/get RPC method."""
     resource = params.get("resource")
     if not resource:
@@ -285,11 +279,9 @@ async def rpc_match_role_handler(
 
 
 @router.post("/rpc/initialize", response_model=InitializeResponse)
-async def initialize_mcp(
-    request: InitializeRequest,
-) -> InitializeResponse:
+async def initialize_mcp() -> InitializeResponse:
     """Initialize MCP server."""
-    return await initialize(request)
+    return await initialize()
 
 
 @router.post("/rpc/resources/list")
@@ -312,7 +304,7 @@ async def _validate_match_request(parameters: dict[str, Any]) -> MatchRoleReques
     """Validate and parse match request parameters."""
     try:
         return MatchRoleRequest(**parameters)
-    except Exception as exc:
+    except (ValueError, TypeError) as exc:
         raise HTTPException(
             status_code=400, detail=f"Invalid parameters: {exc}"
         ) from exc
@@ -350,7 +342,7 @@ async def _calculate_semantic_score(skill1: str, skill2: str) -> float:
         vec1 = await MODEL.get_embedding(skill1)
         vec2 = await MODEL.get_embedding(skill2)
         return float(cosine_similarity([vec1], [vec2])[0][0])
-    except Exception:
+    except (ValueError, TypeError, AttributeError, IndexError, RuntimeError):
         return 0.0
 
 
@@ -404,7 +396,7 @@ async def match_role(
 
     # Validate years_experience values
     for skill, years in request.years_experience.items():
-        if not (isinstance(years, int) and type(years) is int):
+        if not isinstance(years, int):
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid years_experience for skill '{skill}': {years} (must be int)",
