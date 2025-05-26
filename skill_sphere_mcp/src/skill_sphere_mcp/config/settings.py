@@ -3,11 +3,31 @@
 import logging
 import sys
 from functools import lru_cache
+from typing import Any
 
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
+
+
+class ClientInfo(BaseModel):
+    """Client information model."""
+
+    name: str = Field(default="SkillSphere", validation_alias="MCP_CLIENT_NAME")
+    version: str = Field(default="1.0.0", validation_alias="MCP_CLIENT_VERSION")
+    environment: str = Field(
+        default="development", validation_alias="MCP_CLIENT_ENVIRONMENT"
+    )
+    features: list[str] = Field(
+        default_factory=lambda: ["cv", "search", "matching"],
+        validation_alias="MCP_CLIENT_FEATURES",
+    )
+
+    model_config = SettingsConfigDict(
+        populate_by_name=True,
+        extra="ignore",
+    )
 
 
 class Settings(BaseSettings):
@@ -16,13 +36,16 @@ class Settings(BaseSettings):
     # Server
     host: str = Field(default="0.0.0.0", validation_alias="MCP_HOST")
     port: int = Field(default=8000, validation_alias="MCP_PORT", ge=1, le=65535)
+    debug: bool = Field(default=False)
 
     # Neo4j
     neo4j_uri: str = Field(
         default="bolt://localhost:7687", validation_alias="MCP_NEO4J_URI"
     )
     neo4j_user: str = Field(default="neo4j", validation_alias="MCP_NEO4J_USER")
-    neo4j_password: str = Field(default="neo4j", validation_alias="MCP_NEO4J_PASSWORD")
+    neo4j_password: str = Field(
+        default="password", validation_alias="MCP_NEO4J_PASSWORD"
+    )
 
     # OpenTelemetry
     otel_endpoint: str = Field(
@@ -32,7 +55,18 @@ class Settings(BaseSettings):
         default="mcp-server", validation_alias="OTEL_SERVICE_NAME"
     )
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Client info
+    client_info: ClientInfo = Field(default_factory=ClientInfo)
+
+    # Feature flags
+    enable_telemetry: bool = Field(default=True)
+    enable_caching: bool = Field(default=True)
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        populate_by_name=True,
+    )
 
 
 @lru_cache(maxsize=1)
