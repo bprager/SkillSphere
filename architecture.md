@@ -2,7 +2,7 @@
 title:    "Skills-Graph Architecture"
 author:   "Bernd Prager"
 date:     2025-05-22          # shown automatically
-subtitle: "Revision v1.2"     # appears under the title in PDF/HTML
+subtitle: "Revision v1.3"     # appears under the title in PDF/HTML
 abstract: |
   End-to-end design for turning Markdown experience records into a
   Hypergraph-of-Thought (Neo4j) and exposing it through an MCP API
@@ -24,7 +24,7 @@ package "Data Layer" {
 }
 
 package "Processing Layer" {
-  D : Ingestion Worker v2 (Python)
+  D : Hypergraph Package (Python)
   E : Ollama LLMs\nGemma 3 12B / nomic-embed
 }
 
@@ -51,7 +51,38 @@ H --> I
 @enduml
 ```
 
-## 2  Ingestion Worker v2 (detailed steps)
+## 2  Hypergraph Package (detailed structure)
+
+The ingestion pipeline is now organized as a proper Python package under `src/hypergraph/`:
+
+```text
+hypergraph/
+├── src/
+│   └── hypergraph/
+│       ├── __init__.py
+│       ├── __main__.py          # CLI entry point
+│       ├── core/
+│       │   ├── __init__.py
+│       │   ├── config.py        # Settings (Pydantic)
+│       │   └── utils.py         # SHA-256, chunking
+│       ├── db/
+│       │   ├── __init__.py
+│       │   ├── graph.py         # Neo4j writer
+│       │   └── registry.py      # SQLite tracker
+│       ├── embeddings/
+│       │   ├── __init__.py
+│       │   └── faiss.py         # Vector store
+│       └── llm/
+│           ├── __init__.py
+│           └── triples.py       # Triple extraction
+├── tests/
+│   ├── conftest.py             # Pytest fixtures
+│   └── test_*.py               # Unit tests
+├── pyproject.toml              # Dependencies
+└── README.md
+```
+
+### 2.1  Processing Steps
 
 1. **SHA-256 change detection** – skip unchanged docs (SQLite `doc_registry`).
 2. **Chunk & embed** – 1 500-word chunks / 200-word overlap → `nomic-embed-text` vectors → optional FAISS.
@@ -164,7 +195,3 @@ neo4j --> db
 5. **Async ingestion + two-pass RAG** when we start serving high-QPS MCP queries
 
 © 2025 Bernd Prager — Apache 2.0
-
-```
-```
-

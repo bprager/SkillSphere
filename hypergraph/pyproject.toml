@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hypergraph"
+version = "0.1.0"
+description = "A hypergraph-based knowledge ingestion pipeline"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+dependencies = [
+    "langchain-community>=0.0.10",
+    "neo4j>=5.14.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "faiss-cpu>=1.7.4",
+    "pyyaml>=6.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.9.1",
+    "ruff>=0.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=src/hypergraph"
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.isort]
+known-first-party = ["hypergraph"]
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]

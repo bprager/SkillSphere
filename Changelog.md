@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Develop MCP and A2A components
 - Develop improvement strategy (KPIs?)
 
+## [0.1.7] - Wed May 22 14:30:00 PDT 2025
+
+### Changed
+
+- Restructured ingestion pipeline into proper Python package
+  - Moved code to `src/hypergraph/` with modular organization
+  - Added proper test structure with pytest
+  - Added dependency management with pyproject.toml
+  - Added comprehensive README
+  - Updated architecture documentation
 
 ## [0.1.6] - Fri May 16 10:25:37 PDT 2025
 
@@ -62,11 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First experience files
 - Prompt to improve experience data
 
-
 ## [0.1.0] - Sat Feb  8 10:19:16 PST 2025
 
 ### Added
 
 - Initial version
 - Changelog
-

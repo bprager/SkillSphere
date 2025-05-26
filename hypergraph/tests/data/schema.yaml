@@ -1,0 +1,13 @@
+relationships:
+  - type: USES
+  - type: KNOWS
+
+prompt_steering:
+  known_skills:
+    - Python
+    - Neo4j
+  known_tools:
+    - pytest
+    - black
+  alias_map:
+    py: Python
