@@ -23,15 +23,32 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/uv
+          .venv
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pylint
+        uv venv
+        source .venv/bin/activate
+        uv pip install --upgrade pip
+        uv pip install -r requirements.txt
+        uv pip install pytest pytest-cov pylint
         if [ "${{ matrix.project }}" = "hypergraph" ]; then
-          pip install -e hypergraph
+          uv pip install -e hypergraph
         elif [ "${{ matrix.project }}" = "skill_sphere_mcp" ]; then
-          pip install -e skill_sphere_mcp
+          uv pip install -e skill_sphere_mcp
         fi
 
     - name: Create pylint config
@@ -48,18 +65,21 @@ jobs:
     - name: Run pylint
       if: matrix.check == 'pylint'
       run: |
+        source .venv/bin/activate
         cd ${{ matrix.project }}
         pylint --rcfile=../.pylintrc $(git ls-files '*.py')
 
     - name: Run pytest
       if: matrix.check == 'pytest'
       run: |
+        source .venv/bin/activate
         cd ${{ matrix.project }}
         pytest tests/ -v
 
     - name: Run coverage
       if: matrix.check == 'coverage'
       run: |
+        source .venv/bin/activate
         cd ${{ matrix.project }}
         pytest tests/ -v --cov=. --cov-report=xml
 
