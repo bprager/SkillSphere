@@ -28,6 +28,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-cov pylint
+        if [ "${{ matrix.project }}" = "hypergraph" ]; then
+          pip install -e hypergraph
+        elif [ "${{ matrix.project }}" = "skill_sphere_mcp" ]; then
+          pip install -e skill_sphere_mcp
+        fi
 
     - name: Run pylint
       if: matrix.check == 'pylint'
@@ -39,13 +44,13 @@ jobs:
       if: matrix.check == 'pytest'
       run: |
         cd ${{ matrix.project }}
-        PYTHONPATH=. pytest tests/ -v
+        pytest tests/ -v
 
     - name: Run coverage
       if: matrix.check == 'coverage'
       run: |
         cd ${{ matrix.project }}
-        PYTHONPATH=. pytest tests/ -v --cov=src --cov-report=xml
+        pytest tests/ -v --cov=src --cov-report=xml
 
     - name: Upload coverage to Codecov
       if: matrix.check == 'coverage'
