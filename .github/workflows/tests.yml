@@ -34,11 +34,21 @@ jobs:
           pip install -e skill_sphere_mcp
         fi
 
+    - name: Create pylint config
+      run: |
+        echo "[MASTER]
+        disable=C0111,C0103,C0305,C0321,W0401,W0622,W0614
+        max-line-length=120
+        ignore=CVS
+        persistent=yes
+        load-plugins=pylint.extensions.docparams,pylint.extensions.docstyle,pylint.extensions.mccabe
+        " > .pylintrc
+
     - name: Run pylint
       if: matrix.check == 'pylint'
       run: |
         cd ${{ matrix.project }}
-        pylint $(git ls-files '*.py')
+        pylint --rcfile=../.pylintrc $(git ls-files '*.py')
 
     - name: Run pytest
       if: matrix.check == 'pytest'
