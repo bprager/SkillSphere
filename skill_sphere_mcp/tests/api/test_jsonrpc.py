@@ -3,13 +3,15 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
-from skill_sphere_mcp.api.jsonrpc import (ERROR_INVALID_REQUEST,
-                                          ERROR_METHOD_NOT_FOUND,
-                                          JSONRPCRequest, JSONRPCResponse)
+from skill_sphere_mcp.api.jsonrpc import (
+    ERROR_INVALID_REQUEST,
+    ERROR_METHOD_NOT_FOUND,
+    JSONRPCRequest,
+    JSONRPCResponse,
+)
 from skill_sphere_mcp.app import app
 
 

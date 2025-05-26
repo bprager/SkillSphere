@@ -42,6 +42,7 @@ jobs:
         ignore=CVS
         persistent=yes
         load-plugins=pylint.extensions.docparams,pylint.extensions.docstyle,pylint.extensions.mccabe
+        ignored-modules=uvicorn,fastapi
         " > .pylintrc
 
     - name: Run pylint

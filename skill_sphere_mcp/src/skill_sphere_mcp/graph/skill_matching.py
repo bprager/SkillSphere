@@ -34,6 +34,7 @@ class MatchResult:
     supporting_nodes: list[dict[str, Any]]
 
 
+# pylint: disable=R0903  # Too few public methods (1/2) - this is a simple utility class
 class SkillMatchingService:
     """Service for matching skills against role requirements."""
 

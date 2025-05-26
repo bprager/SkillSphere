@@ -9,12 +9,20 @@ readme = "README.md"
 requires-python = ">=3.10, <=3.10.17"
 dependencies = [
     "faiss-cpu>=1.11.0",
+    "fastapi>=0.115.12",
     "langchain-community>=0.3.24",
     "langchain-ollama>=0.3.3",
     "neo4j>=5.28.1",
+    "node2vec>=0.4.3",
+    "opentelemetry-api>=1.33.1",
+    "opentelemetry-exporter-otlp>=1.33.1",
+    "opentelemetry-sdk>=1.33.1",
     "owlready2>=0.47",
     "pandoc-plantuml-filter>=0.1.5",
     "pyyaml>=6.0.2",
+    "scikit-learn>=1.6.1",
+    "sentence-transformers>=4.1.0",
+    "uvicorn>=0.34.2",
 ]
 
 [dependency-groups]

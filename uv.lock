@@ -854,12 +854,20 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "faiss-cpu" },
+    { name = "fastapi" },
     { name = "langchain-community" },
     { name = "langchain-ollama" },
     { name = "neo4j" },
+    { name = "node2vec" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-sdk" },
     { name = "owlready2" },
     { name = "pandoc-plantuml-filter" },
     { name = "pyyaml" },
+    { name = "scikit-learn" },
+    { name = "sentence-transformers" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -873,12 +881,20 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "faiss-cpu", specifier = ">=1.11.0" },
+    { name = "fastapi", specifier = ">=0.115.12" },
     { name = "langchain-community", specifier = ">=0.3.24" },
     { name = "langchain-ollama", specifier = ">=0.3.3" },
     { name = "neo4j", specifier = ">=5.28.1" },
+    { name = "node2vec", specifier = ">=0.4.3" },
+    { name = "opentelemetry-api", specifier = ">=1.33.1" },
+    { name = "opentelemetry-exporter-otlp", specifier = ">=1.33.1" },
+    { name = "opentelemetry-sdk", specifier = ">=1.33.1" },
     { name = "owlready2", specifier = ">=0.47" },
     { name = "pandoc-plantuml-filter", specifier = ">=0.1.5" },
     { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "scikit-learn", specifier = ">=1.6.1" },
+    { name = "sentence-transformers", specifier = ">=4.1.0" },
+    { name = "uvicorn", specifier = ">=0.34.2" },
 ]
 
 [package.metadata.requires-dev]

@@ -12,7 +12,7 @@ from hypergraph.core.config import Settings
 from hypergraph.core.utils import chunk, sha256
 from hypergraph.db.graph import GraphWriter
 from hypergraph.db.registry import Registry
-from hypergraph.embeddings.faiss import FaissManager
+from hypergraph.embeddings.faiss_manager import FaissManager
 from hypergraph.llm.triples import TripleExtractor, TripleExtractorConfig
 
 # ───────────────────────────── Logging ────────────────────────────
@@ -43,9 +43,7 @@ class IngestionContext:
 
 def load_schema(settings: Settings) -> SchemaConfig:
     """Load and parse schema.yaml."""
-    schema = yaml.safe_load(
-        Path(settings.graph_schema_yaml).read_text(encoding="utf-8")
-    )
+    schema = yaml.safe_load(Path(settings.graph_schema_yaml).read_text(encoding="utf-8"))
     return SchemaConfig(
         rel_hints=[r["type"] for r in schema.get("relationships", [])],
         known_skills=schema.get("prompt_steering", {}).get("known_skills", []),
@@ -70,9 +68,7 @@ def init_context(settings: Settings, schema: SchemaConfig) -> IngestionContext:
         base_url=settings.ollama_base_url,
         config=extractor_config,
     )
-    return IngestionContext(
-        reg=reg, gw=gw, emb=emb, extractor=extractor, settings=settings
-    )
+    return IngestionContext(reg=reg, gw=gw, emb=emb, extractor=extractor, settings=settings)
 
 
 def process_file(md_file: Path, ctx: IngestionContext):
