@@ -51,7 +51,7 @@ jobs:
         source .venv/bin/activate
         uv pip install --upgrade pip
         uv pip install -r requirements.txt
-        uv pip install pytest pytest-cov pylint
+        uv pip install pytest pytest-cov pylint pytest-asyncio
         if [ "${{ matrix.project }}" = "hypergraph" ]; then
           uv pip install -e hypergraph
         elif [ "${{ matrix.project }}" = "skill_sphere_mcp" ]; then
