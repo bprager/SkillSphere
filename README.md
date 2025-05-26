@@ -1,5 +1,10 @@
 # SkillSphere — Hypergraph-Powered Professional Knowledge Base
 
+[![Hypergraph Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?path=hypergraph/.github/workflows/tests.yml)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?path=hypergraph/.github/workflows/tests.yml)
+[![MCP Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?path=skill_sphere_mcp/.github/workflows/tests.yml)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?path=skill_sphere_mcp/.github/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/bprager/SkillSphere/branch/main/graph/badge.svg)](https://codecov.io/gh/bprager/SkillSphere)
+[![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-blue.svg)](https://www.python.org/downloads/)
+
 *A reproducible, open-source playground that turns plain career notes into a query-ready knowledge graph **and** can spit out job-targeted, ATS-friendly résumés on demand.*
 
 ---
@@ -9,11 +14,11 @@
 | Pain point                                                  | How SkillSphere helps                                                                                            |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Career data scattered across docs, LinkedIn and slide decks | **Single-source-of-truth**: all jobs, projects and certs live in Markdown                                        |
-| Recruiters can’t see proof of specific skills quickly       | **Hypergraph-of-Thought** in Neo4j lets agents answer: *“Show projects proving Kubernetes cost-optimisation.”*   |
+| Recruiters can't see proof of specific skills quickly       | **Hypergraph-of-Thought** in Neo4j lets agents answer: *"Show projects proving Kubernetes cost-optimisation."*   |
 | Tailoring a résumé for every role is tedious                | **Graph-to-PDF pipeline** converts the same graph into a fully **ATS-optimised CV** aligned to a chosen job spec |
 | Privacy / cost worries around SaaS LLMs                     | Runs **entirely local** on Ollama; no OpenAI key required                                                        |
 
-If you’re exploring AI-driven personal knowledge graphs *or* need a quick way to generate job-specific CVs, clone the repo, drop in your own records and you’ll have a live graph **and** résumé builder inside 10 minutes.
+If you're exploring AI-driven personal knowledge graphs *or* need a quick way to generate job-specific CVs, clone the repo, drop in your own records and you'll have a live graph **and** résumé builder inside 10 minutes.
 
 ---
 
@@ -28,7 +33,7 @@ ollama pull gemma3:12b                # or your favourite local LLM
 cp .env.sample .env                   # adjust Neo4j creds if needed
 
 # 1) Build / refresh the graph
-poetry run python hypergraph/ingestion_worker.py
+python -m hypergraph
 
 # 2) Generate an ATS-ready résumé for a target job description
 python scripts/build_resume.py --job-spec docs/job_postings/google_se_iii.md
@@ -45,16 +50,34 @@ python scripts/build_resume.py --job-spec docs/job_postings/google_se_iii.md
 | Path                             | Purpose                                                                          |
 | -------------------------------- | -------------------------------------------------------------------------------- |
 | `docs/`                          | Markdown records (`jobs`, `extras`, `certifications`) **and** job-spec examples. |
-| `hypergraph/ingestion_worker.py` | Ingestion pipeline with **gleaning loop** + **Node2Vec**.                        |
+| `src/hypergraph/`                | Core ingestion pipeline with **gleaning loop** + **Node2Vec**.                   |
 | `architecture.md`                | Design spec & PlantUML flow.                                                     |
 | `scripts/build_resume.py`        | Graph→Markdown→Pandoc pipeline for **ATS PDFs**.                                 |
 | `templates/`                     | Pandoc résumé / cover-letter templates.                                          |
+| `tests/`                         | Comprehensive test suite with 100% coverage of core modules.                     |
+
+---
+
+## 🛠️ Core Components
+
+### Hypergraph Module (`src/hypergraph/`)
+
+* **LLM Integration** (`llm/`): Triple extraction and knowledge gleaning
+* **Graph Database** (`db/`): Neo4j operations and registry management
+* **Embeddings** (`embeddings/`): FAISS vector store for semantic search
+* **Core** (`core/`): Configuration and shared utilities
+
+### Testing (`tests/`)
+
+* Unit tests with pytest
+* Mocked Neo4j and LLM interactions
+* Comprehensive coverage of core functionality
 
 ---
 
 ## 📚 Research foundation
 
-SkillSphere’s hypergraph model is inspired by:
+SkillSphere's hypergraph model is inspired by:
 
 > **Haoran Luo, Haihong E, Guanting Chen, et al.**
 > *HyperGraphRAG: Retrieval-Augmented Generation with Hypergraph-Structured Knowledge Representation.*
@@ -62,28 +85,28 @@ SkillSphere’s hypergraph model is inspired by:
 
 We adapt it to a **personal** graph and add:
 
-* Incremental ingest with SHA-256 change tracking.
-* Local-LLM **gleaning loop** that wrings \~25 % extra facts per chunk.
-* Neo4j GDS **Node2Vec** embeddings for structural search.
-* A résumé generator that queries the graph and compiles an **ATS-optimised CV** for any job description.
+* Incremental ingest with SHA-256 change tracking
+* Local-LLM **gleaning loop** that wrings ~25% extra facts per chunk
+* Neo4j GDS **Node2Vec** embeddings for structural search
+* A résumé generator that queries the graph and compiles an **ATS-optimised CV** for any job description
+* Comprehensive test suite ensuring reliability
 
 ---
 
 ## 🤝 Why you might care
 
 * **Hiring for AI / knowledge-graph talent?** — this is a live sample of my architecture, Python and graph-data chops.
-* **Building internal talent graphs or CV automation?** — fork it, swap Markdown for HR data, and you’re halfway to a skills matrix and auto-CV tool.
+* **Building internal talent graphs or CV automation?** — fork it, swap Markdown for HR data, and you're halfway to a skills matrix and auto-CV tool.
 * **Just curious?** — open a PR or start a discussion; I love geeky graph & GenAI conversations.
 
 ---
 
-## 📬 Let’s connect
+## 📬 Let's connect
 
-* Web [https://www.prager.ws](https://www.prager.ws)
-* Email [bernd@prager.ws](mailto:bernd@prager.ws) · LinkedIn [@berndprager](https://www.linkedin.com/in/berndprager)
-* Book a chat [https://calendly.com/bernd-prager/30min](https://calendly.com/bernd-prager/30min)
+* Web [https://www.prager.ws](https://www.prager.ws)
+* Email [bernd@prager.ws](mailto:bernd@prager.ws) · LinkedIn [@berndprager](https://www.linkedin.com/in/berndprager)
+* Book a chat [https://calendly.com/bernd-prager/30min](https://calendly.com/bernd-prager/30min)
 
 ---
 
-© 2025 Bernd Prager — Apache 2.0 • Clone, adapt, and let me know what you build!
-
+© 2025 Bernd Prager — Apache 2.0 • Clone, adapt, and let me know what you build!
