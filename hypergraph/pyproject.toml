@@ -7,7 +7,7 @@ name = "hypergraph"
 version = "0.1.0"
 description = "A hypergraph-based knowledge ingestion pipeline"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "MIT"
 dependencies = [
     "langchain-community>=0.0.10",
@@ -30,6 +30,11 @@ dev = [
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=src/hypergraph"
+filterwarnings = [
+    "ignore::DeprecationWarning:importlib._bootstrap:",
+    "ignore::DeprecationWarning:numpy.core._multiarray_umath:",
+    "ignore::DeprecationWarning:faiss.loader:"
+]
 
 [tool.ruff]
 line-length = 100

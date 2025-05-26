@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures."""
 
+# pylint: disable=import-error, redefined-outer-name
 import os
 from pathlib import Path
 from typing import Generator

@@ -3,17 +3,17 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 import yaml
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 from hypergraph.core.config import Settings
 from hypergraph.core.utils import chunk, sha256
 from hypergraph.db.graph import GraphWriter
 from hypergraph.db.registry import Registry
 from hypergraph.embeddings.faiss import FaissManager
-from hypergraph.llm.triples import TripleExtractor
+from hypergraph.llm.triples import TripleExtractor, TripleExtractorConfig
 
 # ───────────────────────────── Logging ────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -59,13 +59,16 @@ def init_context(settings: Settings, schema: SchemaConfig) -> IngestionContext:
     reg = Registry(Path(settings.registry_path))
     gw = GraphWriter(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_pass)
     emb = OllamaEmbeddings(model="nomic-embed-text", base_url=settings.ollama_base_url)
-    extractor = TripleExtractor(
-        model="gemma3:12b",
-        base_url=settings.ollama_base_url,
+    extractor_config = TripleExtractorConfig(
         rel_hints=schema.rel_hints,
         known_skills=schema.known_skills,
         known_tools=schema.known_tools,
         alias_map=schema.alias_map,
+    )
+    extractor = TripleExtractor(
+        model="gemma3:12b",
+        base_url=settings.ollama_base_url,
+        config=extractor_config,
     )
     return IngestionContext(
         reg=reg, gw=gw, emb=emb, extractor=extractor, settings=settings

@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import List
 
-import numpy as np  # type: ignore
 import faiss  # type: ignore
+import numpy as np  # type: ignore
 
 
 # pylint: disable=R0903  # Too few public methods (1/2) - this is a simple manager class

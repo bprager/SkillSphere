@@ -1,35 +1,21 @@
 """Tests for the main module."""
 
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
-from hypergraph.core.config import Settings
+# pylint: disable=import-error
+from hypergraph.__main__ import main
 from hypergraph.db.graph import GraphWriter
 from hypergraph.db.registry import Registry
 from hypergraph.llm.triples import TripleExtractor
 
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-@pytest.fixture
-def mock_settings():
-    """Create mock settings."""
-    return Settings(
-        neo4j_uri="bolt://localhost:7687",
-        neo4j_user="neo4j",
-        neo4j_pass="test",
-        ollama_base_url="http://localhost:11434",
-        doc_root="tests/data/docs",
-        registry_path="tests/data/registry.db",
-        faiss_index_path="tests/data/faiss.index",
-        chunk_size=1500,
-        chunk_overlap=200,
-        glean_max_rounds=3,
-        node2vec_dim=128,
-        node2vec_walks=10,
-        node2vec_walk_length=20,
-    )
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
@@ -59,7 +45,7 @@ def mock_md_file(tmp_path):
 
 
 def test_main_flow(
-    mock_settings,
+    settings,
     mock_schema,
     mock_md_file,
     monkeypatch,
@@ -67,10 +53,10 @@ def test_main_flow(
     """Test the main ingestion flow."""
 
     # Mock file operations
-    def mock_read_text(*args, **kwargs):
+    def mock_read_text(*_args, **_kwargs):
         return "# Test Document\n\nThis is a test document about Python and pytest."
 
-    def mock_rglob(*args, **kwargs):
+    def mock_rglob(*_args, **_kwargs):
         return [mock_md_file]
 
     # Mock embeddings
@@ -96,7 +82,7 @@ def test_main_flow(
     # Apply all mocks
     with patch.multiple(
         "hypergraph.__main__",
-        Settings=lambda: mock_settings,
+        Settings=lambda: settings,
         OllamaEmbeddings=lambda **kwargs: mock_embeddings,
         TripleExtractor=lambda **kwargs: mock_extractor,
         Registry=lambda path: mock_registry,
@@ -106,9 +92,6 @@ def test_main_flow(
         # Mock Path methods
         monkeypatch.setattr(Path, "rglob", mock_rglob)
         monkeypatch.setattr(Path, "read_text", mock_read_text)
-
-        # Import and run main
-        from hypergraph.__main__ import main
 
         main()
 
@@ -121,7 +104,7 @@ def test_main_flow(
 
 
 def test_skip_unchanged_file(
-    mock_settings,
+    settings,
     mock_schema,
     mock_md_file,
     monkeypatch,
@@ -132,7 +115,7 @@ def test_skip_unchanged_file(
     mock_registry.get.return_value = "test_hash"  # Simulate unchanged file
 
     # Mock file operations
-    def mock_rglob(*args, **kwargs):
+    def mock_rglob(*_args, **_kwargs):
         return [mock_md_file]
 
     # Mock graph writer
@@ -141,16 +124,13 @@ def test_skip_unchanged_file(
     # Apply mocks
     with patch.multiple(
         "hypergraph.__main__",
-        Settings=lambda: mock_settings,
+        Settings=lambda: settings,
         Registry=lambda path: mock_registry,
         GraphWriter=lambda *args, **kwargs: mock_graph_writer,
         sha256=lambda path: "test_hash",
     ), patch("yaml.safe_load", return_value=mock_schema):
         # Mock Path methods
         monkeypatch.setattr(Path, "rglob", mock_rglob)
-
-        # Import and run main
-        from hypergraph.__main__ import main
 
         main()
 
@@ -161,7 +141,7 @@ def test_skip_unchanged_file(
 
 
 def test_error_handling(
-    mock_settings,
+    settings,
     mock_schema,
     mock_md_file,
     monkeypatch,
@@ -172,21 +152,18 @@ def test_error_handling(
     mock_registry.get.side_effect = Exception("Test error")
 
     # Mock file operations
-    def mock_rglob(*args, **kwargs):
+    def mock_rglob(*_args, **_kwargs):
         return [mock_md_file]
 
     # Apply mocks
     with patch.multiple(
         "hypergraph.__main__",
-        Settings=lambda: mock_settings,
+        Settings=lambda: settings,
         Registry=lambda path: mock_registry,
         sha256=lambda path: "test_hash",
     ), patch("yaml.safe_load", return_value=mock_schema):
         # Mock Path methods
         monkeypatch.setattr(Path, "rglob", mock_rglob)
-
-        # Import and run main
-        from hypergraph.__main__ import main
 
         # Should raise an exception
         with pytest.raises(Exception) as exc_info:

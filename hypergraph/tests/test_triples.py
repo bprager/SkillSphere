@@ -1,8 +1,13 @@
 """Tests for hypergraph.llm.triples module."""
 
+# pylint: disable=import-error, wrong-import-position
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from unittest.mock import patch
 
-from hypergraph.llm.triples import TripleExtractor, clean_json, parse_triples
+from hypergraph.llm.triples import TripleExtractor, TripleExtractorConfig, clean_json, parse_triples
 
 
 def test_clean_json_removes_markdown_and_prose():
@@ -45,13 +50,13 @@ def test_triple_extractor_extract():
         mock_llm = mock_llm_class.return_value
         # Simulate LLM returning a valid triple in JSON
         mock_llm.invoke.return_value.content = '[{"subject": "A", "relation": "B", "object": "C"}]'
+        config = TripleExtractorConfig(
+            rel_hints=["B"], known_skills=[], known_tools=[], alias_map={}
+        )
         extractor = TripleExtractor(
             model="test-model",
             base_url="http://localhost:1234",
-            rel_hints=["B"],
-            known_skills=[],
-            known_tools=[],
-            alias_map={},
+            config=config,
         )
         result = extractor.extract("Test text", max_rounds=2)
         assert isinstance(result, list)
