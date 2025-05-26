@@ -866,6 +866,7 @@ dependencies = [
     { name = "pandoc-plantuml-filter" },
     { name = "pyyaml" },
     { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "sentence-transformers" },
     { name = "uvicorn" },
 ]
@@ -893,6 +894,7 @@ requires-dist = [
     { name = "pandoc-plantuml-filter", specifier = ">=0.1.5" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
+    { name = "scipy", specifier = ">=1.11.0,<1.14.0" },
     { name = "sentence-transformers", specifier = ">=4.1.0" },
     { name = "uvicorn", specifier = ">=0.34.2" },
 ]

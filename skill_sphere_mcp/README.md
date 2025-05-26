@@ -1,5 +1,9 @@
 # Skill Sphere MCP
 
+[![Python Tests and Linting](https://github.com/bernd/skill-sphere/actions/workflows/tests.yml/badge.svg)](https://github.com/bernd/skill-sphere/actions/workflows/tests.yml)
+[![Pylint](https://img.shields.io/badge/pylint-10.0-brightgreen)](https://github.com/bernd/skill-sphere/actions/workflows/tests.yml)
+[![Coverage](https://codecov.io/gh/bernd/skill-sphere/branch/main/graph/badge.svg)](https://codecov.io/gh/bernd/skill-sphere)
+
 Management Control Plane (MCP) for Skill Sphere, a FastAPI-based service that implements the Model Context Protocol (MCP) to expose skills and experiences from a Neo4j graph database to LLM agents.
 
 ## Features

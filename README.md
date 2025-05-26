@@ -113,7 +113,7 @@ We adapt it to a **personal** graph and add:
 ## 📬 Let's connect
 
 * Web [https://www.prager.ws](https://www.prager.ws)
-* Email [bernd@prager.ws](mailto:bernd@prager.ws) · LinkedIn [@berndprager](https://www.linkedin.com/in/berndprager)
+* Email [bernd@prager.ws](mailto:bernd@prager.ws) · LinkedIn [@bprager](https://www.linkedin.com/in/bprager)
 * Book a chat [https://calendly.com/bernd-prager/30min](https://calendly.com/bernd-prager/30min)
 
 ---
