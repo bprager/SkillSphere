@@ -1,8 +1,17 @@
 # SkillSphere — Hypergraph-Powered Professional Knowledge Base
 
-[![Hypergraph Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?path=hypergraph/.github/workflows/tests.yml)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?path=hypergraph/.github/workflows/tests.yml)
-[![MCP Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?path=skill_sphere_mcp/.github/workflows/tests.yml)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?path=skill_sphere_mcp/.github/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/bprager/SkillSphere/branch/main/graph/badge.svg)](https://codecov.io/gh/bprager/SkillSphere)
+## Hypergraph
+
+[![Hypergraph Pylint](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Ahypergraph%2Ccheck%3Apylint)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Ahypergraph%2Ccheck%3Apylint)
+[![Hypergraph Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Ahypergraph%2Ccheck%3Apytest)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Ahypergraph%2Ccheck%3Apytest)
+[![Hypergraph Coverage](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Ahypergraph%2Ccheck%3Acoverage)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Ahypergraph%2Ccheck%3Acoverage)
+
+## SkillSphere MCP
+
+[![MCP Pylint](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Askill_sphere_mcp%2Ccheck%3Apylint)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Askill_sphere_mcp%2Ccheck%3Apylint)
+[![MCP Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Askill_sphere_mcp%2Ccheck%3Apytest)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Askill_sphere_mcp%2Ccheck%3Apytest)
+[![MCP Coverage](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Askill_sphere_mcp%2Ccheck%3Acoverage)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Askill_sphere_mcp%2Ccheck%3Acoverage)
+
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-blue.svg)](https://www.python.org/downloads/)
 
 *A reproducible, open-source playground that turns plain career notes into a query-ready knowledge graph **and** can spit out job-targeted, ATS-friendly résumés on demand.*
