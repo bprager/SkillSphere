@@ -4,6 +4,7 @@ This module defines the core ontology for the Skills Hypergraph, which represent
 professional skills, experiences, and relationships in a semantic graph structure.
 """
 
+# pylint: disable=no-member,import-error,too-few-public-methods
 from owlready2 import Thing, get_ontology
 
 # Create a new ontology
