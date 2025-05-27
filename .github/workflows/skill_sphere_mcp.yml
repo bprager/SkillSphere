@@ -74,8 +74,8 @@ jobs:
       if: matrix.check == 'pylint'
       run: |
         source .venv/bin/activate
-        cd skill_sphere_mcp
-        pylint --rcfile=../.pylintrc --fail-under=9.0 $(git ls-files '*.py')
+        cd skill_sphere_mcp/src
+        pylint --rcfile=../../.pylintrc --fail-under=9.0 $(git ls-files '*.py')
 
     - name: Run pytest
       if: matrix.check == 'pytest'
@@ -89,7 +89,7 @@ jobs:
       run: |
         source .venv/bin/activate
         cd skill_sphere_mcp
-        pytest tests/ -v --cov=. --cov-report=xml
+        pytest tests/ -v --cov=src --cov-report=xml
         coverage report -m
 
     - name: Generate coverage badge
