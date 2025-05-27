@@ -3,14 +3,17 @@
 from typing import Any
 
 from fastapi import HTTPException
+from neo4j import AsyncSession
 
 
-async def explain_match(parameters: dict[str, Any], session) -> dict[str, Any]:
+async def explain_match(
+    parameters: dict[str, Any], session: AsyncSession
+) -> dict[str, Any]:
     """Explain why a skill matches a role requirement.
 
     Args:
         parameters: Tool parameters
-        session: Database session
+        session: Neo4j database session
 
     Returns:
         Match explanation
