@@ -2,15 +2,13 @@
 
 ## Hypergraph
 
-[![Hypergraph Pylint](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml/badge.svg?job=test&matrix=check=pylint)](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpylint)
-[![Hypergraph Tests](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml/badge.svg?job=test&matrix=check=pytest)](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpytest)
-[![Hypergraph Coverage](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml/badge.svg?job=test&matrix=check=coverage)](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dcoverage)
+[![Hypergraph Tests and Linting](https://github.com/bprager/SkillSphere-Agent/actions/workflows/hypergraph.yml/badge.svg)](https://github.com/bprager/SkillSphere-Agent/actions/workflows/hypergraph.yml)
+[![Hypergraph Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/main/hypergraph/coverage.svg)](https://github.com/bprager/SkillSphere-Agent/blob/main/hypergraph/coverage.svg)
 
 ## SkillSphere MCP
 
-[![MCP Pylint](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml/badge.svg?job=test&matrix=check=pylint)](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpylint)
-[![MCP Tests](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml/badge.svg?job=test&matrix=check=pytest)](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpytest)
-[![MCP Coverage](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml/badge.svg?job=test&matrix=check=coverage)](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dcoverage)
+[![SkillSphere MCP Tests and Linting](https://github.com/bprager/SkillSphere-Agent/actions/workflows/skill_sphere_mcp.yml/badge.svg)](https://github.com/bprager/SkillSphere-Agent/actions/workflows/skill_sphere_mcp.yml)
+[![MCP Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/main/skill_sphere_mcp/coverage.svg)](https://github.com/bprager/SkillSphere-Agent/blob/main/skill_sphere_mcp/coverage.svg)
 
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/bprager/SkillSphere-Agent.svg?)](https://github.com/bprager/skillspere-agent/blob/main/LICENSE)

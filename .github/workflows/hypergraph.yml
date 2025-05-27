@@ -84,17 +84,39 @@ jobs:
         cd hypergraph
         pytest tests/ -v
 
-    - name: Run coverage
+    - name: Run coverage and generate badge
       if: matrix.check == 'coverage'
       run: |
         source .venv/bin/activate
         cd hypergraph
         pytest tests/ -v --cov=. --cov-report=xml
+        coverage report -m
 
-    - name: Upload coverage to Codecov
+    - name: Generate coverage badge
       if: matrix.check == 'coverage'
-      uses: codecov/codecov-action@v4
+      uses: tj-actions/coverage-badge-py@v2
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./hypergraph
-        fail_ci_if_error: true
+        working-directory: ./hypergraph
+        output: ./hypergraph/coverage.svg
+
+    - name: Verify Changed files
+      if: matrix.check == 'coverage'
+      uses: tj-actions/verify-changed-files@v16
+      id: verify-changed-files
+      with:
+        files: hypergraph/coverage.svg
+
+    - name: Commit files
+      if: matrix.check == 'coverage' && steps.verify-changed-files.outputs.files_changed == 'true'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add hypergraph/coverage.svg
+        git commit -m "Updated hypergraph coverage badge"
+
+    - name: Push changes
+      if: matrix.check == 'coverage' && steps.verify-changed-files.outputs.files_changed == 'true'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.github_token }}
+        branch: ${{ github.ref }}
