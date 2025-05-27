@@ -3,12 +3,12 @@
 ## Hypergraph
 
 [![Hypergraph Tests and Linting](https://github.com/bprager/SkillSphere-Agent/actions/workflows/hypergraph.yml/badge.svg)](https://github.com/bprager/SkillSphere-Agent/actions/workflows/hypergraph.yml)
-[![Hypergraph Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/main/hypergraph/coverage.svg)](https://github.com/bprager/SkillSphere-Agent/blob/main/hypergraph/coverage.svg)
+[![Hypergraph Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/main/coverage.svg)](https://github.com/bprager/SkillSphere-Agent/blob/main/coverage.svg)
 
 ## SkillSphere MCP
 
 [![SkillSphere MCP Tests and Linting](https://github.com/bprager/SkillSphere-Agent/actions/workflows/skill_sphere_mcp.yml/badge.svg)](https://github.com/bprager/SkillSphere-Agent/actions/workflows/skill_sphere_mcp.yml)
-[![MCP Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/main/skill_sphere_mcp/coverage.svg)](https://github.com/bprager/SkillSphere-Agent/blob/main/skill_sphere_mcp/coverage.svg)
+[![MCP Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/main/coverage.svg)](https://github.com/bprager/SkillSphere-Agent/blob/main/coverage.svg)
 
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/bprager/SkillSphere-Agent.svg?)](https://github.com/bprager/skillspere-agent/blob/main/LICENSE)
