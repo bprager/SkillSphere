@@ -1,94 +1,11 @@
-"""Tool handler implementations."""
+"""Tool handlers for the MCP server."""
 
-import logging
 from typing import Any
 
-import numpy as np
 from fastapi import HTTPException
-from neo4j import AsyncSession
-
-from skill_sphere_mcp.graph.embeddings import embeddings
-from skill_sphere_mcp.graph.skill_matching import SkillMatchingService
-from skill_sphere_mcp.routes import MODEL
-
-logger = logging.getLogger(__name__)
-
-# Initialize skill matching service
-skill_matcher = SkillMatchingService()
-
-# Initialize random number generator
-rng = np.random.default_rng(42)  # Using 42 as a fixed seed for reproducibility
 
 
-async def match_role(
-    parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
-    """Match skills to a role.
-
-    Args:
-        parameters: Tool parameters
-        session: Database session
-
-    Returns:
-        Match result
-    """
-    required_skills = parameters.get("required_skills", [])
-    years_experience = parameters.get("years_experience", {})
-
-    # Type check for years_experience values
-    for skill, years in years_experience.items():
-        if not isinstance(years, int):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid years_experience for skill '{skill}': {years} (must be int)",
-            )
-
-    if not required_skills:
-        raise HTTPException(status_code=400, detail="No skills provided")
-
-    # Get candidate skills from the database
-    result = await session.run(
-        """
-        MATCH (p:Person)-[:HAS_SKILL]->(s:Skill)
-        RETURN s.name as name, s.years as years
-        """
-    )
-    candidate_skills = [
-        {"name": record["name"], "years": record["years"] or 0}
-        async for record in result
-    ]
-
-    # Convert required skills to the format expected by the matcher
-    required_skills_list = [
-        {"name": skill, "years": years_experience.get(skill, 0)}
-        for skill in required_skills
-    ]
-
-    # Perform matching
-    match_result = await skill_matcher.match_role(
-        session=session,
-        required_skills=required_skills_list,
-        candidate_skills=candidate_skills,
-    )
-
-    return {
-        "match_score": match_result.overall_score,
-        "skill_gaps": match_result.skill_gaps,
-        "matching_skills": [
-            {
-                "name": skill.skill_name,
-                "score": skill.match_score,
-                "evidence": skill.evidence,
-                "years": skill.experience_years,
-            }
-            for skill in match_result.matching_skills
-        ],
-    }
-
-
-async def explain_match(
-    parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
+async def explain_match(parameters: dict[str, Any], session) -> dict[str, Any]:
     """Explain why a skill matches a role requirement.
 
     Args:
@@ -96,7 +13,7 @@ async def explain_match(
         session: Database session
 
     Returns:
-        Explanation result
+        Match explanation
     """
     skill_id = parameters.get("skill_id")
     role_requirement = parameters.get("role_requirement")
@@ -104,105 +21,117 @@ async def explain_match(
     if not skill_id or not role_requirement:
         raise HTTPException(
             status_code=400,
-            detail="Both skill_id and role_requirement are required",
+            detail="Missing required parameters: skill_id and role_requirement",
         )
 
-    # Query the graph for evidence
+    # Query the database to find evidence for the match
     query = """
     MATCH (s:Skill {id: $skill_id})
-    OPTIONAL MATCH (s)-[r]-(related)
-    RETURN s, collect({
-        type: type(r),
-        target: related,
-        properties: properties(r)
-    }) as evidence
+    OPTIONAL MATCH (s)-[:USED_IN]->(p:Project)
+    OPTIONAL MATCH (s)-[:CERTIFIED_IN]->(c:Certification)
+    RETURN s, collect(p) as projects, collect(c) as certifications
     """
     result = await session.run(query, skill_id=skill_id)
     record = await result.single()
-
     if not record:
-        raise HTTPException(status_code=404, detail="Skill not found")
+        raise HTTPException(status_code=404, detail=f"Skill {skill_id} not found")
 
     skill = record["s"]
-    evidence = record["evidence"]
+    projects = record["projects"]
+    certifications = record["certifications"]
 
-    # Generate explanation
-    explanation = f"Skill '{skill['name']}' matches '{role_requirement}' based on:\n"
-    for item in evidence:
-        if item["type"] == "HAS_EXPERIENCE":
-            explanation += (
-                f"- {item['target']['name']} experience: "
-                f"{item['properties'].get('years', 0)} years\n"
-            )
-        elif item["type"] == "RELATED_TO":
-            explanation += f"- Related to: {item['target']['name']}\n"
-
-    return {"explanation": explanation, "evidence": evidence}
-
-
-async def generate_cv(parameters: dict[str, Any]) -> dict[str, Any]:
-    """Generate a CV based on target keywords.
-
-    Args:
-        parameters: Tool parameters
-
-    Returns:
-        Generated CV
-    """
-    target_keywords = parameters.get("target_keywords", [])
-    format_type = parameters.get("format", "markdown")
-
-    if not target_keywords:
-        raise HTTPException(status_code=400, detail="No target keywords provided")
-
-    if format_type not in ["markdown", "html", "pdf"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid format. Must be one of: markdown, html, pdf",
+    # Build evidence list
+    evidence = []
+    for project in projects:
+        evidence.append(
+            {"type": "project", "description": f"Used in project: {project['name']}"}
+        )
+    for cert in certifications:
+        evidence.append(
+            {"type": "certification", "description": f"Certified in: {cert['name']}"}
         )
 
-    # TODO: Implement actual CV generation logic
+    # Generate explanation
+    explanation = (
+        f"Skill {skill['name']} matches requirement '{role_requirement}' "
+        f"based on {len(projects)} projects and {len(certifications)} certifications."
+    )
+
     return {
-        "content": "# Professional CV",
-        "format": format_type,
+        "explanation": explanation,
+        "evidence": evidence,
     }
 
 
-async def graph_search(
-    parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
-    """Search the graph for nodes matching a query.
-
-    Args:
-        parameters: Tool parameters
-        session: Database session
-
-    Returns:
-        Search results
-    """
+async def graph_search(parameters: dict[str, Any], session) -> dict[str, Any]:
+    """Graph search tool handler."""
     query = parameters.get("query")
-    top_k = parameters.get("top_k", 10)
-
+    top_k = parameters.get("top_k", 5)
     if not query:
-        raise HTTPException(status_code=400, detail="No query provided")
-
+        raise HTTPException(status_code=400, detail="Missing query parameter")
     if top_k <= 0:
         raise HTTPException(status_code=400, detail="top_k must be greater than 0")
 
-    # Get query embedding
-    query_embedding = MODEL.encode(query) if MODEL else rng.random(128)
+    # Query the database to find nodes matching the query
+    cypher_query = """
+    MATCH (n)
+    WHERE n.name CONTAINS $query OR n.description CONTAINS $query
+    RETURN n
+    LIMIT $top_k
+    """
+    result = await session.run(cypher_query, query=query, top_k=top_k)
+    records = await result.all()
+    results = [{"node": record["n"]} for record in records]
 
-    # Search using embeddings
-    results = await embeddings.search(session, query_embedding, top_k=top_k)
+    return {"results": results, "query": query, "top_k": top_k}
+
+
+async def match_role(parameters: dict[str, Any], session) -> dict[str, Any]:
+    """Match role tool handler (returns match_score, skill_gaps, matching_skills)."""
+    required_skills = parameters.get("required_skills")
+    years_experience = parameters.get("years_experience", {})
+    if not required_skills:
+        raise HTTPException(status_code=400, detail="Missing required_skills parameter")
+    if not isinstance(years_experience, dict):
+        raise HTTPException(
+            status_code=400, detail="years_experience must be a dictionary"
+        )
+
+    # Validate that all years_experience values are integers
+    for skill, years in years_experience.items():
+        if not isinstance(years, int):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid years_experience for skill '{skill}': {years} (must be int)",
+            )
+
+    # Query the database to find matching profiles
+    query = """
+    MATCH (p:Person)
+    WHERE ALL(skill IN $required_skills WHERE (p)-[:HAS_SKILL]->(:Skill {name: skill}))
+    RETURN p
+    """
+    result = await session.run(query, required_skills=required_skills)
+    records = await result.all()
+
+    matching_skills = []
+    skill_gaps = []
+    for skill in required_skills:
+        found = False
+        for record in records:
+            if skill in record["p"].get("skills", []):
+                matching_skills.append({"name": skill})
+                found = True
+                break
+        if not found:
+            skill_gaps.append(skill)
+
+    match_score = (
+        len(matching_skills) / len(required_skills) if required_skills else 0.0
+    )
 
     return {
-        "results": [
-            {
-                "node_id": result["node_id"],
-                "score": result["score"],
-                "labels": result["labels"],
-                "properties": result["properties"],
-            }
-            for result in results
-        ]
+        "match_score": match_score,
+        "skill_gaps": skill_gaps,
+        "matching_skills": matching_skills,
     }

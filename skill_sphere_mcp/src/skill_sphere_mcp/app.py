@@ -7,10 +7,10 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
-from skill_sphere_mcp.api.mcp_routes import router as mcp_router
-from skill_sphere_mcp.config.settings import get_settings
-from skill_sphere_mcp.routes import router as api_router
-from skill_sphere_mcp.telemetry.otel import setup_telemetry
+from .api.mcp_routes import router as mcp_router
+from .config.settings import get_settings
+from .routes import router as api_router
+from .telemetry.otel import setup_telemetry
 
 # Configure logging
 logging.basicConfig(

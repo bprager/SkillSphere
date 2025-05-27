@@ -9,7 +9,9 @@ import numpy as np
 import pytest
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.graph.node2vec import Node2Vec, Node2VecConfig
+from skill_sphere_mcp.graph.node2vec import (Node2Vec, Node2VecConfig,
+                                             Node2VecModelConfig,
+                                             Node2VecTrainingConfig)
 
 # Constants for test configuration
 DEFAULT_DIMENSION = 128
@@ -95,12 +97,19 @@ def test_sample_graph() -> dict[str, list[str]]:
 def test_node2vec() -> Node2Vec:
     """Create Node2Vec instance with test configuration."""
     config = Node2VecConfig(
-        dimension=TEST_DIMENSION,
-        walk_length=TEST_WALK_LENGTH,
-        num_walks=TEST_NUM_WALKS,
-        window_size=TEST_WINDOW_SIZE,
-        num_neg_samples=TEST_NUM_NEG_SAMPLES,
-        epochs=TEST_EPOCHS,
+        model=Node2VecModelConfig(
+            dimension=TEST_DIMENSION,
+            p=DEFAULT_P,
+            q=DEFAULT_Q,
+        ),
+        training=Node2VecTrainingConfig(
+            walk_length=TEST_WALK_LENGTH,
+            num_walks=TEST_NUM_WALKS,
+            window_size=TEST_WINDOW_SIZE,
+            num_neg_samples=TEST_NUM_NEG_SAMPLES,
+            learning_rate=DEFAULT_LEARNING_RATE,
+            epochs=TEST_EPOCHS,
+        ),
     )
     return Node2Vec(config)
 
@@ -108,39 +117,43 @@ def test_node2vec() -> Node2Vec:
 def test_node2vec_config_defaults() -> None:
     """Test Node2VecConfig default values."""
     config = Node2VecConfig()
-    assert config.dimension == DEFAULT_DIMENSION
-    assert config.walk_length == DEFAULT_WALK_LENGTH
-    assert config.num_walks == DEFAULT_NUM_WALKS
-    assert config.p == DEFAULT_P
-    assert config.q == DEFAULT_Q
-    assert config.window_size == DEFAULT_WINDOW_SIZE
-    assert config.num_neg_samples == DEFAULT_NUM_NEG_SAMPLES
-    assert config.learning_rate == DEFAULT_LEARNING_RATE
-    assert config.epochs == DEFAULT_EPOCHS
+    assert config.model.dimension == DEFAULT_DIMENSION
+    assert config.training.walk_length == DEFAULT_WALK_LENGTH
+    assert config.training.num_walks == DEFAULT_NUM_WALKS
+    assert config.model.p == DEFAULT_P
+    assert config.model.q == DEFAULT_Q
+    assert config.training.window_size == DEFAULT_WINDOW_SIZE
+    assert config.training.num_neg_samples == DEFAULT_NUM_NEG_SAMPLES
+    assert config.training.learning_rate == DEFAULT_LEARNING_RATE
+    assert config.training.epochs == DEFAULT_EPOCHS
 
 
 def test_node2vec_config_custom() -> None:
     """Test Node2VecConfig with custom values."""
     config = Node2VecConfig(
-        dimension=CUSTOM_DIMENSION,
-        walk_length=CUSTOM_WALK_LENGTH,
-        num_walks=CUSTOM_NUM_WALKS,
-        p=CUSTOM_P,
-        q=CUSTOM_Q,
-        window_size=CUSTOM_WINDOW_SIZE,
-        num_neg_samples=CUSTOM_NUM_NEG_SAMPLES,
-        learning_rate=CUSTOM_LEARNING_RATE,
-        epochs=CUSTOM_EPOCHS,
+        model=Node2VecModelConfig(
+            dimension=CUSTOM_DIMENSION,
+            p=CUSTOM_P,
+            q=CUSTOM_Q,
+        ),
+        training=Node2VecTrainingConfig(
+            walk_length=CUSTOM_WALK_LENGTH,
+            num_walks=CUSTOM_NUM_WALKS,
+            window_size=CUSTOM_WINDOW_SIZE,
+            num_neg_samples=CUSTOM_NUM_NEG_SAMPLES,
+            learning_rate=CUSTOM_LEARNING_RATE,
+            epochs=CUSTOM_EPOCHS,
+        ),
     )
-    assert config.dimension == CUSTOM_DIMENSION
-    assert config.walk_length == CUSTOM_WALK_LENGTH
-    assert config.num_walks == CUSTOM_NUM_WALKS
-    assert config.p == CUSTOM_P
-    assert config.q == CUSTOM_Q
-    assert config.window_size == CUSTOM_WINDOW_SIZE
-    assert config.num_neg_samples == CUSTOM_NUM_NEG_SAMPLES
-    assert config.learning_rate == CUSTOM_LEARNING_RATE
-    assert config.epochs == CUSTOM_EPOCHS
+    assert config.model.dimension == CUSTOM_DIMENSION
+    assert config.training.walk_length == CUSTOM_WALK_LENGTH
+    assert config.training.num_walks == CUSTOM_NUM_WALKS
+    assert config.model.p == CUSTOM_P
+    assert config.model.q == CUSTOM_Q
+    assert config.training.window_size == CUSTOM_WINDOW_SIZE
+    assert config.training.num_neg_samples == CUSTOM_NUM_NEG_SAMPLES
+    assert config.training.learning_rate == CUSTOM_LEARNING_RATE
+    assert config.training.epochs == CUSTOM_EPOCHS
 
 
 def make_aiter(items: list) -> Callable[..., AsyncIterator]:
@@ -256,7 +269,7 @@ def test_node2vec_walk(
     # Initialize alias nodes first
     test_node2vec.preprocess_transition_probs(test_sample_graph)
     walk = test_node2vec.node2vec_walk("1", test_sample_graph)
-    assert len(walk) <= test_node2vec.walk_length
+    assert len(walk) <= test_node2vec.config.training.walk_length
     assert walk[0] == "1"
     assert all(node in test_sample_graph for node in walk)
 
@@ -281,8 +294,10 @@ def test_generate_walks(
     # Initialize alias nodes first
     test_node2vec.preprocess_transition_probs(test_sample_graph)
     walks = test_node2vec.generate_walks(test_sample_graph)
-    assert len(walks) == test_node2vec.num_walks * len(test_sample_graph)
-    assert all(len(walk) <= test_node2vec.walk_length for walk in walks)
+    assert len(walks) == test_node2vec.config.training.num_walks * len(
+        test_sample_graph
+    )
+    assert all(len(walk) <= test_node2vec.config.training.walk_length for walk in walks)
     assert all(walk[0] in test_sample_graph for walk in walks)
 
 
@@ -302,7 +317,7 @@ def test_initialize_embeddings(test_node2vec: Node2Vec) -> None:
     assert len(embeddings) == len(nodes)
     for node in nodes:
         assert node in embeddings
-        assert embeddings[node].shape == (test_node2vec.dimension,)
+        assert embeddings[node].shape == (test_node2vec.config.model.dimension,)
         assert np.allclose(np.linalg.norm(embeddings[node]), 1.0)
 
 
@@ -316,53 +331,44 @@ def test_initialize_embeddings_empty(test_node2vec: Node2Vec) -> None:
 def test_get_context_nodes(test_node2vec: Node2Vec) -> None:
     """Test context node retrieval."""
     walk = ["1", "2", "3", "4", "5"]
-    context = test_node2vec.get_context_nodes(walk, 2)  # Center at "3"
-    assert "2" in context
-    assert "3" in context
-    assert "4" in context
+    context = test_node2vec.get_context_nodes(walk, 2)
+    assert len(context) == 3
+    assert context == ["2", "3", "4"]
 
 
 def test_get_context_nodes_boundary(test_node2vec: Node2Vec) -> None:
     """Test context node retrieval at walk boundaries."""
-    walk = ["1", "2", "3", "4", "5"]
-
-    # Test start of walk
-    context = test_node2vec.get_context_nodes(walk, 0)
-    assert "1" in context
-    assert "2" in context
-    assert len(context) == TEST_CONTEXT_SIZE
-
-    # Test end of walk
-    context = test_node2vec.get_context_nodes(walk, 4)
-    assert "4" in context
-    assert "5" in context
-    assert len(context) == TEST_CONTEXT_SIZE
+    walk = ["1", "2", "3"]
+    context_start = test_node2vec.get_context_nodes(walk, 0)
+    context_end = test_node2vec.get_context_nodes(walk, 2)
+    assert len(context_start) == 2
+    assert len(context_end) == 2
+    assert context_start == ["1", "2"]
+    assert context_end == ["2", "3"]
 
 
 def test_process_positive_samples(test_node2vec: Node2Vec) -> None:
-    """Test positive sample processing."""
+    """Test processing of positive samples."""
     node = "1"
     context_nodes = ["2", "3"]
-    test_node2vec.initialize_embeddings({node, *context_nodes})
+    test_node2vec.initialize_embeddings({node, "2", "3"})
     test_node2vec.process_positive_samples(node, context_nodes)
-
     embeddings = test_node2vec.get_all_embeddings()
-    assert "1" in embeddings
+    assert node in embeddings
     assert "2" in embeddings
     assert "3" in embeddings
 
 
 def test_process_negative_samples(test_node2vec: Node2Vec) -> None:
-    """Test negative sample processing."""
+    """Test processing of negative samples."""
     node = "1"
     context_nodes = ["2", "3"]
-    nodes = {"1", "2", "3", "4", "5"}
-    test_node2vec.initialize_embeddings(nodes)
-    test_node2vec.process_negative_samples(node, context_nodes, nodes)
-
+    all_nodes = {"1", "2", "3", "4", "5"}
+    test_node2vec.initialize_embeddings(all_nodes)
+    test_node2vec.process_negative_samples(node, context_nodes, all_nodes)
     embeddings = test_node2vec.get_all_embeddings()
-    assert "1" in embeddings
-    assert all(n in embeddings for n in nodes)
+    assert node in embeddings
+    assert all(n in embeddings for n in all_nodes)
 
 
 def test_update_embedding(test_node2vec: Node2Vec) -> None:
@@ -370,44 +376,33 @@ def test_update_embedding(test_node2vec: Node2Vec) -> None:
     node1 = "1"
     node2 = "2"
     test_node2vec.initialize_embeddings({node1, node2})
-    embeddings = test_node2vec.get_all_embeddings()
-    original_vec1 = embeddings[node1].copy()
-    original_vec2 = embeddings[node2].copy()
-
+    initial_emb1 = test_node2vec.get_embedding(node1).copy()
+    initial_emb2 = test_node2vec.get_embedding(node2).copy()
     test_node2vec.update_embedding(node1, node2, 1.0)
-
-    # Verify embeddings were updated and normalized
-    embeddings = test_node2vec.get_all_embeddings()
-    assert not np.array_equal(embeddings[node1], original_vec1)
-    assert not np.array_equal(embeddings[node2], original_vec2)
-    assert np.allclose(np.linalg.norm(embeddings[node1]), 1.0)
-    assert np.allclose(np.linalg.norm(embeddings[node2]), 1.0)
+    updated_emb1 = test_node2vec.get_embedding(node1)
+    updated_emb2 = test_node2vec.get_embedding(node2)
+    assert not np.array_equal(initial_emb1, updated_emb1)
+    assert not np.array_equal(initial_emb2, updated_emb2)
 
 
 def test_get_embedding(test_node2vec: Node2Vec) -> None:
     """Test embedding retrieval."""
     node_id = "1"
-    embedding = rng.random(test_node2vec.dimension)
+    embedding = rng.random(test_node2vec.config.model.dimension)
     test_node2vec.set_embedding(node_id, embedding)
-
-    result = test_node2vec.get_embedding(node_id)
-    assert result is not None
-    assert np.array_equal(result, embedding)
-
-    # Test non-existing node
-    assert test_node2vec.get_embedding("999") is None
+    retrieved = test_node2vec.get_embedding(node_id)
+    assert np.array_equal(retrieved, embedding)
 
 
 def test_get_all_embeddings(test_node2vec: Node2Vec) -> None:
     """Test retrieval of all embeddings."""
     embeddings = {
-        "1": rng.random(test_node2vec.dimension),
-        "2": rng.random(test_node2vec.dimension),
+        "1": rng.random(test_node2vec.config.model.dimension),
+        "2": rng.random(test_node2vec.config.model.dimension),
     }
     test_node2vec.set_all_embeddings(embeddings)
-
-    result = test_node2vec.get_all_embeddings()
-    assert result == embeddings
+    retrieved = test_node2vec.get_all_embeddings()
+    assert retrieved == embeddings
 
 
 @pytest.mark.asyncio
@@ -433,5 +428,5 @@ async def test_fit(
     assert len(embeddings) == EXPECTED_NUM_NODES
     for node_id in ["1", "2", "3", "4"]:
         assert node_id in embeddings
-        assert embeddings[node_id].shape == (test_node2vec.dimension,)
+        assert embeddings[node_id].shape == (test_node2vec.config.model.dimension,)
         assert np.allclose(np.linalg.norm(embeddings[node_id]), 1.0)

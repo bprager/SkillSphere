@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from neo4j import AsyncGraphDatabase, AsyncSession
 from neo4j.exceptions import AuthError, ServiceUnavailable
 
-from skill_sphere_mcp.config.settings import get_settings
+from ..config.settings import get_settings
 
 
 class Neo4jConnection:

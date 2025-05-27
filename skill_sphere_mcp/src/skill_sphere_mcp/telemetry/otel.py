@@ -10,7 +10,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from skill_sphere_mcp.config.settings import get_settings
+from ..config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

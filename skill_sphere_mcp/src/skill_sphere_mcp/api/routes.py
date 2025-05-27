@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.db.deps import get_db_session
+from ..db.deps import get_db_session
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

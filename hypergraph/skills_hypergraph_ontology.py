@@ -4,10 +4,7 @@ This module defines the core ontology for the Skills Hypergraph, which represent
 professional skills, experiences, and relationships in a semantic graph structure.
 """
 
-from owlready2 import (
-    Thing,
-    get_ontology,
-)
+from owlready2 import Thing, get_ontology
 
 # Create a new ontology
 onto = get_ontology("http://www.prager.ws/ontology/skills-hypergraph.owl")

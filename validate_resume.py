@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import yaml
-import sys
 import re
+import sys
+
+import yaml
 
 # Define the expected schema
 EXPECTED_SCHEMA = {

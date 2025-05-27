@@ -9,16 +9,29 @@ from fastapi import HTTPException
 from neo4j import AsyncSession
 
 from skill_sphere_mcp.api import mcp_routes
-from skill_sphere_mcp.api.jsonrpc import (ERROR_INTERNAL, ERROR_INVALID_PARAMS,
-                                          ERROR_METHOD_NOT_FOUND)
-from skill_sphere_mcp.api.mcp_routes import (SKILL_MATCH_THRESHOLD,
-                                             InitializeRequest,
-                                             InitializeResponse,
-                                             JSONRPCRequest, JSONRPCResponse,
-                                             ToolRequest, dispatch_tool,
-                                             get_resource, initialize,
-                                             list_resources, rpc_handler,
-                                             rpc_match_role_handler)
+from skill_sphere_mcp.api.jsonrpc import (
+    ERROR_INTERNAL,
+    ERROR_INVALID_PARAMS,
+    ERROR_METHOD_NOT_FOUND,
+    JSONRPCHandler,
+    JSONRPCRequest,
+    JSONRPCResponse,
+)
+from skill_sphere_mcp.api.mcp_routes import (
+    SKILL_MATCH_THRESHOLD,
+    InitializeResponse,
+    ToolRequest,
+    get_resource,
+    initialize,
+    list_resources,
+    rpc_match_role_handler,
+)
+from skill_sphere_mcp.api.models import InitializeRequest
+from skill_sphere_mcp.cv.generator import generate_cv
+from skill_sphere_mcp.tools.dispatcher import dispatch_tool
+
+# Create a test instance of JSONRPCHandler
+test_rpc_handler = JSONRPCHandler()
 
 # Test data
 MOCK_SKILL_ID = "123"
@@ -48,8 +61,7 @@ def mock_session() -> AsyncMock:
 @pytest.mark.asyncio
 async def test_initialize() -> None:
     """Test MCP initialization endpoint."""
-    request = InitializeRequest(protocol_version="1.0", client_info={"name": "test"})
-    response = await initialize(request)
+    response = await initialize()
     assert isinstance(response, InitializeResponse)
     assert response.protocol_version == "1.0"
     assert (
@@ -115,12 +127,17 @@ async def test_dispatch_tool_success(mock_session: AsyncMock) -> None:
         "required_skills": ["Python", "FastAPI"],
         "years_experience": {"Python": 5},
     }
-    request = ToolRequest(tool_name=MOCK_TOOL_NAME, parameters=parameters)
+    request = ToolRequest(tool_name="skill.match_role", parameters=parameters)
+    # Patch the DB result to return skills compatible with match_role
+    mock_record = {"p": {"name": "John Doe", "skills": ["Python", "FastAPI"]}}
+    mock_session.run.return_value.all.return_value = [mock_record]
     response = await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert isinstance(response, dict)
     assert "match_score" in response
     assert "skill_gaps" in response
     assert "matching_skills" in response
+    assert response["match_score"] == pytest.approx(1.0)
+    assert "Python" in [skill["name"] for skill in response["matching_skills"]]
 
 
 @pytest.mark.asyncio
@@ -163,6 +180,13 @@ async def test_generate_cv_tool(mock_session: AsyncMock) -> None:
         "format": "markdown",
     }
     request = ToolRequest(tool_name="cv.generate", parameters=parameters)
+    mock_record = {
+        "p": {"name": "John Doe"},
+        "skills": [{"name": "Python"}, {"name": "FastAPI"}],
+        "companies": [],
+        "education": [],
+    }
+    mock_session.run.return_value.single.return_value = mock_record
     response = await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert isinstance(response, dict)
     assert "content" in response
@@ -197,8 +221,7 @@ async def test_tool_handler_error(mock_session: AsyncMock) -> None:
 @pytest.mark.asyncio
 async def test_initialize_invalid_version() -> None:
     """Test MCP initialization with invalid version."""
-    request = InitializeRequest(protocol_version="0.9", client_info={"name": "test"})
-    response = await initialize(request)
+    response = await initialize()
     assert response.protocol_version == "1.0"  # Should return supported version
 
 
@@ -353,9 +376,14 @@ async def test_generate_cv_success() -> None:
     """Test generate_cv returns markdown CV."""
     params = {"target_keywords": ["Python"], "format": "markdown"}
     mock_session = AsyncMock()
-    mock_record = {"p": {"name": "John"}, "skills": [{"skill": {"name": "Python"}}]}
+    mock_record = {
+        "p": {"name": "John"},
+        "skills": [{"name": "Python"}],
+        "companies": [],
+        "education": [],
+    }
     mock_session.run.return_value.single.return_value = mock_record
-    result = await mcp_routes.generate_cv(params, mock_session)
+    result = await generate_cv(params, mock_session)
     assert result["format"] == "markdown"
     assert "# John" in result["content"]
     assert "- Python" in result["content"]
@@ -366,7 +394,7 @@ async def test_generate_cv_invalid_params() -> None:
     """Test generate_cv with invalid parameters raises HTTPException."""
     mock_session = AsyncMock()
     with pytest.raises(HTTPException) as exc_info:
-        await mcp_routes.generate_cv({}, mock_session)
+        await generate_cv({}, mock_session)
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
@@ -377,7 +405,7 @@ async def test_generate_cv_profile_not_found() -> None:
     mock_session = AsyncMock()
     mock_session.run.return_value.single.return_value = None
     with pytest.raises(HTTPException) as exc_info:
-        await mcp_routes.generate_cv(params, mock_session)
+        await generate_cv(params, mock_session)
     assert exc_info.value.status_code == HTTP_NOT_FOUND
 
 
@@ -386,10 +414,15 @@ async def test_generate_cv_format_not_implemented() -> None:
     """Test generate_cv with unsupported format raises HTTPException."""
     params = {"target_keywords": ["Python"], "format": "pdf"}
     mock_session = AsyncMock()
-    mock_record = {"p": {"name": "John"}, "skills": []}
+    mock_record = {
+        "p": {"name": "John"},
+        "skills": [],
+        "companies": [],
+        "education": [],
+    }
     mock_session.run.return_value.single.return_value = mock_record
     with pytest.raises(HTTPException) as exc_info:
-        await mcp_routes.generate_cv(params, mock_session)
+        await generate_cv(params, mock_session)
     assert exc_info.value.status_code == HTTP_NOT_IMPLEMENTED
 
 
@@ -518,7 +551,7 @@ async def test_handle_skill_match_error() -> None:
             },
             id=1,
         )
-        result = await rpc_handler.handle_request(request)
+        result = await test_rpc_handler.handle_request(request)
 
         assert isinstance(result, JSONRPCResponse)
         assert result.jsonrpc == "2.0"
@@ -555,7 +588,7 @@ async def test_handle_jsonrpc_request_invalid_method() -> None:
         params={},
         id=1,
     )
-    result = await rpc_handler.handle_request(request)
+    result = await test_rpc_handler.handle_request(request)
 
     assert isinstance(result, JSONRPCResponse)
     assert result.jsonrpc == "2.0"
@@ -573,7 +606,7 @@ async def test_handle_jsonrpc_request_invalid_params() -> None:
         params={},
         id=1,
     )
-    result = await rpc_handler.handle_request(request)
+    result = await test_rpc_handler.handle_request(request)
 
     assert isinstance(result, JSONRPCResponse)
     assert result.jsonrpc == "2.0"
@@ -597,7 +630,7 @@ async def test_handle_jsonrpc_request_internal_error() -> None:
             },
             id=1,
         )
-        result = await rpc_handler.handle_request(request)
+        result = await test_rpc_handler.handle_request(request)
 
         assert isinstance(result, JSONRPCResponse)
         assert result.jsonrpc == "2.0"

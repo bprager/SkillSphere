@@ -6,8 +6,8 @@ from typing import Any
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.tools.handlers import (explain_match, generate_cv,
-                                             graph_search, match_role)
+from ..cv import generate_cv
+from ..tools.handlers import explain_match, graph_search, match_role
 
 logger = logging.getLogger(__name__)
 

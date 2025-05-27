@@ -11,11 +11,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+from tests.graph.test_node2vec import AsyncIterator
 
 from skill_sphere_mcp.app import create_app
 from skill_sphere_mcp.config.settings import get_settings
 from skill_sphere_mcp.db.connection import Neo4jConnection
-from tests.graph.test_node2vec import AsyncIterator
 
 # Disable OpenTelemetry before any imports
 os.environ["OTEL_SDK_DISABLED"] = "true"

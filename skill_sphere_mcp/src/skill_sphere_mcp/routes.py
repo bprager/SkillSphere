@@ -8,8 +8,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity
 
-from skill_sphere_mcp.db.connection import neo4j_conn
-from skill_sphere_mcp.models.embedding import get_embedding_model
+from .db.connection import neo4j_conn
+from .models.embedding import get_embedding_model
 
 logger = logging.getLogger(__name__)
 

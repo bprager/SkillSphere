@@ -3,9 +3,8 @@
 import logging
 import sys
 from functools import lru_cache
-from typing import Any
 
-from pydantic import Field, ValidationError, BaseModel
+from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,17 @@ class ClientInfo(BaseModel):
         default="development", validation_alias="MCP_CLIENT_ENVIRONMENT"
     )
     features: list[str] = Field(
-        default_factory=lambda: ["cv", "search", "matching"],
+        default_factory=lambda: [
+            "cv",  # CV generation
+            "search",  # Semantic search
+            "matching",  # Skill matching
+            "profiles",  # Profile management
+            "skills",  # Skill management
+            "analytics",  # Analytics and insights
+            "recommendations",  # Skill recommendations
+            "export",  # Data export
+            "import",  # Data import
+        ],
         validation_alias="MCP_CLIENT_FEATURES",
     )
 

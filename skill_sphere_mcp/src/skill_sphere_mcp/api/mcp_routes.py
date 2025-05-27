@@ -9,12 +9,16 @@ from neo4j import AsyncSession
 from pydantic import BaseModel, Field
 from sklearn.metrics.pairwise import cosine_similarity
 
-from skill_sphere_mcp.api.jsonrpc import JSONRPCHandler, JSONRPCRequest, JSONRPCResponse
-from skill_sphere_mcp.db import neo4j_conn
-from skill_sphere_mcp.graph.embeddings import embeddings
-from skill_sphere_mcp.models.embedding import get_embedding_model
-from skill_sphere_mcp.models.graph import GraphNode, GraphRelationship
-from skill_sphere_mcp.tools.dispatcher import dispatch_tool
+from ..api.jsonrpc import JSONRPCHandler, JSONRPCRequest, JSONRPCResponse
+from ..api.models import InitializeResponse
+from ..config.settings import ClientInfo, get_settings
+from ..db.connection import neo4j_conn
+from ..graph.embeddings import embeddings
+from ..models.embedding import get_embedding_model
+from ..models.graph import GraphNode, GraphRelationship
+from ..tools.dispatcher import dispatch_tool
+
+# pylint: disable=no-member,import-error
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/mcp")
@@ -32,22 +36,7 @@ RESOURCE_PROFILES_SUMMARY = "profiles.summary"
 RESOURCE_PROFILES_DETAIL = "profiles.detail"
 
 # Constants
-SKILL_MATCH_THRESHOLD = 0.7
-
-
-class InitializeRequest(BaseModel):
-    """Initialize request model."""
-
-    protocol_version: str
-    client_info: dict[str, Any]
-
-
-class InitializeResponse(BaseModel):
-    """Initialize response model."""
-
-    protocol_version: str
-    capabilities: dict[str, Any]
-    instructions: str
+SKILL_MATCH_THRESHOLD = 0.5
 
 
 class ResourceRequest(BaseModel):
@@ -93,20 +82,6 @@ class ExplainMatchResponse(BaseModel):
     evidence: list[dict[str, Any]]
 
 
-class GenerateCVRequest(BaseModel):
-    """CV generation request."""
-
-    target_keywords: Annotated[list[str], Field(min_length=1)]
-    format: str = Field(pattern="^(markdown|html|pdf)$")
-
-
-class GenerateCVResponse(BaseModel):
-    """CV generation response."""
-
-    content: str
-    format: str
-
-
 class GraphSearchRequest(BaseModel):
     """Graph search request."""
 
@@ -117,14 +92,20 @@ class GraphSearchRequest(BaseModel):
 @router.post("/initialize")
 async def initialize() -> InitializeResponse:
     """Initialize the MCP server."""
+    settings = get_settings()
+    # Ensure client_info is properly instantiated
+    if not isinstance(settings.client_info, ClientInfo):
+        settings.client_info = ClientInfo()
+
     return InitializeResponse(
         protocol_version="1.0",
         capabilities={
             "semantic_search": True,
             "graph_query": True,
             "tool_dispatch": True,
+            "features": settings.client_info.features,
         },
-        instructions="Public access enabled. All endpoints are read-only.",
+        instructions=f"Public access enabled. Environment: {settings.client_info.environment}",
     )
 
 
@@ -251,7 +232,7 @@ async def rpc_get_resource(params: dict[str, Any]) -> dict[str, Any]:
 
 @rpc_handler.register("search")
 async def rpc_search(
-    params: dict[str, Any], session: AsyncSession = get_db_session
+    params: dict[str, Any], session: AsyncSession
 ) -> list[dict[str, Any]]:
     """Handle search RPC method."""
     query = params.get("query")
@@ -263,16 +244,14 @@ async def rpc_search(
 
 
 @rpc_handler.register("tool")
-async def rpc_tool(
-    params: dict[str, Any], session: AsyncSession = get_db_session
-) -> Any:
+async def rpc_tool(params: dict[str, Any], session: AsyncSession) -> Any:
     """Handle tool dispatch requests."""
     return await dispatch_tool(params["name"], params["parameters"], session)
 
 
 @rpc_handler.register("skill.match_role")
 async def rpc_match_role_handler(
-    params: dict[str, Any], session: AsyncSession = get_db_session
+    params: dict[str, Any], session: AsyncSession
 ) -> dict[str, Any]:
     """Handle skill matching requests."""
     return await match_role(params, session)
@@ -494,44 +473,6 @@ async def explain_match(
         ).model_dump()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid skill ID format") from None
-
-
-async def generate_cv(
-    parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
-    """Generate a CV based on target keywords and format."""
-    try:
-        request = GenerateCVRequest(**parameters)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid parameters: {exc}"
-        ) from exc
-
-    # Query to get profile and related skills
-    query = """
-    MATCH (p:Profile)
-    OPTIONAL MATCH (p)-[r]->(s:Skill)
-    RETURN p, collect({rel: r, skill: s}) as skills
-    """
-
-    result = await session.run(query)
-    record = await result.single()
-    if not record:
-        raise HTTPException(status_code=404, detail="Profile not found")
-
-    # Generate CV content based on format
-    if request.format == "markdown":
-        content = f"# {record['p']['name']}\n\n"
-        content += "## Skills\n\n"
-        for skill in record["skills"]:
-            content += f"- {skill['skill']['name']}\n"
-    else:
-        raise HTTPException(
-            status_code=501, detail=f"Format not implemented: {request.format}"
-        )
-
-    response = GenerateCVResponse(content=content, format=request.format)
-    return response.model_dump()
 
 
 async def graph_search(
