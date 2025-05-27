@@ -1,10 +1,16 @@
-name: Python Tests and Linting
+name: Hypergraph Tests and Linting
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'hypergraph/**'
+      - '.github/workflows/hypergraph.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'hypergraph/**'
+      - '.github/workflows/hypergraph.yml'
 
 jobs:
   test:
@@ -12,7 +18,6 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        project: [hypergraph, skill_sphere_mcp]
         check: [pylint, pytest, coverage]
         python-version: [3.10.17]
 
@@ -41,9 +46,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .venv
-        key: ${{ runner.os }}-venv-${{ matrix.project }}-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-venv-hypergraph-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-venv-${{ matrix.project }}-
+          ${{ runner.os }}-venv-hypergraph-
 
     - name: Install dependencies
       run: |
@@ -52,11 +57,7 @@ jobs:
         uv pip install --upgrade pip
         uv pip install -r requirements.txt
         uv pip install pytest pytest-cov pylint pytest-asyncio
-        if [ "${{ matrix.project }}" = "hypergraph" ]; then
-          uv pip install -e hypergraph
-        elif [ "${{ matrix.project }}" = "skill_sphere_mcp" ]; then
-          uv pip install -e skill_sphere_mcp
-        fi
+        uv pip install -e hypergraph
 
     - name: Create pylint config
       run: |
@@ -73,21 +74,21 @@ jobs:
       if: matrix.check == 'pylint'
       run: |
         source .venv/bin/activate
-        cd ${{ matrix.project }}
+        cd hypergraph
         pylint --rcfile=../.pylintrc --fail-under=9.0 $(git ls-files '*.py')
 
     - name: Run pytest
       if: matrix.check == 'pytest'
       run: |
         source .venv/bin/activate
-        cd ${{ matrix.project }}
+        cd hypergraph
         pytest tests/ -v
 
     - name: Run coverage
       if: matrix.check == 'coverage'
       run: |
         source .venv/bin/activate
-        cd ${{ matrix.project }}
+        cd hypergraph
         pytest tests/ -v --cov=. --cov-report=xml
 
     - name: Upload coverage to Codecov
@@ -95,5 +96,5 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./${{ matrix.project }}
+        directory: ./hypergraph
         fail_ci_if_error: true

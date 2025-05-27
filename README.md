@@ -2,17 +2,18 @@
 
 ## Hypergraph
 
-[![Hypergraph Pylint](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Ahypergraph%2Ccheck%3Apylint)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Ahypergraph%2Ccheck%3Apylint)
-[![Hypergraph Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Ahypergraph%2Ccheck%3Apytest)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Ahypergraph%2Ccheck%3Apytest)
-[![Hypergraph Coverage](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Ahypergraph%2Ccheck%3Acoverage)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Ahypergraph%2Ccheck%3Acoverage)
+[![Hypergraph Pylint](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml/badge.svg?job=test&matrix=check=pylint)](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpylint)
+[![Hypergraph Tests](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml/badge.svg?job=test&matrix=check=pytest)](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpytest)
+[![Hypergraph Coverage](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml/badge.svg?job=test&matrix=check=coverage)](https://github.com/bprager/SkillSphere/actions/workflows/hypergraph.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dcoverage)
 
 ## SkillSphere MCP
 
-[![MCP Pylint](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Askill_sphere_mcp%2Ccheck%3Apylint)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Askill_sphere_mcp%2Ccheck%3Apylint)
-[![MCP Tests](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Askill_sphere_mcp%2Ccheck%3Apytest)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Askill_sphere_mcp%2Ccheck%3Apytest)
-[![MCP Coverage](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml/badge.svg?job=test&matrix=project%3Askill_sphere_mcp%2Ccheck%3Acoverage)](https://github.com/bprager/SkillSphere/actions/workflows/tests.yml?query=branch%3Amain+job%3Atest+matrix%3Aproject%3Askill_sphere_mcp%2Ccheck%3Acoverage)
+[![MCP Pylint](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml/badge.svg?job=test&matrix=check=pylint)](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpylint)
+[![MCP Tests](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml/badge.svg?job=test&matrix=check=pytest)](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dpytest)
+[![MCP Coverage](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml/badge.svg?job=test&matrix=check=coverage)](https://github.com/bprager/SkillSphere/actions/workflows/skill_sphere_mcp.yml?query=branch%3Amain+job%3Atest+matrix%3Acheck%3Dcoverage)
 
 [![Python 3.10.17](https://img.shields.io/badge/python-3.10.17-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/github/license/bprager/SkillSphere-Agent.svg?)](https://github.com/bprager/skillspere-agent/blob/main/LICENSE)
 
 *A reproducible, open-source playground that turns plain career notes into a query-ready knowledge graph **and** can spit out job-targeted, ATS-friendly résumés on demand.*
 

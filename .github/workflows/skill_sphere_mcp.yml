@@ -1,0 +1,100 @@
+name: SkillSphere MCP Tests and Linting
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'skill_sphere_mcp/**'
+      - '.github/workflows/skill_sphere_mcp.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'skill_sphere_mcp/**'
+      - '.github/workflows/skill_sphere_mcp.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        check: [pylint, pytest, coverage]
+        python-version: [3.10.17]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Cache uv packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
+    - name: Cache virtual environment
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: ${{ runner.os }}-venv-mcp-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-venv-mcp-
+
+    - name: Install dependencies
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install --upgrade pip
+        uv pip install -r requirements.txt
+        uv pip install pytest pytest-cov pylint pytest-asyncio
+        uv pip install -e skill_sphere_mcp
+
+    - name: Create pylint config
+      run: |
+        echo "[MASTER]
+        disable=C0111,C0103,C0305,C0321,W0401,W0622,W0614
+        max-line-length=120
+        ignore=CVS
+        persistent=yes
+        load-plugins=pylint.extensions.docparams,pylint.extensions.docstyle,pylint.extensions.mccabe
+        ignored-modules=uvicorn,fastapi
+        " > .pylintrc
+
+    - name: Run pylint
+      if: matrix.check == 'pylint'
+      run: |
+        source .venv/bin/activate
+        cd skill_sphere_mcp
+        pylint --rcfile=../.pylintrc --fail-under=9.0 $(git ls-files '*.py')
+
+    - name: Run pytest
+      if: matrix.check == 'pytest'
+      run: |
+        source .venv/bin/activate
+        cd skill_sphere_mcp
+        pytest tests/ -v
+
+    - name: Run coverage
+      if: matrix.check == 'coverage'
+      run: |
+        source .venv/bin/activate
+        cd skill_sphere_mcp
+        pytest tests/ -v --cov=. --cov-report=xml
+
+    - name: Upload coverage to Codecov
+      if: matrix.check == 'coverage'
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./skill_sphere_mcp
+        fail_ci_if_error: true
