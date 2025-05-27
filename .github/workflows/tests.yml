@@ -74,7 +74,7 @@ jobs:
       run: |
         source .venv/bin/activate
         cd ${{ matrix.project }}
-        pylint --rcfile=../.pylintrc $(git ls-files '*.py')
+        pylint --rcfile=../.pylintrc --fail-under=9.0 $(git ls-files '*.py')
 
     - name: Run pytest
       if: matrix.check == 'pytest'
