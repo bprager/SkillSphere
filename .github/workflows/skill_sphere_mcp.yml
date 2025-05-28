@@ -99,10 +99,13 @@ jobs:
         working-directory: ./skill_sphere_mcp
         output: ./coverage.svg
 
-    - name: Check coverage badge existence
+    - name: Validate coverage badge generation
       if: matrix.check == 'coverage'
       run: |
-        ls ./skill_sphere_mcp
+        if [ ! -f ./skill_sphere_mcp/coverage.svg ]; then
+          echo "Error: Coverage badge not generated."
+          exit 1
+        fi
 
     - name: Commit files
       if: matrix.check == 'coverage'
@@ -110,17 +113,10 @@ jobs:
         if [ -f ./skill_sphere_mcp/coverage.svg ]; then
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add ./skill_sphere/coverage.svg
-          git commit -m "Updated skill_sphere coverage badge"
-        fi
-
-    - name: Commit files
-      if: matrix.check == 'coverage'
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add coverage.svg
-        git commit -m "Updated skill_sphere_mcp coverage badge"
+          git add ./skill_sphere_mcp/coverage.svg
+          git commit -m "Updated skill_sphere_mcp coverage badge"
+        else
+          echo "No coverage badge to commit."
 
     - name: Push changes
       if: matrix.check == 'coverage'

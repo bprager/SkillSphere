@@ -99,10 +99,13 @@ jobs:
         working-directory: ./hypergraph
         output: ./coverage.svg
 
-    - name: Check coverage badge existence
+    - name: Validate coverage badge generation
       if: matrix.check == 'coverage'
       run: |
-        ls ./hypergraph
+        if [ ! -f ./hypergraph/coverage.svg ]; then
+          echo "Error: Coverage badge not generated."
+          exit 1
+        fi
 
     - name: Commit files
       if: matrix.check == 'coverage'
@@ -112,7 +115,8 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add ./hypergraph/coverage.svg
           git commit -m "Updated hypergraph coverage badge"
-        fi
+        else
+          echo "No coverage badge to commit."
 
     - name: Push changes
       if: matrix.check == 'coverage'
