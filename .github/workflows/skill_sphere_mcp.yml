@@ -105,6 +105,8 @@ jobs:
       id: verify-changed-files
       with:
         files: coverage.svg
+        separator: ',' # Add separator to ensure accuracy in multi-file comparisons
+        fail-if-changed: false # Set this to true if you want the workflow to halt on changes
 
     - name: Commit files
       if: matrix.check == 'coverage' && steps.verify-changed-files.outputs.files_changed == 'true'
