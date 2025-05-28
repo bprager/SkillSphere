@@ -19,10 +19,12 @@ dependencies = [
     "opentelemetry-sdk>=1.33.1",
     "owlready2>=0.47",
     "pandoc-plantuml-filter>=0.1.5",
+    "pip>=25.1.1",
     "pyyaml>=6.0.2",
     "scikit-learn>=1.6.1",
     "scipy>=1.11.0,<1.14.0",
     "sentence-transformers>=4.1.0",
+    "setuptools>=80.8.0",
     "uvicorn>=0.34.2",
 ]
 

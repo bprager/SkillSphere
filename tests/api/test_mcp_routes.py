@@ -12,16 +12,20 @@ from skill_sphere_mcp.tools.handlers import generate_cv
 class TestMCPRoutes:
     """Test MCP routes."""
 
-    def test_route_initialization(self) -> None:
+    @pytest.mark.asyncio
+    async def test_route_initialization(self) -> None:
         """Test route initialization."""
-        assert True  # Dummy test to satisfy too-few-public-methods
+        response = await initialize()
+        assert isinstance(response, InitializeResponse)
+        assert response.protocol_version == "1.0"
+        assert isinstance(response.capabilities, dict)
+        assert isinstance(response.instructions, str)
 
 
 @pytest.mark.asyncio
 async def test_initialize() -> None:
     """Test MCP initialization endpoint."""
-    request = {"protocol_version": "1.0", "client_info": {"name": "test"}}
-    response = await initialize(request)
+    response = await initialize()
     assert isinstance(response, InitializeResponse)
     assert response.protocol_version == "1.0"
     assert (
@@ -34,8 +38,7 @@ async def test_initialize() -> None:
 @pytest.mark.asyncio
 async def test_initialize_invalid_version() -> None:
     """Test MCP initialization with invalid version."""
-    request = {"protocol_version": "0.9", "client_info": {"name": "test"}}
-    response = await initialize(request)
+    response = await initialize()
     assert response.protocol_version == "1.0"  # Should return supported version
 
 
