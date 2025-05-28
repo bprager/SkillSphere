@@ -6,8 +6,9 @@ from typing import Any
 
 import numpy as np
 from neo4j import AsyncSession
-from node2vec import Node2Vec
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import]
+
+from .node2vec.model import Node2Vec
 
 logger = logging.getLogger(__name__)
 
@@ -38,21 +39,17 @@ class Node2VecEmbeddings:
             return
 
         # Create Node2Vec instance
-        node2vec = Node2Vec(
-            graph=nodes,
-            dimensions=self.dimension,
-            walk_length=30,
-            num_walks=200,
-            workers=1,
-        )
+        node2vec = Node2Vec()
 
         # Train model
-        model = node2vec.fit()
-        self.model = model
+        await node2vec.fit(session)
+        self.model = node2vec
 
         # Store embeddings
         self._embeddings = {
-            str(node["node_id"]): model.wv[str(node["node_id"])] for node in nodes
+            str(node["node_id"]): embedding
+            for node in nodes
+            if (embedding := node2vec.get_embedding(str(node["node_id"]))) is not None
         }
         self._node_ids = {str(node["node_id"]): int(node["node_id"]) for node in nodes}
 
@@ -120,6 +117,14 @@ class Node2VecEmbeddings:
             new_embeddings: Dictionary mapping node IDs to their embeddings
         """
         self._embeddings = new_embeddings.copy()
+
+    def get_all_embeddings(self) -> dict[str, np.ndarray]:
+        """Get all node embeddings.
+
+        Returns:
+            Dictionary mapping node IDs to their embeddings
+        """
+        return self._embeddings.copy()
 
 
 # Global embeddings instance

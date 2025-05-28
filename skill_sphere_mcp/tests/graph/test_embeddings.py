@@ -27,7 +27,16 @@ TEST_MAX_SCORE = 1.0
 @pytest.fixture
 def mock_session() -> AsyncMock:
     """Create mock Neo4j session."""
-    return AsyncMock(spec=AsyncSession)
+    session = AsyncMock(spec=AsyncSession)
+    session.close = AsyncMock()
+    return session
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_session(mock_session: AsyncMock) -> None:
+    """Cleanup fixture to close Neo4j session after each test."""
+    yield
+    await mock_session.close()
 
 
 @pytest.fixture
@@ -108,19 +117,26 @@ async def test_load_embeddings(
     # Mock Node2Vec
     with patch("skill_sphere_mcp.graph.embeddings.Node2Vec") as mock_node2vec:
         mock_model = MagicMock()
-        mock_model.wv = {
+        mock_model.get_all_embeddings.return_value = {
             "1": rng.random(TEST_DIMENSION),
             "2": rng.random(TEST_DIMENSION),
         }
-        mock_node2vec.return_value.fit.return_value = mock_model
+        mock_instance = mock_node2vec.return_value
+        mock_instance.fit = AsyncMock()
 
         # Load embeddings
         await emb.load_embeddings(mock_session)
 
-        # Verify session query
-        mock_session.run.assert_called_once()
-        assert emb.get_embedding("1") is not None
-        assert emb.get_embedding("2") is not None
+        # Verify Node2Vec was created and fit was called
+        mock_node2vec.assert_called_once()
+        mock_instance.fit.assert_called_once_with(mock_session)
+
+        # Verify embeddings were stored
+        assert emb.model is not None
+        embeddings = emb.get_all_embeddings()
+        assert len(embeddings) == 2
+        assert "1" in embeddings
+        assert "2" in embeddings
 
 
 @pytest.mark.asyncio

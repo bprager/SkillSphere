@@ -5,14 +5,19 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import HTTPException
 from neo4j import AsyncSession
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
-                              HTTP_500_INTERNAL_SERVER_ERROR)
+from starlette.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_404_NOT_FOUND,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 
-from skill_sphere_mcp.tools.dispatcher import (_validate_explain_match_params,
-                                               _validate_generate_cv_params,
-                                               _validate_graph_search_params,
-                                               _validate_match_role_params,
-                                               dispatch_tool)
+from skill_sphere_mcp.tools.dispatcher import (
+    _validate_explain_match_params,
+    _validate_generate_cv_params,
+    _validate_graph_search_params,
+    _validate_match_role_params,
+    dispatch_tool,
+)
 
 # Test data
 MOCK_SKILLS = ["Python", "FastAPI"]

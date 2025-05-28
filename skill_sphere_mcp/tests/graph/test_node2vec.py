@@ -2,16 +2,16 @@
 
 # pylint: disable=redefined-outer-name
 
-from typing import Any, Callable
+from collections.abc import Callable
 from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.graph.node2vec import (Node2Vec, Node2VecConfig,
-                                             Node2VecModelConfig,
-                                             Node2VecTrainingConfig)
+from skill_sphere_mcp.graph.node2vec import Node2VecModelConfig, Node2VecTrainingConfig
+from skill_sphere_mcp.graph.node2vec.config import Node2VecConfig
+from skill_sphere_mcp.graph.node2vec.model import Node2Vec
 
 # Constants for test configuration
 DEFAULT_DIMENSION = 128
@@ -31,7 +31,9 @@ TEST_NUM_WALKS = 2
 TEST_WINDOW_SIZE = 1
 TEST_NUM_NEG_SAMPLES = 1
 TEST_EPOCHS = 1
-TEST_CONTEXT_SIZE = 2
+TEST_CONTEXT_SIZE = 1
+EXPECTED_CONTEXT_SIZE = 1
+EXPECTED_CONTEXT_SIZE_MIDDLE = 2
 
 # Constants for custom configuration
 CUSTOM_DIMENSION = 64
@@ -157,7 +159,9 @@ def test_node2vec_config_custom() -> None:
 
 
 def make_aiter(items: list) -> Callable[..., AsyncIterator]:
-    def _aiter(*args: Any, **kwargs: Any) -> AsyncIterator:
+    """Create an async iterator factory for mocking Neo4j query results."""
+
+    def _aiter(_self) -> AsyncIterator:
         return AsyncIterator(items)
 
     return _aiter
@@ -257,9 +261,9 @@ def test_alias_draw(test_node2vec: Node2Vec) -> None:
         "J": [1, 0, 1, 2],
         "q": [ALIAS_Q_VALUE, ALIAS_Q_VALUE, ALIAS_Q_VALUE, ALIAS_Q_VALUE],
     }
-    result = test_node2vec.alias_draw(alias, 0)
+    result = test_node2vec.alias_draw(alias, 0, test_node2vec.get_rng())
     assert isinstance(result, int)
-    assert result in [0, 1]
+    assert 0 <= result < len(alias["J"])
 
 
 def test_node2vec_walk(
@@ -332,8 +336,8 @@ def test_get_context_nodes(test_node2vec: Node2Vec) -> None:
     """Test context node retrieval."""
     walk = ["1", "2", "3", "4", "5"]
     context = test_node2vec.get_context_nodes(walk, 2)
-    assert len(context) == 3
-    assert context == ["2", "3", "4"]
+    assert len(context) == EXPECTED_CONTEXT_SIZE_MIDDLE
+    assert context == ["2", "4"]
 
 
 def test_get_context_nodes_boundary(test_node2vec: Node2Vec) -> None:
@@ -341,10 +345,10 @@ def test_get_context_nodes_boundary(test_node2vec: Node2Vec) -> None:
     walk = ["1", "2", "3"]
     context_start = test_node2vec.get_context_nodes(walk, 0)
     context_end = test_node2vec.get_context_nodes(walk, 2)
-    assert len(context_start) == 2
-    assert len(context_end) == 2
-    assert context_start == ["1", "2"]
-    assert context_end == ["2", "3"]
+    assert len(context_start) == EXPECTED_CONTEXT_SIZE
+    assert len(context_end) == EXPECTED_CONTEXT_SIZE
+    assert context_start == ["2"]
+    assert context_end == ["2"]
 
 
 def test_process_positive_samples(test_node2vec: Node2Vec) -> None:

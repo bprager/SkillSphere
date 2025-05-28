@@ -9,7 +9,7 @@ from neo4j import AsyncSession
 from sklearn.metrics.pairwise import cosine_similarity
 
 from .embeddings import embeddings
-from .node2vec import Node2Vec
+from .node2vec.model import Node2Vec
 
 logger = logging.getLogger(__name__)
 

@@ -33,6 +33,7 @@ dev = [
     "pandoc-plantuml-filter>=0.1.5",
     "pylint>=3.3.7",
     "pytest>=8.3.5",
+    "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.1.1",
 ]
 
@@ -40,3 +41,10 @@ dev = [
 members = [
     "skill_sphere_mcp",
 ]
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88  # or whatever matches your project's line length

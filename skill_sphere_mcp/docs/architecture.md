@@ -27,7 +27,14 @@ The SkillSphere MCP Server is a FastAPI-based application that provides a JSON-R
    - Similarity scoring
    - Result ranking
 
-4. **Tool Dispatcher**
+4. **Graph Embeddings**
+   - Node2Vec implementation
+   - Random walk generation
+   - Alias sampling
+   - Embedding training
+   - Vector similarity search
+
+5. **Tool Dispatcher**
    - Method registration
    - Parameter validation
    - Error handling
@@ -63,6 +70,12 @@ The SkillSphere MCP Server is a FastAPI-based application that provides a JSON-R
 | `db.connection` | Neo4j connection management |
 | `models.embedding` | Vector embedding generation |
 | `models.graph` | Graph data models |
+| `graph.node2vec.config` | Node2Vec configuration classes |
+| `graph.node2vec.state` | State management for embeddings |
+| `graph.node2vec.sampling` | Alias sampling methods |
+| `graph.node2vec.walks` | Random walk generation |
+| `graph.node2vec.training` | Training and embedding methods |
+| `graph.node2vec.model` | Main Node2Vec implementation |
 | `tools.dispatcher` | Tool method dispatching |
 | `app.py` | FastAPI application setup and configuration |
 
@@ -79,6 +92,10 @@ The SkillSphere MCP Server is a FastAPI-based application that provides a JSON-R
    - Path finding
    - Graph analytics
    - Schema validation
+   - Embedding optimization
+   - Parallel walk generation
+   - Custom sampling strategies
+   - Embedding persistence
 
 3. **Performance**
    - Connection pooling
@@ -146,6 +163,9 @@ The SkillSphere MCP Server is a FastAPI-based application that provides a JSON-R
 - Pydantic (Data validation)
 - NumPy (Vector operations)
 - scikit-learn (Similarity metrics)
+- gensim (Node2Vec implementation)
+- scipy (Scientific computing)
+- node2vec (Graph embeddings)
 - Redis (planned, for caching)
 
 ## Development Guidelines

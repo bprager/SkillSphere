@@ -8,8 +8,11 @@ from unittest.mock import AsyncMock
 import numpy as np
 import pytest
 
-from skill_sphere_mcp.graph.skill_matching import (MatchResult, SkillMatch,
-                                                   SkillMatchingService)
+from skill_sphere_mcp.graph.skill_matching import (
+    MatchResult,
+    SkillMatch,
+    SkillMatchingService,
+)
 
 # Test constants
 EXPECTED_MATCH_COUNT = 2
