@@ -46,9 +46,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .venv
-        key: ${{ runner.os }}-venv-hypergraph-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-venv-hypergraph-${{ hashFiles('hypergraph/src/**/*.py', 'requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-venv-hypergraph-
+          ${{ runner.os }}-venv-mcp-
 
     - name: Install dependencies
       run: |
@@ -99,17 +99,8 @@ jobs:
         working-directory: ./hypergraph
         output: ./coverage.svg
 
-    - name: Verify Changed files
-      if: matrix.check == 'coverage'
-      uses: tj-actions/verify-changed-files@v16
-      id: verify-changed-files
-      with:
-        files: coverage.svg
-        separator: ',' # Add separator to ensure accuracy in multi-file comparisons
-        fail-if-changed: false # Set this to true if you want the workflow to halt on changes
-
     - name: Commit files
-      if: matrix.check == 'coverage' && steps.verify-changed-files.outputs.files_changed == 'true'
+      if: matrix.check == 'coverage'
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
@@ -117,7 +108,7 @@ jobs:
         git commit -m "Updated hypergraph coverage badge"
 
     - name: Push changes
-      if: matrix.check == 'coverage' && steps.verify-changed-files.outputs.files_changed == 'true'
+      if: matrix.check == 'coverage'
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.github_token }}
