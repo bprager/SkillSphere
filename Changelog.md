@@ -8,10 +8,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## TODO
 
-- Design use case strategy
-- Design agent
-- Develop MCP and A2A components
-- Develop improvement strategy (KPIs?)
+### Core Components
+
+- [ ] Implement Redis-based caching for search results
+- [ ] Add hybrid search support (semantic + keyword)
+- [ ] Implement result pagination for search endpoints
+- [ ] Add relationship traversal and path finding capabilities
+- [ ] Implement graph analytics features
+- [ ] Add schema validation for graph data
+- [ ] Optimize embedding generation and persistence
+- [ ] Implement parallel walk generation for Node2Vec
+- [ ] Add custom sampling strategies for graph embeddings
+
+### Infrastructure
+
+- [ ] Create Docker-based deployment configuration
+- [ ] Add Kubernetes deployment manifests
+- [ ] Implement health check endpoints
+- [ ] Set up monitoring and alerting
+- [ ] Add rate limiting middleware
+- [ ] Implement connection pooling for Neo4j
+- [ ] Add query optimization strategies
+
+### Developer Experience
+
+- [ ] Create comprehensive API documentation
+- [ ] Develop example client implementations
+- [ ] Add development tools and utilities
+- [ ] Create testing utilities and fixtures
+- [ ] Add contract tests for schema changes
+- [ ] Implement CI/CD pipeline improvements
+
+### Documentation
+
+- [ ] Create installation guide
+- [ ] Add deployment documentation
+- [ ] Write contribution guidelines
+- [ ] Create troubleshooting guide
+- [ ] Add performance tuning guide
+- [ ] Document security best practices
+
+### Testing & Quality
+
+- [ ] Increase test coverage to 90%
+- [ ] Add integration tests
+- [ ] Implement performance benchmarks
+- [ ] Add load testing suite
+- [ ] Create security testing framework
+
+### Features
+
+- [ ] Design and implement use case strategy
+- [ ] Design and develop agent components
+- [ ] Develop MCP and A2A components
+- [ ] Create improvement strategy with KPIs
+- [ ] Add CV generation pipeline
+- [ ] Implement graph-based résumé generation
+- [ ] Add support for multiple output formats (PDF, HTML, Markdown)
+
+## [0.1.9] - Thu May 23 16:45:00 PDT 2025
+
+### Added
+
+- GitHub Actions workflows for both projects
+  - Separate workflows for hypergraph and skill_sphere_mcp
+  - Automated test runs and linting
+  - Coverage badge generation and updates
+  - Proper caching configuration for dependencies
+
+### Changed
+
+- Split Node2Vec implementation into separate modules
+  - Moved to dedicated package structure
+  - Improved code organization
+  - Enhanced maintainability
+- Updated README.md with
+  - Project badges and status
+  - Quick start instructions
+  - Project overview and features
+  - Contact information
+- Fixed GitHub Actions configuration
+  - Corrected cache keys and paths
+  - Improved badge generation workflow
+  - Added proper error handling for git operations
+  - Fixed path issues in coverage badge generation
+
+### Fixed
+
+- GitHub Actions workflow issues
+  - Fixed cache cleanup errors
+  - Corrected badge generation paths
+  - Resolved git commit/push errors
+  - Fixed working directory configurations
+- Path handling in coverage badge generation
+  - Corrected output paths for badges
+  - Fixed directory structure issues
+  - Resolved path duplication problems
 
 ## [0.1.8] - Thu May 23 15:30:00 PDT 2025
 
