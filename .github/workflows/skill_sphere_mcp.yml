@@ -118,15 +118,26 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add ./skill_sphere_mcp/coverage.svg
-          git add .pylintrc
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
           git commit -m "Updated skill_sphere_mcp coverage badge"
         else
-          echo "No coverage badge to commit."
+          echo "No coverage badge to commit"
+          exit 0
         fi
 
     - name: Push changes
       if: matrix.check == 'coverage'
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
+      run: |
+        if [ -f ./skill_sphere_mcp/coverage.svg ]; then
+          if git diff --staged --quiet; then
+            echo "No changes to push"
+            exit 0
+          fi
+          git push
+        else
+          echo "No changes to push"
+          exit 0
+        fi
