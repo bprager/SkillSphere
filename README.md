@@ -3,7 +3,7 @@
 ## Hypergraph
 
 [![Hypergraph Tests and Linting](https://github.com/bprager/SkillSphere-Agent/actions/workflows/hypergraph.yml/badge.svg)](https://github.com/bprager/SkillSphere-Agent/actions/workflows/hypergraph.yml)
-[![Hypergraph Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/refs/heads/main/hypergraph/coverage.svg)
+[![Hypergraph Coverage](https://raw.githubusercontent.com/bprager/SkillSphere-Agent/refs/heads/main/hypergraph/coverage.svg)]
 
 ## SkillSphere MCP
 

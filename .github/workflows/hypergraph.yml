@@ -97,7 +97,7 @@ jobs:
       uses: tj-actions/coverage-badge-py@v2
       with:
         working-directory: ./hypergraph
-        output: ./hypergraph/coverage.svg
+        output: coverage.svg
 
     - name: Validate coverage badge generation
       if: matrix.check == 'coverage'

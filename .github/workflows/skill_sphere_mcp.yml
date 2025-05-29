@@ -97,7 +97,7 @@ jobs:
       uses: tj-actions/coverage-badge-py@v2
       with:
         working-directory: ./skill_sphere_mcp
-        output: ./skill_sphere_mcp/coverage.svg
+        output: coverage.svg
 
     - name: Validate coverage badge generation
       if: matrix.check == 'coverage'
