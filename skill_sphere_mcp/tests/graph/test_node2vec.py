@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
+import pytest_asyncio
 from neo4j import AsyncSession
 
 from skill_sphere_mcp.graph.node2vec import Node2VecModelConfig, Node2VecTrainingConfig
@@ -72,20 +73,20 @@ class AsyncIterator:
             raise StopAsyncIteration from None
 
 
-@pytest.fixture
-def test_mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def test_mock_session() -> AsyncMock:
     """Create mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
 
 
-@pytest.fixture
-def test_mock_result() -> AsyncMock:
+@pytest_asyncio.fixture
+async def test_mock_result() -> AsyncMock:
     """Create mock Neo4j result."""
     return AsyncMock()
 
 
-@pytest.fixture
-def test_sample_graph() -> dict[str, list[str]]:
+@pytest_asyncio.fixture
+async def test_sample_graph() -> dict[str, list[str]]:
     """Create sample graph data."""
     return {
         "1": ["2", "3"],
@@ -95,8 +96,8 @@ def test_sample_graph() -> dict[str, list[str]]:
     }
 
 
-@pytest.fixture
-def test_node2vec() -> Node2Vec:
+@pytest_asyncio.fixture
+async def test_node2vec() -> Node2Vec:
     """Create Node2Vec instance with test configuration."""
     config = Node2VecConfig(
         model=Node2VecModelConfig(
@@ -167,7 +168,7 @@ def make_aiter(items: list) -> Callable[..., AsyncIterator]:
     return _aiter
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_graph(
     test_node2vec: Node2Vec, test_mock_session: AsyncMock, test_mock_result: AsyncMock
 ) -> None:
@@ -193,7 +194,7 @@ async def test_get_graph(
     assert graph["4"] == ["2", "3"]
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_graph_empty(
     test_node2vec: Node2Vec, test_mock_session: AsyncMock, test_mock_result: AsyncMock
 ) -> None:
@@ -209,7 +210,7 @@ async def test_get_graph_empty(
     assert len(graph) == 0
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_graph_error(
     test_node2vec: Node2Vec, test_mock_session: AsyncMock
 ) -> None:
@@ -409,7 +410,7 @@ def test_get_all_embeddings(test_node2vec: Node2Vec) -> None:
     assert retrieved == embeddings
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_fit(
     test_node2vec: Node2Vec, test_mock_session: AsyncMock, test_mock_result: AsyncMock
 ) -> None:

@@ -7,12 +7,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest_asyncio
 
 from hypergraph.db.graph import GraphWriter
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def mock_driver():
     """Create a mock Neo4j driver."""
     with patch("neo4j.GraphDatabase.driver") as mock:
@@ -21,7 +21,7 @@ def mock_driver():
         yield mock  # Return the mock itself, not the driver
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def graph_writer(mock_driver):
     """Create a GraphWriter instance with mocked driver."""
     return GraphWriter("bolt://localhost:7687", "neo4j", "password")

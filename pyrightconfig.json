@@ -1,0 +1,8 @@
+{
+    "include": [
+        "skill_sphere_mcp"
+    ],
+    "extraPaths": [
+        "skill_sphere_mcp/src"
+    ]
+}

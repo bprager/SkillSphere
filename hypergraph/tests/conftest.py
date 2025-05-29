@@ -3,16 +3,16 @@
 # pylint: disable=import-error, redefined-outer-name
 import os
 from pathlib import Path
-from typing import Generator
+from typing import AsyncGenerator
 
-import pytest
+import pytest_asyncio
 from neo4j import GraphDatabase
 
 from hypergraph.core.config import Settings
 
 
-@pytest.fixture
-def settings() -> Settings:
+@pytest_asyncio.fixture
+async def settings() -> Settings:
     """Create test settings."""
     return Settings(
         neo4j_uri="bolt://localhost:7687",
@@ -26,8 +26,8 @@ def settings() -> Settings:
     )
 
 
-@pytest.fixture
-def neo4j_driver(settings: Settings) -> Generator:
+@pytest_asyncio.fixture
+async def neo4j_driver(settings: Settings) -> AsyncGenerator:
     """Create a Neo4j test driver."""
     driver = GraphDatabase.driver(
         settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_pass)
@@ -36,8 +36,8 @@ def neo4j_driver(settings: Settings) -> Generator:
     driver.close()
 
 
-@pytest.fixture(autouse=True)
-def setup_test_env(settings: Settings) -> Generator:
+@pytest_asyncio.fixture(autouse=True)
+async def setup_test_env(settings: Settings) -> AsyncGenerator:
     """Set up test environment variables."""
     # Store original env vars
     original_env = dict(os.environ)

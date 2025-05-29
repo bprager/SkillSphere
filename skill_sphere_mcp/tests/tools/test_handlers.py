@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import numpy as np
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
 from neo4j import AsyncSession
 from starlette.status import HTTP_400_BAD_REQUEST
@@ -27,14 +28,14 @@ MOCK_YEARS_EXPERIENCE = {"Python": 5, "FastAPI": 3}
 MOCK_EMBEDDING = np.random.default_rng(42).random(128)
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
 
 
-@pytest.fixture
-def mock_skill_matcher() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_skill_matcher() -> AsyncMock:
     """Create a mock skill matcher."""
     matcher = AsyncMock()
     matcher.match_role.return_value = MatchResult(
@@ -55,7 +56,7 @@ def mock_skill_matcher() -> AsyncMock:
 
 # TODO: Resolve the skipped test for test_match_role_success.
 @pytest.mark.skip(reason="Test is currently failing and needs to be reviewed.")
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_match_role_success(
     mock_session: AsyncMock, mock_skill_matcher: AsyncMock
 ) -> None:
@@ -81,7 +82,7 @@ async def test_match_role_success(
     assert result["skill_gaps"] == []
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_match_role_no_skills(mock_session: AsyncMock) -> None:
     """Test skill matching with no skills provided."""
     with pytest.raises(HTTPException) as exc_info:
@@ -89,7 +90,7 @@ async def test_match_role_no_skills(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_explain_match_success(mock_session: AsyncMock) -> None:
     """Test successful match explanation."""
     # Setup mock session response
@@ -114,7 +115,7 @@ async def test_explain_match_success(mock_session: AsyncMock) -> None:
     assert len(result["evidence"]) > 0
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_explain_match_invalid_params(mock_session: AsyncMock) -> None:
     """Test match explanation with invalid parameters."""
     with pytest.raises(HTTPException) as exc_info:
@@ -122,7 +123,7 @@ async def test_explain_match_invalid_params(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_generate_cv_success(mock_session: AsyncMock) -> None:
     """Test successful CV generation."""
     mock_record = {
@@ -139,7 +140,7 @@ async def test_generate_cv_success(mock_session: AsyncMock) -> None:
     assert "content" in result
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
     """Test CV generation with invalid format."""
     with pytest.raises(HTTPException) as exc_info:
@@ -149,7 +150,7 @@ async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_graph_search_success(mock_session: AsyncMock) -> None:
     """Test successful graph search."""
     # Mock the session to return a list of nodes
@@ -167,7 +168,7 @@ async def test_graph_search_success(mock_session: AsyncMock) -> None:
     assert result["results"][0]["node"]["name"] == "Python"
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_graph_search_no_query(mock_session: AsyncMock) -> None:
     """Test graph search with no query."""
     with pytest.raises(HTTPException) as exc_info:
@@ -175,7 +176,7 @@ async def test_graph_search_no_query(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_graph_search_invalid_top_k(mock_session: AsyncMock) -> None:
     """Test graph search with invalid top_k."""
     with pytest.raises(HTTPException) as exc_info:
@@ -183,7 +184,7 @@ async def test_graph_search_invalid_top_k(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_graph_search_fallback_random(mock_session: AsyncMock) -> None:
     """Test graph search fallback to random embedding when MODEL is None."""
     # Mock the session to return a list of nodes

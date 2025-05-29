@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
 from neo4j import AsyncSession
 from starlette.status import (
@@ -24,7 +25,7 @@ MOCK_SKILLS = ["Python", "FastAPI"]
 MOCK_YEARS = {"Python": 5, "FastAPI": 3}
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
@@ -116,7 +117,7 @@ def test_validate_graph_search_params() -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_success(mock_session: AsyncMock) -> None:
     """Test successful tool dispatch."""
     # Mock the handler functions
@@ -140,7 +141,7 @@ async def test_dispatch_tool_success(mock_session: AsyncMock) -> None:
         assert len(result["matching_skills"]) == 1
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_invalid_name(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid tool name."""
     with pytest.raises(HTTPException) as exc_info:
@@ -148,7 +149,7 @@ async def test_dispatch_tool_invalid_name(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_404_NOT_FOUND
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_invalid_params(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid parameters."""
     with pytest.raises(HTTPException) as exc_info:
@@ -156,7 +157,7 @@ async def test_dispatch_tool_invalid_params(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_handler_error(mock_session: AsyncMock) -> None:
     """Test tool dispatch with handler error."""
     with patch("skill_sphere_mcp.tools.dispatcher.match_role") as mock_match_role:

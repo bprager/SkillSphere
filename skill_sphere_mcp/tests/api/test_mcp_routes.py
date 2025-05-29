@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
@@ -52,13 +53,13 @@ HTTP_SERVER_ERROR = 500
 HTTP_NOT_IMPLEMENTED = 501
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_session():
     """Create a mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_initialize() -> None:
     """Test MCP initialization endpoint."""
     response = await initialize()
@@ -71,7 +72,7 @@ async def test_initialize() -> None:
     assert isinstance(response.instructions, str)
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_list_resources() -> None:
     """Test resource listing endpoint."""
     resources = await list_resources()
@@ -80,7 +81,7 @@ async def test_list_resources() -> None:
     assert all(isinstance(r, str) for r in resources)
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_resource_success() -> None:
     """Test successful resource retrieval."""
     response = await get_resource(MOCK_RESOURCE_TYPE)
@@ -89,7 +90,7 @@ async def test_get_resource_success() -> None:
     assert "schema" in response
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_resource_not_found() -> None:
     """Test resource retrieval with non-existent resource."""
     # The endpoint now returns schema for any valid resource type, so this test is not applicable.
@@ -97,7 +98,7 @@ async def test_get_resource_not_found() -> None:
     pytest.skip("Resource not found test is not applicable for schema-only endpoint.")
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_resource_invalid_type() -> None:
     """Test resource retrieval with invalid resource type."""
     with pytest.raises(HTTPException) as exc_info:
@@ -105,7 +106,7 @@ async def test_get_resource_invalid_type() -> None:
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_resource_invalid_id_format() -> None:
     """Test resource retrieval with invalid ID format."""
     with pytest.raises(HTTPException) as exc_info:
@@ -113,14 +114,14 @@ async def test_get_resource_invalid_id_format() -> None:
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_resource_database_error() -> None:
     """Test resource retrieval with database error."""
     # The endpoint now returns schema for any valid resource type, so this test is not applicable.
     pytest.skip("Database error test is not applicable for schema-only endpoint.")
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_success(mock_session: AsyncMock) -> None:
     """Test successful tool dispatch."""
     parameters = {
@@ -140,7 +141,7 @@ async def test_dispatch_tool_success(mock_session: AsyncMock) -> None:
     assert "Python" in [skill["name"] for skill in response["matching_skills"]]
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_invalid_name(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid tool name."""
     request = ToolRequest(tool_name="invalid.tool", parameters={})
@@ -149,7 +150,7 @@ async def test_dispatch_tool_invalid_name(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_NOT_FOUND
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_dispatch_tool_invalid_params(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid parameters."""
     request = ToolRequest(tool_name=MOCK_TOOL_NAME, parameters={})
@@ -158,7 +159,7 @@ async def test_dispatch_tool_invalid_params(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_explain_match_tool(mock_session: AsyncMock) -> None:
     """Test explain match tool handler."""
     parameters = {
@@ -172,7 +173,7 @@ async def test_explain_match_tool(mock_session: AsyncMock) -> None:
     assert "evidence" in response
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_generate_cv_tool(mock_session: AsyncMock) -> None:
     """Test CV generation tool handler."""
     parameters = {
@@ -193,7 +194,7 @@ async def test_generate_cv_tool(mock_session: AsyncMock) -> None:
     assert "format" in response
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_graph_search_tool(mock_session: AsyncMock) -> None:
     """Test graph search tool handler."""
     parameters = {
@@ -207,7 +208,7 @@ async def test_graph_search_tool(mock_session: AsyncMock) -> None:
     assert isinstance(response["results"], list)
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_tool_handler_error(mock_session: AsyncMock) -> None:
     """Test error handling in tool handlers."""
     parameters = {"required_skills": ["Python"]}
@@ -218,7 +219,7 @@ async def test_tool_handler_error(mock_session: AsyncMock) -> None:
     assert exc_info.value.status_code == HTTP_NOT_FOUND
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_initialize_invalid_version() -> None:
     """Test MCP initialization with invalid version."""
     response = await initialize()

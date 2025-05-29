@@ -5,6 +5,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
@@ -36,8 +37,8 @@ class AsyncRecordIterator:
         return record
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_session():
     """Create a mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
 

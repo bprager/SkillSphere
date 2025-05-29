@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock
 
-import pytest
+import pytest_asyncio
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
@@ -18,8 +18,8 @@ from skill_sphere_mcp.db.connection import neo4j_conn
 get_db_session_dep = Depends(neo4j_conn.get_session)
 
 
-@pytest.fixture
-def app() -> FastAPI:
+@pytest_asyncio.fixture
+async def app() -> AsyncGenerator[FastAPI, None]:
     """Create a test FastAPI application."""
     test_app = FastAPI()
 
@@ -38,10 +38,10 @@ def app() -> FastAPI:
             content={"detail": str(exc)},
         )
 
-    return test_app
+    yield test_app
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_db_session(app: FastAPI) -> None:
     """Test that get_db_session dependency returns a session."""
     mock_session = AsyncMock()
@@ -59,7 +59,7 @@ async def test_get_db_session(app: FastAPI) -> None:
     assert response.json() == {"status": "ok"}
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_db_session_error_handling(app: FastAPI) -> None:
     """Test that get_db_session properly handles errors."""
     mock_session = AsyncMock()

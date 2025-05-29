@@ -6,13 +6,14 @@ from builtins import anext
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import pytest_asyncio
 from neo4j import AsyncGraphDatabase, AsyncSession
 from neo4j.exceptions import AuthError, ServiceUnavailable
 
 from skill_sphere_mcp.db.connection import Neo4jConnection
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def settings() -> MagicMock:
     """Create mock settings."""
     settings = MagicMock()
@@ -22,7 +23,7 @@ def settings() -> MagicMock:
     return settings
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def driver() -> AsyncMock:
     """Create mock Neo4j driver."""
     mock = AsyncMock(spec=AsyncGraphDatabase)
@@ -32,13 +33,13 @@ def driver() -> AsyncMock:
     return mock
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def session_mock() -> AsyncMock:
     """Create mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def conn(settings: MagicMock, driver: AsyncMock) -> Neo4jConnection:
     """Create Neo4jConnection instance with mocked dependencies."""
     with (

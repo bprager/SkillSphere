@@ -2,11 +2,13 @@
 
 # pylint: disable=redefined-outer-name
 
+from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
+import pytest_asyncio
 from neo4j import AsyncSession
 
 from skill_sphere_mcp.graph.embeddings import Node2VecEmbeddings, embeddings
@@ -24,23 +26,23 @@ TEST_MIN_SCORE = -1.0
 TEST_MAX_SCORE = 1.0
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_session() -> AsyncMock:
     """Create mock Neo4j session."""
     session = AsyncMock(spec=AsyncSession)
     session.close = AsyncMock()
     return session
 
 
-@pytest.fixture(autouse=True)
-async def cleanup_session(mock_session: AsyncMock) -> None:
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_session(mock_session: AsyncMock) -> AsyncGenerator[None, None]:
     """Cleanup fixture to close Neo4j session after each test."""
     yield
     await mock_session.close()
 
 
-@pytest.fixture
-def mock_result() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_result() -> AsyncMock:
     """Create mock Neo4j result."""
     result = AsyncMock()
     result.__aiter__ = AsyncMock()
@@ -48,8 +50,8 @@ def mock_result() -> AsyncMock:
     return result
 
 
-@pytest.fixture
-def sample_nodes() -> list[dict]:
+@pytest_asyncio.fixture
+async def sample_nodes() -> list[dict]:
     """Create sample node data."""
     return [
         {
@@ -67,8 +69,8 @@ def sample_nodes() -> list[dict]:
     ]
 
 
-@pytest.fixture
-def mock_embeddings() -> dict[str, np.ndarray]:
+@pytest_asyncio.fixture
+async def mock_embeddings() -> dict[str, np.ndarray]:
     """Create mock embeddings."""
     return {
         "1": rng.random(128),
@@ -76,7 +78,7 @@ def mock_embeddings() -> dict[str, np.ndarray]:
     }
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_embeddings_initialization() -> None:
     """Test Node2VecEmbeddings initialization."""
     emb = Node2VecEmbeddings(dimension=TEST_DIMENSION_SMALL)
@@ -102,7 +104,7 @@ class AsyncRecordIterator:
         return record
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_load_embeddings(
     mock_session: AsyncMock, mock_result: AsyncMock, sample_nodes: list[dict]
 ) -> None:
@@ -139,7 +141,7 @@ async def test_load_embeddings(
         assert "2" in embeddings
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_load_embeddings_empty_graph(
     mock_session: AsyncMock, mock_result: AsyncMock
 ) -> None:
@@ -165,7 +167,7 @@ async def test_load_embeddings_empty_graph(
         assert emb.get_embedding("2") is None
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_load_embeddings_error_handling(mock_session: AsyncMock) -> None:
     """Test error handling in load_embeddings."""
     # Setup mock session to raise an exception
@@ -180,7 +182,7 @@ async def test_load_embeddings_error_handling(mock_session: AsyncMock) -> None:
     assert str(exc_info.value) == "Database error"
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_search(
     mock_session: AsyncMock,
     mock_embeddings: dict[str, np.ndarray],
@@ -215,7 +217,7 @@ async def test_search(
         assert TEST_MIN_SCORE <= result["score"] <= TEST_MAX_SCORE
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_search_empty_embeddings(mock_session: AsyncMock) -> None:
     """Test search with empty embeddings."""
     # Create embeddings instance
@@ -236,7 +238,7 @@ async def test_search_empty_embeddings(mock_session: AsyncMock) -> None:
     assert len(results) == TEST_NUM_EMPTY
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_search_invalid_node(
     mock_session: AsyncMock, mock_embeddings: dict[str, np.ndarray]
 ) -> None:
@@ -276,7 +278,7 @@ def test_get_embedding(mock_embeddings: dict[str, np.ndarray]) -> None:
     assert embedding is None
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_global_embeddings_instance() -> None:
     """Test that the global embeddings instance is properly initialized."""
     # Verify that embeddings is an instance of Node2VecEmbeddings

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
@@ -14,8 +15,8 @@ from skill_sphere_mcp.auth.pat import PAT, PATAuth, get_current_token
 HTTP_UNAUTHORIZED = 401
 
 
-@pytest.fixture
-def pat_auth() -> PATAuth:
+@pytest_asyncio.fixture
+async def pat_auth() -> PATAuth:
     """Create a PAT auth instance for testing."""
     return PATAuth()
 

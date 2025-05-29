@@ -6,13 +6,14 @@ from builtins import anext
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import pytest_asyncio
 from neo4j import AsyncSession
 from neo4j.exceptions import AuthError, ServiceUnavailable
 
 from skill_sphere_mcp.db.connection import Neo4jConnection, neo4j_conn
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def mock_settings() -> MagicMock:
     """Create mock settings."""
     settings = MagicMock()
@@ -22,8 +23,8 @@ def mock_settings() -> MagicMock:
     return settings
 
 
-@pytest.fixture
-def mock_driver() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_driver() -> AsyncMock:
     """Create mock Neo4j driver."""
     driver = AsyncMock()
     driver.verify_connectivity = AsyncMock()
@@ -32,15 +33,27 @@ def mock_driver() -> AsyncMock:
     return driver
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_session() -> AsyncMock:
     """Create mock Neo4j session."""
     session = AsyncMock(spec=AsyncSession)
     session.close = AsyncMock()
     return session
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
+async def mock_transaction():
+    # ... existing code ...
+    pass
+
+
+@pytest_asyncio.fixture
+async def mock_result():
+    # ... existing code ...
+    pass
+
+
+@pytest_asyncio.fixture
 def conn(mock_settings: MagicMock, mock_driver: AsyncMock) -> Neo4jConnection:
     """Create Neo4jConnection instance with mocked dependencies."""
     with (
@@ -55,7 +68,7 @@ def conn(mock_settings: MagicMock, mock_driver: AsyncMock) -> Neo4jConnection:
         return Neo4jConnection()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_connection_initialization(mock_settings: MagicMock) -> None:
     """Test Neo4j connection initialization."""
     driver_mock = AsyncMock()
@@ -75,7 +88,7 @@ async def test_connection_initialization(mock_settings: MagicMock) -> None:
         )
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_verify_connectivity_success(
     conn: Neo4jConnection, mock_driver: AsyncMock
 ) -> None:
@@ -87,7 +100,7 @@ async def test_verify_connectivity_success(
     mock_driver.verify_connectivity.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_verify_connectivity_service_unavailable(
     conn: Neo4jConnection, mock_driver: AsyncMock
 ) -> None:
@@ -101,7 +114,7 @@ async def test_verify_connectivity_service_unavailable(
     mock_driver.verify_connectivity.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_verify_connectivity_auth_error(
     conn: Neo4jConnection, mock_driver: AsyncMock
 ) -> None:
@@ -113,14 +126,14 @@ async def test_verify_connectivity_auth_error(
     mock_driver.verify_connectivity.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_close(conn: Neo4jConnection, mock_driver: AsyncMock) -> None:
     """Test connection closure."""
     await conn.close()
     mock_driver.close.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_session(
     conn: Neo4jConnection, mock_driver: AsyncMock, mock_session: AsyncMock
 ) -> None:
@@ -136,7 +149,7 @@ async def test_get_session(
     mock_session.close.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_session_error_handling(
     conn: Neo4jConnection, mock_driver: AsyncMock, mock_session: AsyncMock
 ) -> None:
@@ -153,7 +166,7 @@ async def test_get_session_error_handling(
     mock_session.close.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_session_cleanup_on_error(
     conn: Neo4jConnection, mock_driver: AsyncMock, mock_session: AsyncMock
 ) -> None:
@@ -169,7 +182,7 @@ async def test_get_session_cleanup_on_error(
     mock_session.close.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_global_connection_instance() -> None:
     """Test that the global connection instance is properly initialized."""
     # Verify that neo4j_conn is an instance of Neo4jConnection

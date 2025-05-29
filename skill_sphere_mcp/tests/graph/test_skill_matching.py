@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
+import pytest_asyncio
 
 from skill_sphere_mcp.graph.skill_matching import (
     MatchResult,
@@ -51,14 +52,14 @@ MOCK_CANDIDATE_SKILLS = [
 ]
 
 
-@pytest.fixture
-def skill_matcher() -> SkillMatchingService:
+@pytest_asyncio.fixture
+async def skill_matcher() -> SkillMatchingService:
     """Create a skill matching service instance."""
     return SkillMatchingService()
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
+@pytest_asyncio.fixture
+async def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
     return AsyncMock()
 
@@ -104,7 +105,7 @@ def test_match_result_creation() -> None:
     assert len(result.skill_gaps) == EXPECTED_GAP_COUNT
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_match_role_success(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:
@@ -129,7 +130,7 @@ async def test_match_role_success(
         assert len(result.skill_gaps) == 0
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_match_role_no_skills(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:
@@ -144,7 +145,7 @@ async def test_match_role_no_skills(
     assert len(result.skill_gaps) == 0
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_match_role_no_candidate_skills(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:
@@ -159,7 +160,7 @@ async def test_match_role_no_candidate_skills(
     assert len(result.skill_gaps) == len(MOCK_REQUIRED_SKILLS)
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_find_best_match(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:
@@ -184,7 +185,7 @@ async def test_find_best_match(
         assert best_match.match_score > 0
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_find_best_match_no_match(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:
@@ -198,7 +199,7 @@ async def test_find_best_match_no_match(
     assert best_match is None
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_skill_embedding(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:
@@ -219,7 +220,7 @@ async def test_get_skill_embedding(
         assert isinstance(embedding, np.ndarray)
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_gather_evidence(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
 ) -> None:

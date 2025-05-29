@@ -3,6 +3,7 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from starlette.status import HTTP_200_OK
 
@@ -15,8 +16,8 @@ from skill_sphere_mcp.api.jsonrpc import (
 from skill_sphere_mcp.app import app
 
 
-@pytest.fixture
-def test_client() -> TestClient:
+@pytest_asyncio.fixture
+async def jsonrpc_client():
     """Create a test client."""
     return TestClient(app)
 
@@ -70,9 +71,9 @@ def test_jsonrpc_response_creation() -> None:
     assert error_response.id == 1
 
 
-def test_rpc_endpoint_initialize(test_client: TestClient) -> None:
+def test_rpc_endpoint_initialize(client: TestClient) -> None:
     """Test RPC initialize endpoint."""
-    response = test_client.post(
+    response = client.post(
         "/mcp/rpc",
         json={
             "jsonrpc": "2.0",
@@ -88,9 +89,9 @@ def test_rpc_endpoint_initialize(test_client: TestClient) -> None:
     assert data["id"] == 1
 
 
-def test_rpc_endpoint_method_not_found(test_client: TestClient) -> None:
+def test_rpc_endpoint_method_not_found(client: TestClient) -> None:
     """Test RPC endpoint with non-existent method."""
-    response = test_client.post(
+    response = client.post(
         "/mcp/rpc",
         json={
             "jsonrpc": "2.0",

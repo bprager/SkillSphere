@@ -4,12 +4,12 @@
 
 import json
 import os
-from collections.abc import Callable, Generator
-from typing import Any
+from collections.abc import Callable
+from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
-import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from tests.graph.test_node2vec import AsyncIterator
 
@@ -31,8 +31,8 @@ HTTP_NOT_IMPLEMENTED = 501
 TEST_RESULTS_COUNT = 2
 
 
-@pytest.fixture(autouse=True)
-def disable_tracing() -> Generator[None, None, None]:
+@pytest_asyncio.fixture
+async def disable_tracing() -> AsyncGenerator[None, None]:
     """Disable OpenTelemetry tracing during tests."""
     # Save original environment
     original_env = dict(os.environ)
@@ -48,10 +48,10 @@ def disable_tracing() -> Generator[None, None, None]:
     os.environ.update(original_env)
 
 
-@pytest.fixture
-def client() -> TestClient:
+@pytest_asyncio.fixture
+async def client() -> AsyncGenerator[TestClient, None]:
     """Create a test client for the FastAPI app."""
-    return TestClient(create_app())
+    yield TestClient(create_app())
 
 
 def test_get_settings() -> None:
@@ -61,7 +61,7 @@ def test_get_settings() -> None:
     assert settings.port == DEFAULT_PORT
 
 
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_get_neo4j_driver() -> None:
     """Test that the Neo4j driver is created correctly."""
     mock_driver = AsyncMock()
@@ -142,7 +142,7 @@ def test_search_success(mock_model: MagicMock, client: TestClient) -> None:
         mock_get_session.return_value = AsyncIterator([mock_session])
 
         # Set up mock results as a real async generator
-        async def async_gen():
+        async def async_gen() -> AsyncGenerator[dict[str, Any], None]:
             yield {"id": 1, "embedding": np.array([0.1, 0.2, 0.3])}
             yield {"id": 2, "embedding": np.array([0.2, 0.3, 0.4])}
 
