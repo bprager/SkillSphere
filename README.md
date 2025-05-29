@@ -17,8 +17,8 @@
   <!-- Spacer -->
   &nbsp;&nbsp;
   <!-- MCP -->
-  <a href="https://github.com/bprager/SkillSphere-Agent/actions/workflows/mcp.yml">
-    <img src="https://github.com/bprager/SkillSphere-Agent/actions/workflows/mcp.yml/badge.svg" alt="SkillSphere MCP • Test + Lint">
+  <a href="https://github.com/bprager/SkillSphere-Agent/actions/workflows/skill_sphere_mcp.yml">
+    <img src="https://github.com/bprager/SkillSphere-Agent/actions/workflows/skill_sphere_mcp.yml/badge.svg" alt="SkillSphere MCP • Test + Lint">
   </a>
   <a href="skill_sphere_mcp/coverage.svg">
     <img src="skill_sphere_mcp/coverage.svg" alt="SkillSphere MCP • Coverage" height="20">
