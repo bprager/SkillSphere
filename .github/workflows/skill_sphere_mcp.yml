@@ -46,7 +46,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .venv
-        key: ${{ runner.os }}-venv-hypergraph-${{ hashFiles('hypergraph/src/**/*.py', 'requirements.txt') }}
+        key: ${{ runner.os }}-venv-mcp-${{ hashFiles('skill_sphere_mcp/src/**/*.py', 'requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-venv-mcp-
 
