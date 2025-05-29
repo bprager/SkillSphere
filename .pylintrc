@@ -1,5 +1,4 @@
 [MASTER]
-disable=C0111,C0103,C0305,C0321,W0401,W0622,W0614
 max-line-length=120
 ignore=CVS
 persistent=yes
