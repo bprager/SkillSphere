@@ -117,6 +117,7 @@ jobs:
           git commit -m "Updated skill_sphere_mcp coverage badge"
         else
           echo "No coverage badge to commit."
+        fi
 
     - name: Push changes
       if: matrix.check == 'coverage'
