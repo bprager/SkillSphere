@@ -99,6 +99,10 @@ jobs:
         working-directory: ./skill_sphere_mcp
         output: coverage.svg
 
+    - name: Debug directory structure
+      if: matrix.check == 'coverage'
+      run: ls -R ./skill_sphere_mcp
+
     - name: Validate coverage badge generation
       if: matrix.check == 'coverage'
       run: |
@@ -114,6 +118,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add ./skill_sphere_mcp/coverage.svg
+          git add .pylintrc
           git commit -m "Updated skill_sphere_mcp coverage badge"
         else
           echo "No coverage badge to commit."

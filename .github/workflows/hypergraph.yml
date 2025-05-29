@@ -107,6 +107,10 @@ jobs:
           exit 1
         fi
 
+    - name: Debug directory structure
+      if: matrix.check == 'coverage'
+      run: ls -R ./hypergraph
+
     - name: Commit files
       if: matrix.check == 'coverage'
       run: |
@@ -114,6 +118,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add ./hypergraph/coverage.svg
+          git add .pylintrc
           git commit -m "Updated hypergraph coverage badge"
         else
           echo "No coverage badge to commit."
