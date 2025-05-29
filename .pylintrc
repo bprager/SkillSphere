@@ -1,0 +1,8 @@
+[MASTER]
+disable=C0111,C0103,C0305,C0321,W0401,W0622,W0614
+max-line-length=120
+ignore=CVS
+persistent=yes
+load-plugins=pylint.extensions.docparams,pylint.extensions.docstyle,pylint.extensions.mccabe
+ignored-modules=uvicorn,fastapi
+
