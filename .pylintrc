@@ -4,4 +4,5 @@ ignore=CVS
 persistent=yes
 load-plugins=pylint.extensions.docparams,pylint.extensions.docstyle,pylint.extensions.mccabe
 ignored-modules=uvicorn,fastapi
+init-hook='import sys, os; sys.path.extend([os.path.abspath("skill_sphere_mcp/src"), os.path.abspath("hypergraph/src"), os.path.abspath("skill_sphere_mcp/src/skill_sphere_mcp"), os.path.abspath("hypergraph/src/hypergraph")])'
 
