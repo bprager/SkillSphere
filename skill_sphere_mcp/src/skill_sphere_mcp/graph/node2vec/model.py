@@ -9,17 +9,95 @@ from neo4j import AsyncSession
 from .config import Node2VecConfig, PreprocessConfig, TransitionConfig
 from .sampling import alias_draw, alias_setup
 from .state import Node2VecState
-from .training import (
-    NegativeSamplingConfig,
-    SamplingConfig,
-    get_context_nodes,
-    process_negative_samples,
-    process_positive_samples,
-    update_embedding,
-)
+from .training import (NegativeSamplingConfig, SamplingConfig,
+                       get_context_nodes, process_negative_samples,
+                       process_positive_samples, update_embedding)
 from .walks import WalkConfig, generate_walks, node2vec_walk
 
 logger = logging.getLogger(__name__)
+
+
+class Node2VecModel:
+    """High-level Node2Vec model interface."""
+
+    def __init__(self, config: Node2VecConfig | None = None):
+        """Initialize Node2Vec model.
+
+        Args:
+            config: Node2Vec configuration parameters
+        """
+        self._model = Node2Vec(config)
+        self.state = self._model._state
+
+    async def fit(self, session: AsyncSession) -> None:
+        """Fit the model to the graph.
+
+        Args:
+            session: Neo4j database session
+        """
+        await self._model.fit(session)
+
+    def get_embedding(self, node_id: str) -> np.ndarray | None:
+        """Get embedding for a node.
+
+        Args:
+            node_id: Node identifier
+
+        Returns:
+            Node embedding vector or None if node not found
+        """
+        return self._model.get_embedding(node_id)
+
+    def get_all_embeddings(self) -> dict[str, np.ndarray]:
+        """Get all node embeddings.
+
+        Returns:
+            Dictionary mapping node IDs to their embeddings
+        """
+        return self._model.get_all_embeddings()
+
+    def get_embeddings(self) -> dict[str, np.ndarray]:
+        """Get all node embeddings.
+
+        Returns:
+            Dictionary mapping node IDs to their embeddings
+        """
+        return self._model.get_all_embeddings()
+
+    async def preprocess(
+        self,
+        session: AsyncSession | None = None,
+        config: PreprocessConfig | None = None,
+    ) -> None:
+        """Preprocess the graph for training.
+
+        Args:
+            session: Neo4j database session (optional)
+            config: Preprocessing configuration
+        """
+        if session is not None:
+            await self._model.preprocess(session, config)
+        else:
+            # For testing purposes, use the existing graph
+            self._model.preprocess_transition_probs(self.state.graph, config)
+            self.state.preprocessed = True
+            # Generate walks for test mode
+            self.state.walks = self._model.generate_walks(self.state.graph)
+
+    def train(self) -> None:
+        """Train the model using the preprocessed graph."""
+        if not self.state.preprocessed:
+            raise RuntimeError("Model must be preprocessed before training")
+
+        # Initialize embeddings before training
+        self._model.initialize_embeddings(set(self.state.graph.keys()))
+
+        # Generate walks if not already generated
+        if not self.state.walks:
+            self.state.walks = self._model.generate_walks(self.state.graph)
+
+        # Train embeddings
+        self._model._train_embeddings(self.state.walks)
 
 
 class Node2Vec:
@@ -154,17 +232,23 @@ class Node2Vec:
                             learning_rate=self.config.training.learning_rate
                         ),
                     )
-                    process_negative_samples(
-                        node,
-                        context_nodes,
-                        nodes,
-                        self._state.embeddings,
-                        NegativeSamplingConfig(
-                            num_samples=self.config.training.num_neg_samples,
-                            learning_rate=self.config.training.learning_rate,
-                            rng=self._rng,
-                        ),
-                    )
+                    # Only perform negative sampling if we have enough nodes
+                    available_nodes = nodes - {node} - set(context_nodes)
+                    if len(available_nodes) > 0:
+                        process_negative_samples(
+                            node,
+                            context_nodes,
+                            nodes,
+                            self._state.embeddings,
+                            NegativeSamplingConfig(
+                                num_samples=min(
+                                    self.config.training.num_neg_samples,
+                                    len(available_nodes),
+                                ),
+                                learning_rate=self.config.training.learning_rate,
+                                rng=self._rng,
+                            ),
+                        )
 
     async def fit(self, session: AsyncSession) -> None:
         """Fit Node2Vec model.
@@ -271,12 +355,10 @@ class Node2Vec:
             SamplingConfig(learning_rate=self.config.training.learning_rate),
         )
         # Normalize embeddings after update
-        for n in [node] + context_nodes:
+        for n in [node, *context_nodes]:
             if n in self._state.embeddings:
                 emb = self._state.embeddings[n]
-                norm = np.linalg.norm(emb)
-                if norm > 0:
-                    self._state.embeddings[n] = emb / norm
+                self._state.embeddings[n] = emb / np.linalg.norm(emb)
 
     def process_negative_samples(
         self, node: str, context_nodes: list[str], nodes: set[str]
@@ -300,12 +382,10 @@ class Node2Vec:
             ),
         )
         # Normalize embeddings after update
-        for n in [node] + context_nodes:
+        for n in [node, *context_nodes]:
             if n in self._state.embeddings:
                 emb = self._state.embeddings[n]
-                norm = np.linalg.norm(emb)
-                if norm > 0:
-                    self._state.embeddings[n] = emb / norm
+                self._state.embeddings[n] = emb / np.linalg.norm(emb)
 
     def update_embedding(self, node1: str, node2: str, label: float) -> None:
         """Update embeddings using gradient descent and normalize after update."""

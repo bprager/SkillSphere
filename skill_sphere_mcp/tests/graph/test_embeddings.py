@@ -24,6 +24,7 @@ TEST_NUM_NODES = 2
 TEST_NUM_EMPTY = 0
 TEST_MIN_SCORE = -1.0
 TEST_MAX_SCORE = 1.0
+EXPECTED_EMBEDDINGS_COUNT = 2
 
 
 @pytest_asyncio.fixture
@@ -136,7 +137,7 @@ async def test_load_embeddings(
         # Verify embeddings were stored
         assert emb.model is not None
         embeddings = emb.get_all_embeddings()
-        assert len(embeddings) == 2
+        assert len(embeddings) == EXPECTED_EMBEDDINGS_COUNT
         assert "1" in embeddings
         assert "2" in embeddings
 

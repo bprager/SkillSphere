@@ -1,6 +1,6 @@
 """Configuration classes for Node2Vec."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -28,8 +28,8 @@ class Node2VecModelConfig:
 class Node2VecConfig:
     """Node2Vec configuration parameters."""
 
-    model: Node2VecModelConfig = Node2VecModelConfig()
-    training: Node2VecTrainingConfig = Node2VecTrainingConfig()
+    model: Node2VecModelConfig = field(default_factory=Node2VecModelConfig)
+    training: Node2VecTrainingConfig = field(default_factory=Node2VecTrainingConfig)
 
 
 @dataclass

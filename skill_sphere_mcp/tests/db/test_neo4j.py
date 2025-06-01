@@ -192,3 +192,23 @@ async def test_global_connection_instance() -> None:
     with patch.object(neo4j_conn, "verify_connectivity", return_value=True):
         result = await neo4j_conn.verify_connectivity()
         assert result is True
+
+
+@pytest.mark.asyncio
+async def test_neo4j_connection() -> None:
+    """Test Neo4j connection."""
+    async for session in neo4j_conn.get_session():
+        assert isinstance(session, AsyncSession)
+        await session.close()
+
+
+@pytest.mark.asyncio
+async def test_neo4j_query(mock_neo4j_session: AsyncMock) -> None:
+    """Test Neo4j query execution."""
+    mock_result = AsyncMock()
+    mock_result.single.return_value = {"n": 1}
+    mock_neo4j_session.run.return_value = mock_result
+
+    result = await mock_neo4j_session.run("RETURN 1 as n")
+    record = await result.single()
+    assert record["n"] == 1

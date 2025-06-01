@@ -1,10 +1,9 @@
 """Application settings and configuration."""
 
 import logging
-import sys
 from functools import lru_cache
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -40,7 +39,7 @@ class ClientInfo(BaseModel):
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables or .env file."""
+    """Application settings."""
 
     # Server
     host: str = Field(default="0.0.0.0", validation_alias="MCP_HOST")
@@ -72,18 +71,19 @@ class Settings(BaseSettings):
     enable_caching: bool = Field(default=True)
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore",
+        env_prefix="SKILL_SPHERE_",
         populate_by_name=True,
+        extra="ignore",
     )
 
 
-@lru_cache(maxsize=1)
-def get_settings() -> Settings:  # pragma: no cover
-    """Get cached application settings from environment variables."""
-    try:
-        return Settings()  # environment variables validated here  # type: ignore
-    except ValidationError as exc:
-        # Fail fast with helpful message
-        logger.error("Invalid configuration: %s", exc)
-        sys.exit(1)
+@lru_cache
+def get_settings() -> Settings:
+    """Get application settings."""
+    return Settings()
+
+
+# Export settings instance
+settings = get_settings()
+
+__all__ = ["settings"]

@@ -1,10 +1,10 @@
 """OpenTelemetry configuration and instrumentation."""
 
 import logging
-from typing import Optional
 
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
+    OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -14,7 +14,7 @@ from ..config.settings import get_settings
 logger = logging.getLogger(__name__)
 
 
-def setup_telemetry() -> Optional[trace.Tracer]:
+def setup_telemetry() -> trace.Tracer | None:
     """Configure OpenTelemetry tracing."""
     try:
         settings = get_settings()

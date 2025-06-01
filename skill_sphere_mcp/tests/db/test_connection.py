@@ -29,7 +29,7 @@ def driver() -> AsyncMock:
     mock = AsyncMock(spec=AsyncGraphDatabase)
     mock.verify_connectivity = AsyncMock()
     mock.close = AsyncMock()
-    mock.session = AsyncMock()
+    mock.session = MagicMock()
     return mock
 
 
@@ -57,6 +57,10 @@ async def test_connection_initialization(
     settings: MagicMock, driver: AsyncMock
 ) -> None:
     """Test Neo4j connection initialization."""
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+
     with (
         patch(
             "skill_sphere_mcp.db.connection.get_settings",
@@ -67,7 +71,10 @@ async def test_connection_initialization(
             return_value=driver,
         ) as mock_driver,
     ):
-        Neo4jConnection()  # Create the connection to trigger driver initialization
+        conn = (
+            Neo4jConnection()
+        )  # Create the connection to trigger driver initialization
+        await conn.connect()  # Ensure driver is initialized
         # Verify driver was created with correct parameters
         mock_driver.assert_called_once_with(
             settings.neo4j_uri,
@@ -80,6 +87,10 @@ async def test_verify_connectivity_success(
     conn: Neo4jConnection, driver: AsyncMock
 ) -> None:
     """Test successful connectivity verification."""
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
     driver.verify_connectivity.return_value = None
 
     result = await conn.verify_connectivity()
@@ -92,6 +103,10 @@ async def test_verify_connectivity_service_unavailable(
     conn: Neo4jConnection, driver: AsyncMock
 ) -> None:
     """Test connectivity verification with service unavailable."""
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
     driver.verify_connectivity.side_effect = ServiceUnavailable("Connection failed")
 
     result = await conn.verify_connectivity()
@@ -104,6 +119,10 @@ async def test_verify_connectivity_auth_error(
     conn: Neo4jConnection, driver: AsyncMock
 ) -> None:
     """Test connectivity verification with authentication error."""
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
     driver.verify_connectivity.side_effect = AuthError("Invalid credentials")
 
     result = await conn.verify_connectivity()
@@ -114,6 +133,11 @@ async def test_verify_connectivity_auth_error(
 @pytest.mark.asyncio
 async def test_close(conn: Neo4jConnection, driver: AsyncMock) -> None:
     """Test connection closure."""
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
+
     await conn.close()
     driver.close.assert_called_once()
 
@@ -123,7 +147,11 @@ async def test_get_session(
     conn: Neo4jConnection, driver: AsyncMock, session_mock: AsyncMock
 ) -> None:
     """Test session creation and cleanup."""
-    driver.session = MagicMock(return_value=session_mock)
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
+    driver.session.return_value = session_mock
 
     async for session in conn.get_session():
         assert session is session_mock
@@ -139,7 +167,11 @@ async def test_get_session_error_handling(
     conn: Neo4jConnection, driver: AsyncMock, session_mock: AsyncMock
 ) -> None:
     """Test session error handling."""
-    driver.session = MagicMock(return_value=session_mock)
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
+    driver.session.return_value = session_mock
     session_mock.close.side_effect = RuntimeError("Close error")
 
     agen = conn.get_session()
@@ -155,7 +187,11 @@ async def test_get_session_cleanup_on_error(
     conn: Neo4jConnection, driver: AsyncMock, session_mock: AsyncMock
 ) -> None:
     """Test session cleanup when an error occurs during session usage."""
-    driver.session = MagicMock(return_value=session_mock)
+    # Reset singleton state
+    Neo4jConnection._instance = None
+    Neo4jConnection._driver = None
+    conn._driver = driver
+    driver.session.return_value = session_mock
 
     agen = conn.get_session()
     with pytest.raises(RuntimeError, match="Test error"):

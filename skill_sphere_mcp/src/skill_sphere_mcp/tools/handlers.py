@@ -66,7 +66,9 @@ async def explain_match(
     }
 
 
-async def graph_search(parameters: dict[str, Any], session) -> dict[str, Any]:
+async def graph_search(
+    parameters: dict[str, Any], session: AsyncSession
+) -> dict[str, Any]:
     """Graph search tool handler."""
     query = parameters.get("query")
     top_k = parameters.get("top_k", 5)
@@ -78,18 +80,20 @@ async def graph_search(parameters: dict[str, Any], session) -> dict[str, Any]:
     # Query the database to find nodes matching the query
     cypher_query = """
     MATCH (n)
-    WHERE n.name CONTAINS $query OR n.description CONTAINS $query
+    WHERE n.name CONTAINS $search_query OR n.description CONTAINS $search_query
     RETURN n
     LIMIT $top_k
     """
-    result = await session.run(cypher_query, query=query, top_k=top_k)
-    records = await result.all()
+    result = await session.run(cypher_query, search_query=query, top_k=top_k)
+    records = await result.fetch_all()  # type: ignore[attr-defined]
     results = [{"node": record["n"]} for record in records]
 
     return {"results": results, "query": query, "top_k": top_k}
 
 
-async def match_role(parameters: dict[str, Any], session) -> dict[str, Any]:
+async def match_role(
+    parameters: dict[str, Any], session: AsyncSession
+) -> dict[str, Any]:
     """Match role tool handler (returns match_score, skill_gaps, matching_skills)."""
     required_skills = parameters.get("required_skills")
     years_experience = parameters.get("years_experience", {})
@@ -115,7 +119,7 @@ async def match_role(parameters: dict[str, Any], session) -> dict[str, Any]:
     RETURN p
     """
     result = await session.run(query, required_skills=required_skills)
-    records = await result.all()
+    records = await result.fetch_all()
 
     matching_skills = []
     skill_gaps = []

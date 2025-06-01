@@ -9,10 +9,13 @@ import numpy as np
 import pytest
 import pytest_asyncio
 from neo4j import AsyncSession
+from numpy import ndarray
 
-from skill_sphere_mcp.graph.node2vec import Node2VecModelConfig, Node2VecTrainingConfig
+from skill_sphere_mcp.graph.node2vec import (Node2VecModelConfig,
+                                             Node2VecTrainingConfig)
 from skill_sphere_mcp.graph.node2vec.config import Node2VecConfig
-from skill_sphere_mcp.graph.node2vec.model import Node2Vec
+from skill_sphere_mcp.graph.node2vec.model import Node2Vec, Node2VecModel
+from skill_sphere_mcp.graph.node2vec.state import Node2VecState
 
 # Constants for test configuration
 DEFAULT_DIMENSION = 128
@@ -435,3 +438,89 @@ async def test_fit(
         assert node_id in embeddings
         assert embeddings[node_id].shape == (test_node2vec.config.model.dimension,)
         assert np.allclose(np.linalg.norm(embeddings[node_id]), 1.0)
+
+
+def test_node2vec_initialization() -> None:
+    """Test Node2Vec model initialization."""
+    model = Node2VecModel()
+    assert model.state is not None
+    assert isinstance(model.state, Node2VecState)
+
+
+@pytest.mark.asyncio
+async def test_node2vec_preprocessing() -> None:
+    """Test Node2Vec preprocessing."""
+    model = Node2VecModel()
+    # Add test data
+    model.state.graph = {
+        "node1": ["node2", "node3"],
+        "node2": ["node1", "node3"],
+        "node3": ["node1", "node2"],
+    }
+    await model.preprocess()
+    assert model.state.preprocessed
+    assert len(model.state.walks) > 0
+
+
+@pytest.mark.asyncio
+async def test_node2vec_training() -> None:
+    """Test Node2Vec training."""
+    model = Node2VecModel()
+    # Add test data
+    model.state.graph = {
+        "node1": ["node2", "node3"],
+        "node2": ["node1", "node3"],
+        "node3": ["node1", "node2"],
+    }
+    await model.preprocess()
+    model.train()
+    assert len(model.state.embeddings) > 0
+    for embedding in model.state.embeddings.values():
+        assert isinstance(embedding, np.ndarray)
+
+
+@pytest.mark.asyncio
+async def test_node2vec_inference() -> None:
+    """Test Node2Vec inference."""
+    model = Node2VecModel()
+    # Add test data
+    model.state.graph = {
+        "node1": ["node2", "node3"],
+        "node2": ["node1", "node3"],
+        "node3": ["node1", "node2"],
+    }
+    await model.preprocess()
+    model.train()
+    embeddings = model.get_embeddings()
+    assert embeddings is not None
+    assert len(embeddings) > 0
+    for embedding in embeddings.values():
+        assert isinstance(embedding, np.ndarray)
+
+
+@pytest.mark.asyncio
+async def test_node2vec_state_copy() -> None:
+    """Test Node2Vec state copying."""
+    model = Node2VecModel()
+    # Add test data
+    model.state.graph = {
+        "node1": ["node2", "node3"],
+        "node2": ["node1", "node3"],
+        "node3": ["node1", "node2"],
+    }
+    await model.preprocess()
+    model.train()
+
+    # Get embeddings
+    embeddings = model.get_embeddings()
+    assert embeddings is not None
+
+    # Create copies
+    embeddings_copy = embeddings.copy()
+    assert embeddings_copy is not None
+    assert len(embeddings_copy) == len(embeddings)
+
+    # Verify deep copy
+    for node_id, embedding in embeddings.items():
+        assert node_id in embeddings_copy
+        assert (embedding == embeddings_copy[node_id]).all()

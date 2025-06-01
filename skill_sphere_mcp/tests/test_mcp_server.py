@@ -1,179 +1,343 @@
-"""Tests for MCP server."""
+"""Tests for the MCP server."""
 
-# pylint: disable=redefined-outer-name
+from http import HTTPStatus
+from unittest.mock import AsyncMock, MagicMock
 
-import json
-import os
-from collections.abc import Callable
-from typing import Any, AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import numpy as np
-import pytest_asyncio
+import pytest
 from fastapi.testclient import TestClient
-from tests.graph.test_node2vec import AsyncIterator
+from neo4j import AsyncSession
 
-from skill_sphere_mcp.app import create_app
-from skill_sphere_mcp.config.settings import get_settings
-from skill_sphere_mcp.db.connection import Neo4jConnection
-
-# Disable OpenTelemetry before any imports
-os.environ["OTEL_SDK_DISABLED"] = "true"
-os.environ["OTEL_TRACES_SAMPLER"] = "always_off"
-os.environ["OTEL_EXPORTER_OTLP_ENABLED"] = "false"
-os.environ["OTEL_EXPORTER_OTLP_TRACES_ENABLED"] = "false"
-os.environ["OTEL_EXPORTER_OTLP_METRICS_ENABLED"] = "false"
-os.environ["OTEL_EXPORTER_OTLP_LOGS_ENABLED"] = "false"
-
-DEFAULT_PORT = 8000
-HTTP_OK = 200
-HTTP_NOT_IMPLEMENTED = 501
-TEST_RESULTS_COUNT = 2
+from skill_sphere_mcp.api.jsonrpc import (ERROR_INVALID_PARAMS,
+                                          ERROR_METHOD_NOT_FOUND,
+                                          JSONRPCRequest)
 
 
-@pytest_asyncio.fixture
-async def disable_tracing() -> AsyncGenerator[None, None]:
-    """Disable OpenTelemetry tracing during tests."""
-    # Save original environment
-    original_env = dict(os.environ)
-
-    # Disable OpenTelemetry
-    os.environ["OTEL_SDK_DISABLED"] = "true"
-    os.environ["OTEL_TRACES_SAMPLER"] = "always_off"
-
-    yield
-
-    # Restore original environment
-    os.environ.clear()
-    os.environ.update(original_env)
-
-
-@pytest_asyncio.fixture
-async def client() -> AsyncGenerator[TestClient, None]:
-    """Create a test client for the FastAPI app."""
-    yield TestClient(create_app())
-
-
-def test_get_settings() -> None:
-    """Test that the settings are loaded correctly."""
-    settings = get_settings()
-    assert settings.host == "0.0.0.0"
-    assert settings.port == DEFAULT_PORT
-
-
-@pytest_asyncio.fixture
-async def test_get_neo4j_driver() -> None:
-    """Test that the Neo4j driver is created correctly."""
-    mock_driver = AsyncMock()
-    mock_driver.verify_connectivity = AsyncMock(return_value=True)
-    with patch("neo4j.AsyncGraphDatabase.driver", return_value=mock_driver):
-        conn = Neo4jConnection()
-        assert await conn.verify_connectivity() is True
-
-
-def test_health_check(client: TestClient) -> None:
-    """Test the health check endpoint."""
+@pytest.mark.asyncio
+async def test_health_check(client: TestClient) -> None:
+    """Test health check endpoint."""
     response = client.get("/v1/healthz")
-    assert response.status_code == HTTP_OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {"status": "ok"}
 
 
-def test_get_entity(client: TestClient) -> None:
-    """Test the get entity endpoint."""
-    with patch(
-        "skill_sphere_mcp.db.connection.neo4j_conn.get_session"
-    ) as mock_get_session:
-        # Create a mock session
-        mock_session = AsyncMock()
-        mock_get_session.return_value = AsyncIterator([mock_session])
+@pytest.mark.asyncio
+async def test_get_entity_not_found(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test getting a non-existent entity."""
+    mock_neo4j_session.run.return_value.single.return_value = None
+    response = client.get("/mcp/entities/nonexistent")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Entity not found"}
 
-        # Create a mock node with the required attributes
-        mock_node = MagicMock()
-        mock_node.id = 1
-        mock_node.labels = {"Node"}
-        mock_node.items.return_value = {"name": "TestNode"}.items()
 
-        # Set up the mock session to return our test data
-        mock_result = AsyncMock()
-        mock_result.single.return_value = {
-            "n": mock_node,
-            "rels": [],
+@pytest.mark.asyncio
+async def test_search_success(
+    client: TestClient,
+    mock_neo4j_session: AsyncSession,
+    mock_embedding_model: MagicMock,
+) -> None:
+    """Test successful search."""
+    # Mock the session to return a list of nodes
+    mock_result = AsyncMock()
+    mock_result.fetch_all.return_value = [
+        {
+            "n": {
+                "id": "1",
+                "name": "Test Node",
+                "properties": {"id": "1", "name": "Test Node"},
+            },
+            "labels": ["Node"],
         }
-        mock_session.run.return_value = mock_result
+    ]
+    # Configure the mock session for the search query
+    mock_neo4j_session.run.return_value = mock_result
 
-        # Make the request
-        response = client.get("/v1/entity/1")
-        assert response.status_code == HTTP_OK
-
-        # Verify the mock session was called with the correct query and parameters
-        mock_session.run.assert_called_once()
-        call_args = mock_session.run.call_args
-        assert "MATCH (n) WHERE id(n) = $id" in call_args[0][0]  # Check query
-        assert call_args[1]["id"] == 1  # Check parameters
-
-        # Verify the data directly from the mock session
-        result = mock_session.run.return_value.single.return_value
-        print(
-            json.dumps(
-                {
-                    "node": {
-                        "id": result["n"].id,
-                        "labels": list(result["n"].labels),
-                        "properties": dict(result["n"]),
-                    },
-                    "relationships": result["rels"],
-                },
-                indent=2,
-            )
-        )
+    response = client.post(
+        "/mcp/search",
+        json={"query": "test", "limit": 10},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {
+        "results": [
+            {
+                "node_id": "1",
+                "score": 0.0,  # Mock score
+                "labels": ["Node"],
+                "properties": {"id": "1", "name": "Test Node"},
+            }
+        ]
+    }
 
 
-@patch("skill_sphere_mcp.routes.MODEL")
-def test_search_success(mock_model: MagicMock, client: TestClient) -> None:
-    """Test that search endpoint returns results correctly."""
-    # Mock the model's encode method
-    mock_model.encode.return_value = np.array([0.1, 0.2, 0.3])  # Mock embedding vector
-
-    # Mock Neo4j session and results
-    with patch(
-        "skill_sphere_mcp.db.connection.neo4j_conn.get_session"
-    ) as mock_get_session:
-        mock_session = AsyncMock()
-        mock_get_session.return_value = AsyncIterator([mock_session])
-
-        # Set up mock results as a real async generator
-        async def async_gen() -> AsyncGenerator[dict[str, Any], None]:
-            yield {"id": 1, "embedding": np.array([0.1, 0.2, 0.3])}
-            yield {"id": 2, "embedding": np.array([0.2, 0.3, 0.4])}
-
-        mock_session.run.return_value = async_gen()
-
-        # Make the request
-        response = client.post("/v1/search", json={"query": "test", "k": 2})
-        assert response.status_code == HTTP_OK
-
-        # Verify response format and content
-        results = response.json()
-        assert len(results) == TEST_RESULTS_COUNT
-        assert all(isinstance(r["entity_id"], str) for r in results)
-        assert all(isinstance(r["score"], float) for r in results)
-        assert all(0 <= r["score"] <= 1 for r in results)
-
-        # Verify the model was called with the query
-        mock_model.encode.assert_called_once_with("test")
-
-        # Verify Neo4j query was executed
-        mock_session.run.assert_called_once()
-        call_args = mock_session.run.call_args
-        assert "MATCH (n)" in call_args[0][0]  # Check query contains MATCH
-        assert "embedding" in call_args[0][0]  # Check query references embedding
+@pytest.mark.asyncio
+async def test_initialize_success(client: TestClient) -> None:
+    """Test successful initialization."""
+    response = client.post("/mcp/initialize")
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert "protocol_version" in data
+    assert "capabilities" in data
+    assert "instructions" in data
 
 
-def make_aiter(items: list) -> Callable[..., Any]:
-    """Return an __aiter__ method for mocking async iteration in tests."""
+@pytest.mark.asyncio
+async def test_list_resources(client: TestClient) -> None:
+    """Test listing resources."""
+    response = client.get("/mcp/resources/list")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == ["nodes", "relationships", "search"]
 
-    def _aiter() -> Any:
-        """Async iterator mock for test usage."""
-        return AsyncIterator(items)
 
-    return _aiter
+@pytest.mark.asyncio
+async def test_get_resource_invalid(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test getting an invalid resource."""
+    response = client.get("/mcp/resources/get/invalid")
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert "Invalid resource type" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_tool_dispatch_missing_name(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test tool dispatch with missing tool name."""
+    response = client.post("/mcp/rpc/tools/dispatch", json={})
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {"detail": "Missing tool name"}
+
+
+@pytest.mark.asyncio
+async def test_tool_dispatch_unknown_tool(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test tool dispatch with unknown tool."""
+    response = client.post(
+        "/mcp/rpc/tools/dispatch",
+        json={"tool_name": "unknown", "parameters": {}},
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {"detail": "Unknown tool: unknown"}
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_dispatch_success(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test successful tool dispatch."""
+    mock_result = {"p": {"id": "1", "name": "Test Person"}}
+    mock_neo4j_session.run.return_value.all.return_value = [mock_result]
+
+    response = client.post(
+        "/mcp/rpc/tools/dispatch",
+        json={
+            "tool_name": "match_role",
+            "parameters": {
+                "required_skills": ["Python"],
+                "years_experience": {"Python": 5},
+            },
+        },
+    )
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert "match_score" in data
+    assert "skill_gaps" in data
+    assert "matching_skills" in data
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_dispatch_invalid_params(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test tool dispatch with invalid parameters."""
+    response = client.post(
+        "/mcp/rpc/tools/dispatch",
+        json={
+            "tool_name": "match_role",
+            "parameters": {
+                "years_experience": "invalid",  # Should be a dict
+            },
+        },
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    error_msg = response.json()["detail"]
+    assert "years_experience" in error_msg
+    assert "dictionary" in error_msg
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_initialize(client: TestClient) -> None:
+    """Test JSON-RPC initialize method."""
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="mcp.initialize",
+        params={},
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "result" in data
+    assert data["id"] == 1
+    result = data["result"]
+    assert "protocol_version" in result
+    assert "capabilities" in result
+    assert "instructions" in result
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_search_success(
+    client: TestClient,
+    mock_neo4j_session: AsyncSession,
+    mock_embedding_model: MagicMock,
+) -> None:
+    """Test successful JSON-RPC search."""
+    # Mock the session to return a list of nodes
+    mock_result = AsyncMock()
+    mock_result.fetch_all.return_value = [
+        {
+            "n": {"id": "1", "name": "Test Node"},
+            "labels": ["Node"],
+        }
+    ]
+    mock_neo4j_session.run.return_value = mock_result
+
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="mcp.search",
+        params={"query": "test", "limit": 10},
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "result" in data
+    assert data["id"] == 1
+    assert data["result"] == [
+        {
+            "node_id": "1",
+            "score": 0.0,  # Mock score
+            "labels": ["Node"],
+            "properties": {"id": "1", "name": "Test Node"},
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_search_missing_query(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test JSON-RPC search with missing query."""
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="mcp.search",
+        params={},
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "error" in data
+    assert data["id"] == 1
+    assert data["error"]["code"] == ERROR_INVALID_PARAMS
+    assert "Missing query parameter" in data["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_tool_success(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test successful JSON-RPC tool dispatch."""
+    mock_result = {"p": {"id": "1", "name": "Test Person"}}
+    mock_neo4j_session.run.return_value.all.return_value = [mock_result]
+
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="mcp.tool",
+        params={
+            "name": "match_role",
+            "parameters": {
+                "required_skills": ["Python"],
+                "years_experience": {"Python": 5},
+            },
+        },
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "result" in data
+    assert data["id"] == 1
+    result = data["result"]
+    assert "match_score" in result
+    assert "skill_gaps" in result
+    assert "matching_skills" in result
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_tool_missing_name(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test JSON-RPC tool dispatch with missing tool name."""
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="mcp.tool",
+        params={},
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "error" in data
+    assert data["id"] == 1
+    assert data["error"]["code"] == ERROR_INVALID_PARAMS
+    assert "Missing tool name" in data["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_tool_unknown(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test JSON-RPC tool dispatch with unknown tool."""
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="mcp.tool",
+        params={"name": "unknown", "parameters": {}},
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "error" in data
+    assert data["id"] == 1
+    assert data["error"]["code"] == ERROR_INVALID_PARAMS
+    assert "Unknown tool" in data["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_jsonrpc_invalid_method(
+    client: TestClient, mock_neo4j_session: AsyncSession
+) -> None:
+    """Test JSON-RPC with invalid method."""
+    request = JSONRPCRequest(
+        jsonrpc="2.0",
+        method="invalid.method",
+        params={},
+        id=1,
+    )
+    response = client.post("/mcp/rpc", json=request.__dict__)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "error" in data
+    assert data["id"] == 1
+    assert data["error"]["code"] == ERROR_METHOD_NOT_FOUND
+    assert "Method not found" in data["error"]["message"]

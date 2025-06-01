@@ -1,29 +1,19 @@
 """State management for Node2Vec."""
 
-from dataclasses import dataclass
-from typing import Dict, List, Tuple
-
-import numpy as np
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
 class Node2VecState:
     """Node2Vec state attributes."""
 
-    embeddings: Dict[str, np.ndarray]
-    node_ids: Dict[str, int]
-    alias_nodes: Dict[str, Dict[str, List[int]]]
-    alias_edges: Dict[Tuple[str, str], Dict[str, List[int]]]
-    walks: List[List[str]]
-    graph: Dict[str, List[str]]
+    embeddings: dict[str, Any] = field(default_factory=dict)
+    node_ids: dict[str, int] = field(default_factory=dict)
+    alias_nodes: dict[str, dict[str, list[int]]] = field(default_factory=dict)
+    alias_edges: dict[tuple[str, str], dict[str, list[int]]] = field(
+        default_factory=dict
+    )
+    walks: list[list[str]] = field(default_factory=list)
+    graph: dict[str, list[str]] = field(default_factory=dict)
     preprocessed: bool = False
-
-    def __post_init__(self):
-        """Initialize default values."""
-        self.embeddings = {}
-        self.node_ids = {}
-        self.alias_nodes = {}
-        self.alias_edges = {}
-        self.walks = []
-        self.graph = {}
-        self.preprocessed = False

@@ -1,29 +1,26 @@
-"""Validation utilities."""
+"""Parameter validation utilities."""
 
-from typing import Any, TypeVar
+from typing import TypeVar, cast
 
-from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
 
-def validate_parameters(parameters: dict[str, Any], model_class: type[T]) -> T:
+def validate_parameters(parameters: dict, model_class: type[T]) -> T:
     """Validate parameters against a Pydantic model.
 
     Args:
-        parameters: Dictionary of parameters to validate
+        parameters: Parameters to validate
         model_class: Pydantic model class to validate against
 
     Returns:
-        Validated model instance
+        Validated parameters as model instance
 
     Raises:
-        HTTPException: If parameters are invalid
+        ValueError: If validation fails
     """
     try:
-        return model_class(**parameters)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid parameters: {exc}"
-        ) from exc
+        return cast(T, model_class(**parameters))
+    except ValidationError as e:
+        raise ValueError(str(e)) from e

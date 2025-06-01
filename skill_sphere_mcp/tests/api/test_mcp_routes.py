@@ -3,13 +3,12 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import numpy as np
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.api import mcp_routes
+# Create a test instance of JSONRPCHandler
 from skill_sphere_mcp.api.jsonrpc import (
     ERROR_INTERNAL,
     ERROR_INVALID_PARAMS,
@@ -18,20 +17,21 @@ from skill_sphere_mcp.api.jsonrpc import (
     JSONRPCRequest,
     JSONRPCResponse,
 )
-from skill_sphere_mcp.api.mcp_routes import (
+from skill_sphere_mcp.api.mcp.handlers import (
     SKILL_MATCH_THRESHOLD,
-    InitializeResponse,
-    ToolRequest,
-    get_resource,
-    initialize,
-    list_resources,
-    rpc_match_role_handler,
+    explain_match,
+    graph_search,
+    match_role,
 )
-from skill_sphere_mcp.api.models import InitializeRequest
+from skill_sphere_mcp.api.mcp.models import ToolRequest
+from skill_sphere_mcp.api.mcp.routes import initialize, list_resources
+from skill_sphere_mcp.api.mcp.rpc import rpc_match_role_handler
+from skill_sphere_mcp.api.mcp.utils import get_resource
+from skill_sphere_mcp.api.models import InitializeResponse
 from skill_sphere_mcp.cv.generator import generate_cv
+from skill_sphere_mcp.graph.embeddings import embeddings
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
 
-# Create a test instance of JSONRPCHandler
 test_rpc_handler = JSONRPCHandler()
 
 # Test data
@@ -54,7 +54,7 @@ HTTP_NOT_IMPLEMENTED = 501
 
 
 @pytest_asyncio.fixture
-async def mock_session():
+async def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
 
@@ -317,7 +317,7 @@ async def test_match_role_success() -> None:
     # Simulate DB returning a skill node with experience_years
     mock_skill = {"s": {"name": "Python"}, "relationships": [], "experience_years": [5]}
     mock_session.run.return_value.__aiter__.return_value = [mock_skill]
-    result = await mcp_routes.match_role(params, mock_session)
+    result = await match_role(params, mock_session)
     assert "match_score" in result
     assert result["match_score"] == pytest.approx(1.0)
     assert result["skill_gaps"] == []
@@ -329,7 +329,7 @@ async def test_match_role_invalid_params() -> None:
     """Test match_role with invalid parameters raises HTTPException."""
     mock_session = AsyncMock()
     with pytest.raises(HTTPException) as exc_info:
-        await mcp_routes.match_role({}, mock_session)
+        await match_role({}, mock_session)
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
@@ -341,12 +341,10 @@ async def test_explain_match_success() -> None:
     # Simulate DB returning a skill node with evidence
     mock_record = {
         "s": {"name": "Python"},
-        "evidence": [
-            {"rel": MagicMock(type="HAS_SKILL"), "target": {"name": "FastAPI"}}
-        ],
+        "evidence": [{"rel": {"type": "HAS_SKILL"}, "target": {"name": "FastAPI"}}],
     }
     mock_session.run.return_value.single.return_value = mock_record
-    result = await mcp_routes.explain_match(params, mock_session)
+    result = await explain_match(params, mock_session)
     assert "explanation" in result
     assert "evidence" in result
     assert result["evidence"][0]["type"] == "HAS_SKILL"
@@ -357,7 +355,7 @@ async def test_explain_match_invalid_params() -> None:
     """Test explain_match with invalid parameters raises HTTPException."""
     mock_session = AsyncMock()
     with pytest.raises(HTTPException) as exc_info:
-        await mcp_routes.explain_match({}, mock_session)
+        await explain_match({}, mock_session)
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
@@ -368,7 +366,7 @@ async def test_explain_match_value_error() -> None:
     mock_session = AsyncMock()
     mock_session.run.side_effect = ValueError()
     with pytest.raises(HTTPException) as exc_info:
-        await mcp_routes.explain_match(params, mock_session)
+        await explain_match(params, mock_session)
     assert exc_info.value.status_code == HTTP_BAD_REQUEST
 
 
@@ -392,11 +390,11 @@ async def test_generate_cv_success() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_cv_invalid_params() -> None:
-    """Test generate_cv with invalid parameters raises HTTPException."""
+    """Test generate_cv with invalid parameters raises ValueError."""
     mock_session = AsyncMock()
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         await generate_cv({}, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert "validation errors for GenerateCVRequest" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -432,9 +430,9 @@ async def test_graph_search_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test graph_search returns results."""
     params = {"query": "Python", "top_k": 1}
     mock_session = AsyncMock()
-    # Patch embeddings.search to return a fake result
-    monkeypatch.setattr(
-        mcp_routes.embeddings,
+    # Use patch.object to patch the search method on the embeddings instance
+    with patch.object(
+        embeddings,
         "search",
         AsyncMock(
             return_value=[
@@ -446,28 +444,10 @@ async def test_graph_search_success(monkeypatch: pytest.MonkeyPatch) -> None:
                 }
             ]
         ),
-    )
-
-    # Patch MODEL.encode to return a numpy array
-    class DummyModel:
-        """Mock model class for testing graph search functionality."""
-
-        def encode(self, _query: str) -> object:
-            """Mock encode method that returns a dummy tensor."""
-
-            class DummyTensor:
-                """Mock tensor class that returns a numpy array of ones."""
-
-                def numpy(self) -> np.ndarray:
-                    """Return a numpy array of ones with shape (128,)."""
-                    return np.ones(128)
-
-            return DummyTensor()
-
-    monkeypatch.setattr(mcp_routes, "MODEL", DummyModel())
-    result = await mcp_routes.graph_search(params, mock_session)
-    assert "results" in result
-    assert result["results"][0]["node_id"] == "1"
+    ):
+        result = await graph_search(params, mock_session)
+        assert "results" in result
+        assert result["results"][0]["node_id"] == "1"
 
 
 @pytest.mark.asyncio
@@ -475,8 +455,9 @@ async def test_graph_search_importerror(monkeypatch: pytest.MonkeyPatch) -> None
     """Test graph_search falls back to random embedding if MODEL is None."""
     params = {"query": "Python", "top_k": 1}
     mock_session = AsyncMock()
-    monkeypatch.setattr(
-        mcp_routes.embeddings,
+    # Use patch.object to patch the search method on the embeddings instance
+    with patch.object(
+        embeddings,
         "search",
         AsyncMock(
             return_value=[
@@ -488,11 +469,10 @@ async def test_graph_search_importerror(monkeypatch: pytest.MonkeyPatch) -> None
                 }
             ]
         ),
-    )
-    monkeypatch.setattr(mcp_routes, "MODEL", None)
-    result = await mcp_routes.graph_search(params, mock_session)
-    assert "results" in result
-    assert result["results"][0]["node_id"] == "1"
+    ):
+        result = await graph_search(params, mock_session)
+        assert "results" in result
+        assert result["results"][0]["node_id"] == "1"
 
 
 @pytest.mark.asyncio
@@ -503,7 +483,7 @@ async def test_handle_skill_match_success() -> None:
     mock_skill = {"s": {"name": "Python"}, "relationships": [], "experience_years": [5]}
     mock_session.run.return_value.__aiter__.return_value = [mock_skill]
     with patch(
-        "skill_sphere_mcp.api.mcp_routes._calculate_semantic_score", return_value=1.0
+        "skill_sphere_mcp.api.mcp.handlers._calculate_semantic_score", return_value=1.0
     ):
         params = {
             "required_skills": ["Python"],
@@ -520,7 +500,7 @@ async def test_handle_skill_match_success() -> None:
 async def test_handle_skill_match_below_threshold() -> None:
     """Test skill matching below threshold."""
     mock_session = AsyncMock()
-    with patch("skill_sphere_mcp.api.mcp_routes.dispatch_tool") as mock_dispatch:
+    with patch("skill_sphere_mcp.tools.dispatcher.dispatch_tool") as mock_dispatch:
         mock_dispatch.return_value = {
             "match_score": SKILL_MATCH_THRESHOLD - 0.1,
             "matching_skills": [],
@@ -540,7 +520,7 @@ async def test_handle_skill_match_below_threshold() -> None:
 @pytest.mark.asyncio
 async def test_handle_skill_match_error() -> None:
     """Test skill matching with error."""
-    with patch("skill_sphere_mcp.api.mcp_routes.dispatch_tool") as mock_dispatch:
+    with patch("skill_sphere_mcp.tools.dispatcher.dispatch_tool") as mock_dispatch:
         mock_dispatch.side_effect = Exception("Matching error")
 
         request = JSONRPCRequest(
@@ -558,7 +538,6 @@ async def test_handle_skill_match_error() -> None:
         assert result.jsonrpc == "2.0"
         assert result.id == 1
         assert result.error is not None
-        assert result.error(ERROR_INTERNAL, "Internal error", None) is not None
 
 
 @pytest.mark.asyncio
@@ -569,7 +548,7 @@ async def test_handle_jsonrpc_request_success() -> None:
     mock_skill = {"s": {"name": "Python"}, "relationships": [], "experience_years": [5]}
     mock_session.run.return_value.__aiter__.return_value = [mock_skill]
     with patch(
-        "skill_sphere_mcp.api.mcp_routes._calculate_semantic_score", return_value=1.0
+        "skill_sphere_mcp.api.mcp.handlers._calculate_semantic_score", return_value=1.0
     ):
         params = {
             "required_skills": ["Python"],
@@ -595,7 +574,6 @@ async def test_handle_jsonrpc_request_invalid_method() -> None:
     assert result.jsonrpc == "2.0"
     assert result.id == 1
     assert result.error is not None
-    assert result.error(ERROR_METHOD_NOT_FOUND, "Method not found", None) is not None
 
 
 @pytest.mark.asyncio
@@ -613,13 +591,12 @@ async def test_handle_jsonrpc_request_invalid_params() -> None:
     assert result.jsonrpc == "2.0"
     assert result.id == 1
     assert result.error is not None
-    assert result.error(ERROR_INVALID_PARAMS, "Invalid params", None) is not None
 
 
 @pytest.mark.asyncio
 async def test_handle_jsonrpc_request_internal_error() -> None:
     """Test JSON-RPC request with internal error."""
-    with patch("skill_sphere_mcp.api.mcp_routes.dispatch_tool") as mock_dispatch:
+    with patch("skill_sphere_mcp.tools.dispatcher.dispatch_tool") as mock_dispatch:
         mock_dispatch.side_effect = Exception("Internal error")
 
         request = JSONRPCRequest(
@@ -637,4 +614,3 @@ async def test_handle_jsonrpc_request_internal_error() -> None:
         assert result.jsonrpc == "2.0"
         assert result.id == 1
         assert result.error is not None
-        assert result.error(ERROR_INTERNAL, "Internal error", None) is not None

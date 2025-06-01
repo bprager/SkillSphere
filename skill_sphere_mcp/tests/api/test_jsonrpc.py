@@ -60,11 +60,11 @@ def test_jsonrpc_response_creation() -> None:
     # Error response
     error_response = JSONRPCResponse(
         jsonrpc="2.0",
-        error_data={"code": ERROR_INVALID_REQUEST, "message": "Invalid request"},
+        error={"code": ERROR_INVALID_REQUEST, "message": "Invalid request"},
         id=1,
     )
     assert error_response.jsonrpc == "2.0"
-    assert error_response.error_data == {
+    assert error_response.error == {
         "code": ERROR_INVALID_REQUEST,
         "message": "Invalid request",
     }
@@ -103,6 +103,6 @@ def test_rpc_endpoint_method_not_found(client: TestClient) -> None:
     assert response.status_code == HTTP_200_OK
     data = response.json()
     assert data["jsonrpc"] == "2.0"
-    assert "error_data" in data
-    assert data["error_data"]["code"] == ERROR_METHOD_NOT_FOUND
+    assert "error" in data
+    assert data["error"]["code"] == ERROR_METHOD_NOT_FOUND
     assert data["id"] == 1

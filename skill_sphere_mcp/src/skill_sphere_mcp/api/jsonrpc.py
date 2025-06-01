@@ -1,131 +1,129 @@
-"""JSON-RPC 2.0 request/response handling."""
+"""JSON-RPC implementation for the MCP API."""
 
-import logging
 from collections.abc import Callable
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, TypeVar
 
-from pydantic import BaseModel, Field, model_validator
-
-logger = logging.getLogger(__name__)
-
-# JSON-RPC 2.0 error codes
+# Error codes
+ERROR_PARSE = -32700
 ERROR_INVALID_REQUEST = -32600
 ERROR_METHOD_NOT_FOUND = -32601
 ERROR_INVALID_PARAMS = -32602
 ERROR_INTERNAL = -32603
 
+T = TypeVar("T")
 
-class JSONRPCRequest(BaseModel):
-    """JSON-RPC 2.0 request model."""
 
-    jsonrpc: str = Field(default="2.0")
-    method: str = Field(pattern=r".+\..+")
-    params: dict[str, Any] | None = None
-    id: int | str | None = None
+@dataclass
+class JSONRPCRequest:
+    """JSON-RPC request."""
 
-    model_config = {"validate_assignment": True, "extra": "forbid"}
+    method: str
+    jsonrpc: str = "2.0"
+    params: dict[str, Any] = None
+    id: str | int | None = None
 
-    @model_validator(mode="after")
-    def validate_method(self) -> "JSONRPCRequest":
-        """Validate the request after initialization."""
+    def __post_init__(self) -> None:
+        """Validate request fields."""
+        if self.params is None:
+            self.params = {}
+        if self.jsonrpc != "2.0":
+            raise ValueError("Invalid JSON-RPC version")
         if not self.method:
-            raise ValueError("method cannot be empty")
-        return self
+            raise ValueError("Method is required")
+        if not isinstance(self.params, dict):
+            raise ValueError("Params must be a dictionary")
 
 
-class JSONRPCResponse(BaseModel):
-    """JSON-RPC response model."""
+@dataclass
+class JSONRPCError:
+    """JSON-RPC error."""
+
+    code: int
+    message: str
+    data: Any | None = None
+
+
+@dataclass
+class JSONRPCResponse:
+    """JSON-RPC response."""
 
     jsonrpc: str = "2.0"
     result: Any | None = None
-    error_data: dict[str, Any] | None = None
-    id: int | str | None = None
+    error: dict[str, Any] | None = None
+    id: str | int | None = None
 
     @classmethod
-    def success(cls, result: Any, request_id: int | str | None) -> "JSONRPCResponse":
+    def success(cls, result: Any, request_id: str | int | None) -> "JSONRPCResponse":
         """Create a success response."""
         return cls(result=result, id=request_id)
 
     @classmethod
-    def error(
+    def create_error(
         cls,
         code: int,
         message: str,
-        request_id: int | str | None,
+        request_id: str | int | None,
+        data: Any | None = None,
     ) -> "JSONRPCResponse":
         """Create an error response."""
         return cls(
-            error_data={"code": code, "message": message},
-            id=request_id,
+            error={"code": code, "message": message, "data": data}, id=request_id
         )
+
+    @classmethod
+    def handle_error(
+        cls,
+        error: Exception,
+        request_id: str | int | None,
+        is_validation_error: bool = False,
+    ) -> "JSONRPCResponse":
+        """Handle common error cases."""
+        if isinstance(error, ValueError) or is_validation_error:
+            return cls.create_error(ERROR_INVALID_PARAMS, str(error), request_id)
+        return cls.create_error(ERROR_INTERNAL, str(error), request_id)
 
 
 class JSONRPCHandler:
-    """JSON-RPC 2.0 request handler."""
+    """JSON-RPC request handler."""
 
     def __init__(self) -> None:
         """Initialize the handler."""
-        self._methods: dict[str, Callable] = {}
+        self._methods: dict[str, Callable[..., Any]] = {}
 
-    def register(self, method: str) -> Callable:
+    def register(self, method: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
         """Register a method handler."""
 
-        def decorator(func: Callable) -> Callable:
+        def decorator(func: Callable[..., T]) -> Callable[..., T]:
             self._methods[method] = func
             return func
 
         return decorator
 
-    async def handle_request(self, request: JSONRPCRequest) -> JSONRPCResponse:
-        """Handle a JSON-RPC request.
-
-        Args:
-            request: The JSON-RPC request to handle
-
-        Returns:
-            JSON-RPC response
-
-        Raises:
-            HTTPException: If request is invalid
-        """
+    async def handle_request(
+        self, request: JSONRPCRequest, session: Any | None = None
+    ) -> JSONRPCResponse:
+        """Handle a JSON-RPC request."""
         if request.jsonrpc != "2.0":
-            return JSONRPCResponse(
-                jsonrpc="2.0",
-                error_data={
-                    "code": ERROR_INVALID_REQUEST,
-                    "message": f"Invalid JSON-RPC version: {request.jsonrpc}",
-                },
-                id=request.id,
+            return JSONRPCResponse.create_error(
+                ERROR_INVALID_REQUEST,
+                "Invalid JSON-RPC version",
+                request.id,
             )
 
-        if not request.method:
-            return JSONRPCResponse(
-                jsonrpc="2.0",
-                error_data={
-                    "code": ERROR_INVALID_REQUEST,
-                    "message": "Method is required",
-                },
-                id=request.id,
-            )
-
-        handler = self._methods.get(request.method)
-        if not handler:
-            return JSONRPCResponse(
-                jsonrpc="2.0",
-                error_data={
-                    "code": ERROR_METHOD_NOT_FOUND,
-                    "message": f"Method {request.method} not found",
-                },
-                id=request.id,
+        if request.method not in self._methods:
+            return JSONRPCResponse.create_error(
+                ERROR_METHOD_NOT_FOUND,
+                f"Method not found: {request.method}",
+                request.id,
             )
 
         try:
-            result = await handler(request.params or {})
-            return JSONRPCResponse(jsonrpc="2.0", result=result, id=request.id)
-        except (TypeError, ValueError, KeyError, RuntimeError) as e:
-            logger.exception("Error handling request")
-            return JSONRPCResponse(
-                jsonrpc="2.0",
-                error_data={"code": ERROR_INTERNAL, "message": str(e)},
-                id=request.id,
-            )
+            handler = self._methods[request.method]
+            if session is not None:
+                result = await handler(request.params, session)
+            else:
+                result = await handler(request.params)
+            return JSONRPCResponse.success(result, request.id)
+        except (ValueError, RuntimeError, TypeError) as e:
+            return JSONRPCResponse.handle_error(e, request.id)

@@ -1,50 +1,170 @@
-[tool.setuptools]
-packages = ["skill_sphere_mcp"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "myjobagent"
-version = "0.1.0"
-description = "Add your description here"
+name = "skill_sphere_mcp"
+version = "0.2.0"
+description = "SkillSphere MCP Server"
 readme = "README.md"
-requires-python = ">=3.10, <=3.10.17"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+    { name = "Bernd Prager", email = "bernd@prager.ws" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
 dependencies = [
-    "faiss-cpu>=1.11.0",
+    "aiohappyeyeballs>=2.6.1",
+    "aiohttp>=3.9.3",
+    "aiohttp-retry>=2.8.3",
+    "aiohttp-socks>=0.8.4",
+    "aiosignal>=1.3.1",
+    "annotated-types>=0.6.0",
+    "anyio>=4.3.0",
+    "async-timeout>=4.0.3",
+    "attrs>=23.2.0",
+    "certifi>=2024.2.2",
+    "charset-normalizer>=3.3.2",
+    "click>=8.1.7",
+    "colorama>=0.4.6",
+    "distro>=1.9.0",
+    "email-validator>=2.1.0.post1",
     "fastapi>=0.115.12",
-    "langchain-community>=0.3.24",
-    "langchain-ollama>=0.3.3",
-    "neo4j>=5.28.1",
-    "node2vec==0.4.3",
-    "opentelemetry-api>=1.33.1",
-    "opentelemetry-exporter-otlp>=1.33.1",
-    "opentelemetry-sdk>=1.33.1",
-    "owlready2>=0.47",
-    "pandoc-plantuml-filter>=0.1.5",
+    "frozenlist>=1.4.1",
+    "h11>=0.14.0",
+    "httpcore>=1.0.4",
+    "httptools>=0.6.1",
+    "httpx>=0.27.0",
+    "idna>=3.6",
+    "jsonpatch>=1.33",
+    "jsonpointer>=2.4",
+    "jsonschema>=4.21.1",
+    "jsonschema-specifications>=2023.12.1",
+    "kaitaistruct>=0.10",
+    "markdown-it-py>=3.0.0",
+    "mdurl>=0.1.2",
+    "multidict>=6.0.4",
+    "neo4j>=5.17.0",
+    "node2vec>=0.4.4.3",
+    "numpy>=1.26.4",
+    "opentelemetry-api>=1.23.0",
+    "opentelemetry-exporter-otlp>=1.23.0",
+    "opentelemetry-exporter-otlp-proto-common>=1.23.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.23.0",
+    "opentelemetry-instrumentation>=0.44b0",
+    "opentelemetry-instrumentation-aiohttp-client>=0.44b0",
+    "opentelemetry-instrumentation-asgi>=0.44b0",
+    "opentelemetry-instrumentation-fastapi>=0.44b0",
+    "opentelemetry-proto>=1.23.0",
+    "opentelemetry-sdk>=1.23.0",
+    "opentelemetry-semantic-conventions>=0.44b0",
+    "opentelemetry-util-http>=0.44b0",
+    "packaging>=23.2",
+    "pydantic>=2.6.3",
+    "pydantic-core>=2.16.3",
+    "pydantic-settings>=2.2.1",
+    "pygments>=2.17.2",
+    "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.9",
+    "referencing>=0.33.0",
+    "rich>=13.7.1",
+    "rpds-py>=0.18.0",
+    "scikit-learn>=1.4.1.post1",
+    "scipy>=1.12.0",
+    "sentence-transformers>=2.5.1",
+    "sniffio>=1.3.1",
+    "starlette>=0.36.3",
+    "threadpoolctl>=3.2.0",
+    "tokenizers>=0.15.2",
+    "tomli>=2.0.1",
+    "torch>=2.2.1",
+    "tqdm>=4.66.2",
+    "typing_extensions>=4.10.0",
+    "urllib3>=2.2.1",
+    "uvicorn>=0.27.1",
+    "yarl>=1.9.4",
     "pip>=25.1.1",
-    "pyyaml>=6.0.2",
-    "scikit-learn>=1.6.1",
-    "scipy==1.11.4",
-    "sentence-transformers>=4.1.0",
     "setuptools>=80.8.0",
-    "uvicorn>=0.34.2",
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
-    "pandoc-plantuml-filter>=0.1.5",
-    "pylint>=3.3.7",
-    "pytest>=8.3.5",
-    "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.1.1",
+    "black>=24.2.0",
+    "coverage>=7.4.3",
+    "mypy>=1.8.0",
+    "pytest>=8.0.2",
+    "pytest-asyncio>=0.23.5",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.2",
 ]
 
-[tool.uv.workspace]
-members = [
-    "skill_sphere_mcp",
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_optional = true
+strict_equality = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = [
+    "numpy.*",
+    "fastapi.*",
+    "neo4j.*",
+    "pydantic.*",
+    "sklearn.*",
+    "sentence_transformers.*",
+    "node2vec.*",
+]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.isort]
+known-first-party = ["skill_sphere_mcp"]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["PLR2004", "S101"]
+"**/__init__.py" = ["F401"]
+
+[tool.coverage.run]
+source = ["skill_sphere_mcp"]
+omit = ["tests/*", "**/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "pass",
+    "@abstractmethod",
+    "raise ImportError",
 ]
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-line_length = 88  # or whatever matches your project's line length
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=skill_sphere_mcp --cov-report=term-missing"

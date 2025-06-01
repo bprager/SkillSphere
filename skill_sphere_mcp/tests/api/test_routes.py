@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from neo4j import AsyncSession
 
 from skill_sphere_mcp.api.routes import create_skill, get_skills, health_check
+from skill_sphere_mcp.models.skill import Skill
 
 # Test data
 MOCK_SKILL_NAME = "Python"
@@ -56,20 +57,19 @@ async def test_get_skills_success(mock_session: AsyncMock) -> None:
     """Test successful skills retrieval."""
     # Mock the Neo4j result
     mock_result = AsyncMock()
-    mock_result.__aiter__ = lambda self: AsyncRecordIterator(MOCK_SKILLS)
+    mock_result.fetch_all.return_value = [
+        {"s": {"name": skill["name"]}} for skill in MOCK_SKILLS
+    ]
     mock_session.run.return_value = mock_result
 
     skills = await get_skills(mock_session)
     assert isinstance(skills, list)
     assert len(skills) == len(MOCK_SKILLS)
-    assert all(isinstance(skill, dict) for skill in skills)
-    assert all("name" in skill for skill in skills)
-    assert [skill["name"] for skill in skills] == [
-        skill["name"] for skill in MOCK_SKILLS
-    ]
+    assert all(hasattr(skill, "name") for skill in skills)
+    assert [skill.name for skill in skills] == [skill["name"] for skill in MOCK_SKILLS]
 
     # Verify Neo4j query was called correctly
-    mock_session.run.assert_called_once_with("MATCH (s:Skill) RETURN s.name as name")
+    mock_session.run.assert_called_once_with("MATCH (s:Skill) RETURN s")
 
 
 @pytest.mark.asyncio
@@ -101,18 +101,18 @@ async def test_create_skill_success(mock_session: AsyncMock) -> None:
     """Test successful skill creation."""
     # Mock the Neo4j result
     mock_result = AsyncMock()
-    mock_result.single.return_value = {"name": MOCK_SKILL_NAME}
+    mock_result.single.return_value = {"s": {"name": MOCK_SKILL_NAME}}
     mock_session.run.return_value = mock_result
 
-    response = await create_skill(MOCK_SKILL_NAME, mock_session)
-    assert isinstance(response, dict)
-    assert "name" in response
-    assert response["name"] == MOCK_SKILL_NAME
+    skill = Skill(name=MOCK_SKILL_NAME)
+    response = await create_skill(skill, mock_session)
+    assert isinstance(response, Skill)
+    assert response.name == MOCK_SKILL_NAME
 
     # Verify Neo4j query was called correctly
     mock_session.run.assert_called_once_with(
-        "CREATE (s:Skill {name: $name}) RETURN s.name as name",
-        name=MOCK_SKILL_NAME,
+        "CREATE (s:Skill $skill) RETURN s",
+        skill={"name": MOCK_SKILL_NAME},
     )
 
 

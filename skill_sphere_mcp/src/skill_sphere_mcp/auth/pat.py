@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 from uuid import uuid4
 
 from fastapi import HTTPException, Security
@@ -22,15 +23,14 @@ class PAT(BaseModel):
 
     token: str
     description: str
-    created_at: datetime
     expires_at: datetime
 
 
 class PATAuth:
-    """PAT authentication manager."""
+    """Personal Access Token authentication manager."""
 
     def __init__(self) -> None:
-        """Initialize PAT auth manager."""
+        """Initialize the PAT auth manager."""
         self._tokens: dict[str, PAT] = {}
 
     def create_token(self, description: str, expires_in_days: int = 30) -> PAT:
@@ -38,21 +38,15 @@ class PATAuth:
 
         Args:
             description: Token description
-            expires_in_days: Days until token expires
+            expires_in_days: Token expiration time in days (default: 30)
 
         Returns:
-            Created PAT
+            PAT object
         """
-        token = f"pat_{uuid4().hex}"
-        now = datetime.now(timezone.utc)
-        pat = PAT(
-            token=token,
-            description=description,
-            created_at=now,
-            expires_at=now + timedelta(days=expires_in_days),
-        )
+        token = f"pat_{uuid4()}"
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+        pat = PAT(token=token, description=description, expires_at=expires_at)
         self._tokens[token] = pat
-        logger.info("Created new PAT: %s", description)
         return pat
 
     def validate_token(self, token: str) -> bool:
@@ -62,14 +56,12 @@ class PATAuth:
             token: Token to validate
 
         Returns:
-            True if token is valid
+            True if token is valid, False otherwise
         """
-        if not token:
+        if not token or token not in self._tokens:
             return False
-        pat = self._tokens.get(token)
-        if not pat:
-            return False
-        if pat.expires_at <= datetime.now(timezone.utc):
+        pat = self._tokens[token]
+        if pat.expires_at < datetime.now(timezone.utc):
             del self._tokens[token]
             return False
         return True
@@ -81,7 +73,6 @@ class PATAuth:
             token: Token to revoke
         """
         self._tokens.pop(token, None)
-        logger.info("Revoked PAT")
 
 
 # Global PAT auth instance
@@ -89,42 +80,41 @@ pat_auth = PATAuth()
 
 
 async def get_current_token(
-    credentials: HTTPAuthorizationCredentials = Security(security),
+    credentials: Annotated[HTTPAuthorizationCredentials, Security(security)],
 ) -> str:
-    """Get current PAT from request.
+    """Get the current token from the request.
 
     Args:
         credentials: HTTP authorization credentials
 
     Returns:
-        Valid PAT
+        Token string
 
     Raises:
-        HTTPException: If token is invalid
+        HTTPException: If token is invalid or expired
     """
-    if credentials.scheme != "Bearer":
-        raise HTTPException(
-            status_code=HTTP_UNAUTHORIZED,
-            detail="Invalid authentication scheme",
-        )
     token = credentials.credentials
     if not pat_auth.validate_token(token):
         raise HTTPException(
             status_code=HTTP_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return token
+    return str(token)
 
 
 async def verify_pat(
-    credentials: HTTPAuthorizationCredentials = Security(security),
-) -> None:
+    credentials: Annotated[HTTPAuthorizationCredentials, Security(security)],
+) -> str:
     """Verify PAT authentication.
 
     Args:
         credentials: HTTP authorization credentials
 
+    Returns:
+        Token string if valid
+
     Raises:
-        HTTPException: If token is invalid
+        HTTPException: If token is invalid or expired
     """
-    await get_current_token(credentials)
+    return await get_current_token(credentials)
