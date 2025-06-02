@@ -1,6 +1,6 @@
 """MCP API models."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class InitializeRequest(BaseModel):
     """Initialize request model."""
 
-    client_info: Dict[str, Any] = Field(
+    client_info: dict[str, Any] = Field(
         default_factory=dict,
         description="Client information",
     )
@@ -21,7 +21,7 @@ class InitializeResponse(BaseModel):
         default="1.0",
         description="Protocol version",
     )
-    capabilities: Dict[str, Any] = Field(
+    capabilities: dict[str, Any] = Field(
         description="Capabilities supported by the server",
     )
     instructions: str = Field(
@@ -35,7 +35,7 @@ class QueryRequest(BaseModel):
     query: str = Field(
         description="Cypher query to execute",
     )
-    parameters: Optional[Dict[str, Any]] = Field(
+    parameters: dict[str, Any] | None = Field(
         default=None,
         description="Query parameters",
     )
@@ -44,10 +44,10 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     """Query response model."""
 
-    results: List[Dict[str, Any]] = Field(
+    results: list[dict[str, Any]] = Field(
         description="Query results",
     )
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         description="Query metadata",
     )
 
@@ -67,7 +67,7 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     """Search response model."""
 
-    results: List[Dict[str, Any]] = Field(
+    results: list[dict[str, Any]] = Field(
         description="Search results",
     )
 
@@ -86,6 +86,6 @@ class ResourceResponse(BaseModel):
     type: str = Field(
         description="Resource type",
     )
-    resource_schema: Dict[str, Any] = Field(
+    resource_schema: dict[str, Any] = Field(
         description="Resource schema",
     )

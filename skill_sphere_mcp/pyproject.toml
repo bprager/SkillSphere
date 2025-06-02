@@ -47,7 +47,7 @@ select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
 ignore = ["E501", "B002"]
 
 [tool.ruff.isort]
-known-first-party = ["skill_sphere_mcp"]
+known-first-party = ["skill_sphere_mcp", "hypergraph"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -84,3 +84,6 @@ dev = [
 
 [tool.poetry.dependencies]
 gensim = "<4.3.0"
+
+[tool.coverage.run]
+omit = ["hypergraph/skills_hypergraph_ontology.py"]

@@ -9,20 +9,13 @@ from fastapi import HTTPException
 from neo4j import AsyncSession
 
 # Create a test instance of JSONRPCHandler
-from skill_sphere_mcp.api.jsonrpc import (
-    ERROR_INTERNAL,
-    ERROR_INVALID_PARAMS,
-    ERROR_METHOD_NOT_FOUND,
-    JSONRPCHandler,
-    JSONRPCRequest,
-    JSONRPCResponse,
-)
-from skill_sphere_mcp.api.mcp.handlers import (
-    SKILL_MATCH_THRESHOLD,
-    explain_match,
-    graph_search,
-    match_role,
-)
+from skill_sphere_mcp.api.jsonrpc import (ERROR_INTERNAL, ERROR_INVALID_PARAMS,
+                                          ERROR_METHOD_NOT_FOUND,
+                                          JSONRPCHandler, JSONRPCRequest,
+                                          JSONRPCResponse)
+from skill_sphere_mcp.api.mcp.handlers import (SKILL_MATCH_THRESHOLD,
+                                               explain_match, graph_search,
+                                               match_role)
 from skill_sphere_mcp.api.mcp.models import ToolRequest
 from skill_sphere_mcp.api.mcp.routes import initialize, list_resources
 from skill_sphere_mcp.api.mcp.rpc import rpc_match_role_handler

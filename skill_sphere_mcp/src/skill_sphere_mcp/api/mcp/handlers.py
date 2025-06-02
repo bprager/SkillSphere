@@ -105,7 +105,7 @@ async def search(
             print(f"DEBUG: Processed nodes: {nodes}")  # Debug print
             logger.info("Processed nodes: %s", nodes)
         except Exception as e:
-            print(f"DEBUG: Error processing nodes: {str(e)}")  # Debug print
+            print(f"DEBUG: Error processing nodes: {e!s}")  # Debug print
             logger.error("Error processing nodes: %s", str(e))
             raise
 
@@ -116,7 +116,7 @@ async def search(
             print(f"DEBUG: Query embedding: {query_embedding}")  # Debug print
             logger.info("Got query embedding: %s", query_embedding)
         except Exception as e:
-            print(f"DEBUG: Error getting query embedding: {str(e)}")  # Debug print
+            print(f"DEBUG: Error getting query embedding: {e!s}")  # Debug print
             logger.error("Error getting query embedding: %s", str(e))
             raise
 
@@ -153,7 +153,7 @@ async def search(
                         print(f"DEBUG: Calculated score: {score}")  # Debug print
                     except Exception as e:
                         print(
-                            f"DEBUG: Error calculating score: {str(e)}"
+                            f"DEBUG: Error calculating score: {e!s}"
                         )  # Debug print
                         logger.error("Error calculating score: %s", str(e))
                         score = 0.0
@@ -169,7 +169,7 @@ async def search(
                     }
                 )
             except Exception as e:
-                print(f"DEBUG: Error processing node: {str(e)}")  # Debug print
+                print(f"DEBUG: Error processing node: {e!s}")  # Debug print
                 logger.error("Error processing node: %s", str(e))
                 continue
 
@@ -184,7 +184,7 @@ async def search(
 
         return {"results": results}
     except Exception as e:
-        print(f"DEBUG: Handler error: {str(e)}")  # Debug print
+        print(f"DEBUG: Handler error: {e!s}")  # Debug print
         logger.warning("Failed to encode query: %s", str(e))
         return {"results": []}
 

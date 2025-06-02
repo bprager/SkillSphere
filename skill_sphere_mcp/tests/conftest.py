@@ -3,6 +3,7 @@
 import logging
 import os
 import sys
+import warnings
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,6 +12,11 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from neo4j import AsyncSession
+
+# Suppress SWIG warning
+warnings.filterwarnings(
+    "ignore", message="builtin type SwigPyPacked has no __module__ attribute"
+)
 
 # Configure logging
 logging.basicConfig(

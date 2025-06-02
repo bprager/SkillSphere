@@ -9,9 +9,13 @@ from neo4j import AsyncSession
 from .config import Node2VecConfig, PreprocessConfig, TransitionConfig
 from .sampling import alias_draw, alias_setup
 from .state import Node2VecState
-from .training import (NegativeSamplingConfig, SamplingConfig,
-                       get_context_nodes, process_negative_samples,
-                       process_positive_samples, update_embedding)
+from .training import (
+    NegativeSamplingConfig,
+    SamplingConfig,
+    process_negative_samples,
+    process_positive_samples,
+    update_embedding,
+)
 from .walks import WalkConfig, generate_walks, node2vec_walk
 
 logger = logging.getLogger(__name__)
@@ -97,7 +101,7 @@ class Node2VecModel:
             self.state.walks = self._model.generate_walks(self.state.graph)
 
         # Train embeddings
-        self._model._train_embeddings(self.state.walks)
+        self._model.train_embeddings(self.state.walks)
 
 
 class Node2Vec:
@@ -211,6 +215,14 @@ class Node2Vec:
         """
         return 1.0
 
+    def train_embeddings(self, walks: list[list[str]]) -> None:
+        """Train embeddings using random walks.
+
+        Args:
+            walks: List of random walks
+        """
+        self._train_embeddings(walks)
+
     def _train_embeddings(self, walks: list[list[str]]) -> None:
         """Train embeddings using random walks.
 
@@ -221,34 +233,12 @@ class Node2Vec:
         for _ in range(self.config.training.epochs):
             for walk in walks:
                 for center_idx, node in enumerate(walk):
-                    context_nodes = get_context_nodes(
-                        walk, center_idx, self.config.training.window_size
-                    )
-                    process_positive_samples(
-                        node,
-                        context_nodes,
-                        self._state.embeddings,
-                        SamplingConfig(
-                            learning_rate=self.config.training.learning_rate
-                        ),
-                    )
+                    context_nodes = self.get_context_nodes(walk, center_idx)
+                    self.process_positive_samples(node, context_nodes)
                     # Only perform negative sampling if we have enough nodes
                     available_nodes = nodes - {node} - set(context_nodes)
                     if len(available_nodes) > 0:
-                        process_negative_samples(
-                            node,
-                            context_nodes,
-                            nodes,
-                            self._state.embeddings,
-                            NegativeSamplingConfig(
-                                num_samples=min(
-                                    self.config.training.num_neg_samples,
-                                    len(available_nodes),
-                                ),
-                                learning_rate=self.config.training.learning_rate,
-                                rng=self._rng,
-                            ),
-                        )
+                        self.process_negative_samples(node, context_nodes, nodes)
 
     async def fit(self, session: AsyncSession) -> None:
         """Fit Node2Vec model.
@@ -268,10 +258,10 @@ class Node2Vec:
         # Generate random walks
         walk_config = WalkConfig(
             graph=self._state.graph,
-            alias_nodes=self._state.alias_nodes,
-            alias_edges=self._state.alias_edges,
+            alias_nodes=self.get_alias_nodes(),
+            alias_edges=self.get_alias_edges(),
             walk_length=self.config.training.walk_length,
-            rng=self._rng,
+            rng=self.get_rng(),
         )
         walks = generate_walks(walk_config, self.config.training.num_walks)
 

@@ -7,8 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from unittest.mock import patch
 
-from hypergraph.llm.triples import (TripleExtractor, TripleExtractorConfig,
-                                    clean_json, parse_triples)
+from hypergraph.llm.triples import TripleExtractor, TripleExtractorConfig, clean_json, parse_triples
 
 
 def test_clean_json_removes_markdown_and_prose():

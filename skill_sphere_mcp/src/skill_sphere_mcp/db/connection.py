@@ -1,6 +1,7 @@
 """Neo4j connection management."""
 
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncSession
 
@@ -11,7 +12,7 @@ class Neo4jConnection:
     """Neo4j connection manager."""
 
     _instance: Optional["Neo4jConnection"] = None
-    _driver: Optional[AsyncDriver] = None
+    _driver: AsyncDriver | None = None
 
     def __new__(cls) -> "Neo4jConnection":
         """Create a singleton instance."""

@@ -5,13 +5,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from langchain_ollama import OllamaEmbeddings
 
 # pylint: disable=import-error
 from hypergraph.__main__ import main
-from hypergraph.db.graph import GraphWriter
-from hypergraph.db.registry import Registry
-from hypergraph.llm.triples import TripleExtractor
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -51,56 +47,79 @@ def test_main_flow(
     monkeypatch,
 ):
     """Test the main ingestion flow."""
+    # Patch langchain to prevent version metadata access
+    with patch("langchain.__init__", new=MagicMock()):
+        # Now import the modules that depend on ChatOllama
+        from langchain_ollama import OllamaEmbeddings
 
-    # Mock file operations
-    def mock_read_text(*_args, **_kwargs):
-        return "# Test Document\n\nThis is a test document about Python and pytest."
+        from hypergraph.db.graph import GraphWriter
+        from hypergraph.db.registry import Registry
+        from hypergraph.llm.triples import TripleExtractor
 
-    def mock_rglob(*_args, **_kwargs):
-        return [mock_md_file]
+        # Mock file operations
+        def mock_read_text(*_args, **_kwargs):
+            return "# Test Document\n\nThis is a test document about Python and pytest."
 
-    # Mock embeddings
-    mock_vectors = [[0.1, 0.2, 0.3] for _ in range(2)]  # 2 chunks
-    mock_embeddings = MagicMock(spec=OllamaEmbeddings)
-    mock_embeddings.embed_documents.return_value = mock_vectors
+        def mock_rglob(*_args, **_kwargs):
+            return [mock_md_file]
 
-    # Mock triple extraction
-    mock_triples = [
-        {"subject": "Python", "relation": "USES", "object": "pytest"},
-        {"subject": "Developer", "relation": "KNOWS", "object": "Python"},
-    ]
-    mock_extractor = MagicMock(spec=TripleExtractor)
-    mock_extractor.extract.return_value = mock_triples
+        # Mock embeddings
+        mock_vectors = [[0.1, 0.2, 0.3] for _ in range(2)]  # 2 chunks
+        mock_embeddings = MagicMock(spec=OllamaEmbeddings)
+        mock_embeddings.embed_documents.return_value = mock_vectors
 
-    # Mock registry
-    mock_registry = MagicMock(spec=Registry)
-    mock_registry.get.return_value = None  # Simulate new file
+        # Mock triple extraction
+        mock_triples = [
+            {"subject": "Python", "relation": "USES", "object": "pytest"},
+            {"subject": "Developer", "relation": "KNOWS", "object": "Python"},
+        ]
+        mock_extractor = MagicMock(spec=TripleExtractor)
+        mock_extractor.extract.return_value = mock_triples
 
-    # Mock graph writer
-    mock_graph_writer = MagicMock(spec=GraphWriter)
+        # Mock registry
+        mock_registry = MagicMock(spec=Registry)
+        mock_registry.get.return_value = None  # Simulate new file
 
-    # Apply all mocks
-    with patch.multiple(
-        "hypergraph.__main__",
-        Settings=lambda: settings,
-        OllamaEmbeddings=lambda **kwargs: mock_embeddings,
-        TripleExtractor=lambda **kwargs: mock_extractor,
-        Registry=lambda path: mock_registry,
-        GraphWriter=lambda *args, **kwargs: mock_graph_writer,
-        sha256=lambda path: "test_hash",
-    ), patch("yaml.safe_load", return_value=mock_schema):
-        # Mock Path methods
-        monkeypatch.setattr(Path, "rglob", mock_rglob)
-        monkeypatch.setattr(Path, "read_text", mock_read_text)
+        # Mock graph writer
+        mock_graph_writer = MagicMock(spec=GraphWriter)
 
-        main()
+        # Apply all mocks
+        with patch.multiple(
+            "hypergraph.__main__",
+            Settings=lambda: settings,
+            OllamaEmbeddings=lambda **kwargs: mock_embeddings,
+            TripleExtractor=lambda **kwargs: mock_extractor,
+            Registry=lambda path: mock_registry,
+            GraphWriter=lambda *args, **kwargs: mock_graph_writer,
+            sha256=lambda path: "test_hash",
+        ), patch("yaml.safe_load", return_value=mock_schema) as mock_schema_load, patch(
+            "pathlib.Path.read_text", return_value=""
+        ):
+            # Mock Path methods
+            monkeypatch.setattr(Path, "rglob", mock_rglob)
+            monkeypatch.setattr(Path, "read_text", mock_read_text)
 
-        # Verify calls
-        mock_registry.get.assert_called_once_with("test")
-        mock_embeddings.embed_documents.assert_called_once()
-        assert mock_extractor.extract.call_count >= 1  # At least one call for chunk(s)
-        mock_graph_writer.write.assert_called_once()
-        mock_registry.upsert.assert_called_once_with("test", "test_hash")
+            main()
+
+            # Verify calls
+            mock_registry.get.assert_called_once_with("test")
+            mock_embeddings.embed_documents.assert_called_once()
+            assert mock_extractor.extract.call_count >= 1  # At least one call for chunk(s)
+            mock_graph_writer.write.assert_called_once()
+            mock_registry.upsert.assert_called_once_with("test", "test_hash")
+
+            # Verify schema usage
+            mock_schema_load.assert_called_once()
+            # Verify that the schema's relationships were used in triple extraction
+            assert all(
+                triple["relation"] in [r["type"] for r in mock_schema["relationships"]]
+                for triple in mock_triples
+            )
+            # Verify that the schema's known skills were used
+            assert all(
+                skill in mock_schema["prompt_steering"]["known_skills"]
+                for skill in ["Python", "Neo4j"]
+            )
 
 
 def test_skip_unchanged_file(
@@ -110,34 +129,45 @@ def test_skip_unchanged_file(
     monkeypatch,
 ):
     """Test that unchanged files are skipped."""
-    # Mock registry to return existing hash
-    mock_registry = MagicMock(spec=Registry)
-    mock_registry.get.return_value = "test_hash"  # Simulate unchanged file
+    # Patch langchain to prevent version metadata access
+    with patch("langchain.__init__", new=MagicMock()):
+        # Now import the modules that depend on ChatOllama
+        from hypergraph.db.graph import GraphWriter
+        from hypergraph.db.registry import Registry
 
-    # Mock file operations
-    def mock_rglob(*_args, **_kwargs):
-        return [mock_md_file]
+        # Mock registry to return existing hash
+        mock_registry = MagicMock(spec=Registry)
+        mock_registry.get.return_value = "test_hash"  # Simulate unchanged file
 
-    # Mock graph writer
-    mock_graph_writer = MagicMock(spec=GraphWriter)
+        # Mock file operations
+        def mock_rglob(*_args, **_kwargs):
+            return [mock_md_file]
 
-    # Apply mocks
-    with patch.multiple(
-        "hypergraph.__main__",
-        Settings=lambda: settings,
-        Registry=lambda path: mock_registry,
-        GraphWriter=lambda *args, **kwargs: mock_graph_writer,
-        sha256=lambda path: "test_hash",
-    ), patch("yaml.safe_load", return_value=mock_schema):
-        # Mock Path methods
-        monkeypatch.setattr(Path, "rglob", mock_rglob)
+        # Mock graph writer
+        mock_graph_writer = MagicMock(spec=GraphWriter)
 
-        main()
+        # Apply mocks
+        with patch.multiple(
+            "hypergraph.__main__",
+            Settings=lambda: settings,
+            Registry=lambda path: mock_registry,
+            GraphWriter=lambda *args, **kwargs: mock_graph_writer,
+            sha256=lambda path: "test_hash",
+        ), patch("yaml.safe_load", return_value=mock_schema) as mock_schema_load, patch(
+            "pathlib.Path.read_text", return_value=""
+        ):
+            # Mock Path methods
+            monkeypatch.setattr(Path, "rglob", mock_rglob)
 
-        # Verify no processing occurred
-        mock_registry.get.assert_called_once_with("test")
-        mock_graph_writer.write.assert_not_called()
-        mock_registry.upsert.assert_not_called()
+            main()
+
+            # Verify no processing occurred
+            mock_registry.get.assert_called_once_with("test")
+            mock_graph_writer.write.assert_not_called()
+            mock_registry.upsert.assert_not_called()
+
+            # Verify schema was still loaded (needed for initialization)
+            mock_schema_load.assert_called_once()
 
 
 def test_error_handling(
@@ -147,25 +177,35 @@ def test_error_handling(
     monkeypatch,
 ):
     """Test error handling in the main flow."""
-    # Mock registry to raise an error
-    mock_registry = MagicMock(spec=Registry)
-    mock_registry.get.side_effect = Exception("Test error")
+    # Patch langchain to prevent version metadata access
+    with patch("langchain.__init__", new=MagicMock()):
+        # Now import the modules that depend on ChatOllama
+        from hypergraph.db.registry import Registry
 
-    # Mock file operations
-    def mock_rglob(*_args, **_kwargs):
-        return [mock_md_file]
+        # Mock registry to raise an error
+        mock_registry = MagicMock(spec=Registry)
+        mock_registry.get.side_effect = Exception("Test error")
 
-    # Apply mocks
-    with patch.multiple(
-        "hypergraph.__main__",
-        Settings=lambda: settings,
-        Registry=lambda path: mock_registry,
-        sha256=lambda path: "test_hash",
-    ), patch("yaml.safe_load", return_value=mock_schema):
-        # Mock Path methods
-        monkeypatch.setattr(Path, "rglob", mock_rglob)
+        # Mock file operations
+        def mock_rglob(*_args, **_kwargs):
+            return [mock_md_file]
 
-        # Should raise an exception
-        with pytest.raises(Exception) as exc_info:
-            main()
-        assert str(exc_info.value) == "Test error"
+        # Apply mocks
+        with patch.multiple(
+            "hypergraph.__main__",
+            Settings=lambda: settings,
+            Registry=lambda path: mock_registry,
+            sha256=lambda path: "test_hash",
+        ), patch("yaml.safe_load", return_value=mock_schema) as mock_schema_load, patch(
+            "pathlib.Path.read_text", return_value=""
+        ):
+            # Mock Path methods
+            monkeypatch.setattr(Path, "rglob", mock_rglob)
+
+            # Should raise an exception
+            with pytest.raises(Exception) as exc_info:
+                main()
+            assert str(exc_info.value) == "Test error"
+
+            # Verify schema was loaded before the error occurred
+            mock_schema_load.assert_called_once()
