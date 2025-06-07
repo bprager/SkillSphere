@@ -3,12 +3,17 @@
 # pylint: disable=redefined-outer-name
 
 from builtins import anext
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from neo4j import AsyncGraphDatabase, AsyncSession
-from neo4j.exceptions import AuthError, ServiceUnavailable
+
+from neo4j import AsyncGraphDatabase
+from neo4j import AsyncSession
+from neo4j.exceptions import AuthError
+from neo4j.exceptions import ServiceUnavailable
 
 from skill_sphere_mcp.db.connection import Neo4jConnection
 

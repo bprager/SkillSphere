@@ -3,7 +3,9 @@
 from collections.abc import AsyncGenerator
 from typing import Optional
 
-from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncSession
+from neo4j import AsyncDriver
+from neo4j import AsyncGraphDatabase
+from neo4j import AsyncSession
 
 from ..config.settings import get_settings
 

@@ -4,12 +4,14 @@
 
 import pytest
 import pytest_asyncio
+
 from fastapi.testclient import TestClient
 from starlette.status import HTTP_200_OK
 
-from skill_sphere_mcp.api.jsonrpc import (ERROR_INVALID_REQUEST,
-                                          ERROR_METHOD_NOT_FOUND,
-                                          JSONRPCRequest, JSONRPCResponse)
+from skill_sphere_mcp.api.jsonrpc import ERROR_INVALID_REQUEST
+from skill_sphere_mcp.api.jsonrpc import ERROR_METHOD_NOT_FOUND
+from skill_sphere_mcp.api.jsonrpc import JSONRPCRequest
+from skill_sphere_mcp.api.jsonrpc import JSONRPCResponse
 from skill_sphere_mcp.app import app
 
 

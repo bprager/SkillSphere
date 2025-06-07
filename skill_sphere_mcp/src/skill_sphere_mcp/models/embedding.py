@@ -1,9 +1,11 @@
 """Embedding model management."""
 
 import logging
+
 from typing import Any
 
 from sentence_transformers import SentenceTransformer
+
 
 logger = logging.getLogger(__name__)
 

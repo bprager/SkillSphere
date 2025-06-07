@@ -1,13 +1,17 @@
 """Tool dispatch functionality."""
 
 import logging
+
 from typing import Any
 
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
 from ..cv import generate_cv
-from ..tools.handlers import explain_match, graph_search, match_role
+from ..tools.handlers import explain_match
+from ..tools.handlers import graph_search
+from ..tools.handlers import match_role
+
 
 logger = logging.getLogger(__name__)
 

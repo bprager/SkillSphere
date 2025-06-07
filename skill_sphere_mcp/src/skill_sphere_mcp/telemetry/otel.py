@@ -10,6 +10,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from ..config.settings import get_settings
 
+
 logger = logging.getLogger(__name__)
 
 

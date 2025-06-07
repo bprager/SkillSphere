@@ -1,19 +1,23 @@
 """Tests for tool dispatcher."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
+
 from fastapi import HTTPException
 from neo4j import AsyncSession
-from starlette.status import (HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND,
-                              HTTP_500_INTERNAL_SERVER_ERROR)
+from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_404_NOT_FOUND
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from skill_sphere_mcp.tools.dispatcher import (_validate_explain_match_params,
-                                               _validate_generate_cv_params,
-                                               _validate_graph_search_params,
-                                               _validate_match_role_params,
-                                               dispatch_tool)
+from skill_sphere_mcp.tools.dispatcher import _validate_explain_match_params
+from skill_sphere_mcp.tools.dispatcher import _validate_generate_cv_params
+from skill_sphere_mcp.tools.dispatcher import _validate_graph_search_params
+from skill_sphere_mcp.tools.dispatcher import _validate_match_role_params
+from skill_sphere_mcp.tools.dispatcher import dispatch_tool
+
 
 # Test data
 MOCK_SKILLS = ["Python", "FastAPI"]

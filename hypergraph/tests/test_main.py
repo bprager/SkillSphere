@@ -1,13 +1,16 @@
 """Tests for the main module."""
 
 import sys
+
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
 # pylint: disable=import-error
 from hypergraph.__main__ import main
+
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

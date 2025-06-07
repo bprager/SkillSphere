@@ -1,16 +1,19 @@
 """MCP Server - FastAPI application setup and configuration."""
 
 import logging
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
+
 from fastapi import FastAPI
 
 from .api.mcp_routes import router as mcp_router
 from .config.settings import get_settings
 from .routes import router as api_router
 from .telemetry.otel import setup_telemetry
+
 
 # Configure logging
 logging.basicConfig(

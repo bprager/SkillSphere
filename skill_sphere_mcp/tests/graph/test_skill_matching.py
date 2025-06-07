@@ -9,8 +9,10 @@ import numpy as np
 import pytest
 import pytest_asyncio
 
-from skill_sphere_mcp.graph.skill_matching import (MatchResult, SkillMatch,
-                                                   SkillMatchingService)
+from skill_sphere_mcp.graph.skill_matching import MatchResult
+from skill_sphere_mcp.graph.skill_matching import SkillMatch
+from skill_sphere_mcp.graph.skill_matching import SkillMatchingService
+
 
 # Test constants
 EXPECTED_MATCH_COUNT = 2

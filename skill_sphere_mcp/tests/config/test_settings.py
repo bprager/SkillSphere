@@ -3,12 +3,16 @@
 # pylint: disable=redefined-outer-name
 
 import os
+
 from unittest.mock import patch
 
 import pytest
+
 from pydantic import ValidationError
 
-from skill_sphere_mcp.config.settings import Settings, get_settings
+from skill_sphere_mcp.config.settings import Settings
+from skill_sphere_mcp.config.settings import get_settings
+
 
 DEFAULT_PORT = 8000
 TEST_PORT = 9000

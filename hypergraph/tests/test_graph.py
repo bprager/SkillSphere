@@ -2,10 +2,13 @@
 
 # pylint: disable=import-error, redefined-outer-name, unused-argument, protected-access, wrong-import-position
 import sys
+
 from pathlib import Path
 
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest_asyncio
 

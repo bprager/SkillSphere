@@ -8,14 +8,16 @@ from unittest.mock import AsyncMock
 import numpy as np
 import pytest
 import pytest_asyncio
-from neo4j import AsyncSession
-from numpy import ndarray
 
-from skill_sphere_mcp.graph.node2vec import (Node2VecModelConfig,
-                                             Node2VecTrainingConfig)
+from neo4j import AsyncSession
+
+from skill_sphere_mcp.graph.node2vec import Node2VecModelConfig
+from skill_sphere_mcp.graph.node2vec import Node2VecTrainingConfig
 from skill_sphere_mcp.graph.node2vec.config import Node2VecConfig
-from skill_sphere_mcp.graph.node2vec.model import Node2Vec, Node2VecModel
+from skill_sphere_mcp.graph.node2vec.model import Node2Vec
+from skill_sphere_mcp.graph.node2vec.model import Node2VecModel
 from skill_sphere_mcp.graph.node2vec.state import Node2VecState
+
 
 # Constants for test configuration
 DEFAULT_DIMENSION = 128

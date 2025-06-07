@@ -1,20 +1,16 @@
 """Database dependencies."""
 
-from collections.abc import AsyncGenerator
-
 from neo4j import AsyncSession
 
 from .connection import neo4j_conn
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session() -> AsyncSession:
     """Get a Neo4j database session.
 
-    Yields:
+    Returns:
         Neo4j database session
     """
-    session = neo4j_conn.get_session()
-    try:
-        yield session
-    finally:
-        await session.aclose()
+    async for session in neo4j_conn.get_session():
+        return session
+    raise RuntimeError("Failed to get database session")

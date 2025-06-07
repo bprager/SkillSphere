@@ -1,22 +1,28 @@
 """Main Node2Vec implementation."""
 
 import logging
+
 from collections import defaultdict
 
 import numpy as np
+
 from neo4j import AsyncSession
 
-from .config import Node2VecConfig, PreprocessConfig, TransitionConfig
-from .sampling import alias_draw, alias_setup
+from .config import Node2VecConfig
+from .config import PreprocessConfig
+from .config import TransitionConfig
+from .sampling import alias_draw
+from .sampling import alias_setup
 from .state import Node2VecState
-from .training import (
-    NegativeSamplingConfig,
-    SamplingConfig,
-    process_negative_samples,
-    process_positive_samples,
-    update_embedding,
-)
-from .walks import WalkConfig, generate_walks, node2vec_walk
+from .training import NegativeSamplingConfig
+from .training import SamplingConfig
+from .training import process_negative_samples
+from .training import process_positive_samples
+from .training import update_embedding
+from .walks import WalkConfig
+from .walks import generate_walks
+from .walks import node2vec_walk
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +89,14 @@ class Node2VecModel:
             await self._model.preprocess(session, config)
         else:
             # For testing purposes, use the existing graph
-            self._model.preprocess_transition_probs(self.state.graph, config)
+            transition_config = TransitionConfig(
+                p=config.p if config else self._model.config.model.p,
+                q=config.q if config else self._model.config.model.q,
+                weight_key=config.weight_key if config else "weight",
+                directed=config.directed if config else False,
+                unweighted=config.unweighted if config else True,
+            )
+            self._model.preprocess_transition_probs(self.state.graph, transition_config)
             self.state.preprocessed = True
             # Generate walks for test mode
             self.state.walks = self._model.generate_walks(self.state.graph)
@@ -463,26 +476,23 @@ class Node2Vec:
         session: AsyncSession,
         config: PreprocessConfig | None = None,
     ) -> None:
-        """Preprocess graph for Node2Vec."""
-        if self._state.preprocessed:
-            return
+        """Preprocess the graph for training.
 
+        Args:
+            session: Neo4j database session
+            config: Preprocessing configuration
+        """
         # Get graph structure
         self._state.graph = await self.get_graph(session)
 
-        # Convert PreprocessConfig to TransitionConfig if needed
-        if config is not None:
-            transition_config = TransitionConfig(
-                p=config.p,
-                q=config.q,
-                weight_key=config.weight_key,
-                directed=config.directed,
-                unweighted=config.unweighted,
-            )
-        else:
-            transition_config = None
-
         # Preprocess transition probabilities
+        transition_config = TransitionConfig(
+            p=self.config.model.p,
+            q=self.config.model.q,
+            weight_key="weight",
+            directed=False,
+            unweighted=True,
+        )
         self.preprocess_transition_probs(self._state.graph, transition_config)
 
         self._state.preprocessed = True

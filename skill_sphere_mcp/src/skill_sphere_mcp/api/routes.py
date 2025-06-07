@@ -1,14 +1,18 @@
 """API route definitions and handlers."""
 
 import logging
+
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
 from neo4j import AsyncSession
 
 from ..db.deps import get_db_session
 from ..db.utils import get_entity_by_id
 from ..models.skill import Skill
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

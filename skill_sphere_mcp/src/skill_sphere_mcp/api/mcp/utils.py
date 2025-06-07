@@ -5,7 +5,8 @@ from typing import Any
 from fastapi import HTTPException
 
 from ...config.settings import get_settings
-from ...models.graph import GraphNode, GraphRelationship
+from ...models.graph import GraphNode
+from ...models.graph import GraphRelationship
 from ..models import InitializeResponse
 
 

@@ -14,16 +14,66 @@ async def get_entity_by_id(session: AsyncSession, entity_id: str) -> dict[str, A
         entity_id: ID of the entity to retrieve
 
     Returns:
-        Entity data as a dictionary
+        Entity data as a dictionary including relationships
 
     Raises:
-        HTTPException: If entity is not found
+        HTTPException: If entity is not found or ID is invalid
     """
-    result = await session.run(
-        "MATCH (n) WHERE n.id = $id RETURN n",
-        {"id": entity_id},
-    )
-    record = await result.single()
-    if not record:
-        raise HTTPException(status_code=404, detail="Entity not found")
-    return dict(record["n"])
+    if not entity_id or not isinstance(entity_id, str):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid entity ID. Must be a non-empty string.",
+        )
+
+    # Query to get the node and its relationships
+    query = """
+    MATCH (n) WHERE n.id = $id
+    OPTIONAL MATCH (n)-[r]->(m)
+    RETURN n,
+           labels(n) as labels,
+           collect({
+               type: type(r),
+               target: m,
+               target_labels: labels(m)
+           }) as relationships
+    """
+
+    try:
+        result = await session.run(query, {"id": entity_id})
+        record = await result.single()
+
+        if not record:
+            raise HTTPException(status_code=404, detail="Entity not found")
+
+        node = record["n"]
+        labels = record["labels"]
+        relationships = record["relationships"]
+
+        # Convert Neo4j node to dictionary
+        entity_data = dict(node)
+
+        # Add metadata
+        entity_data.update(
+            {
+                "id": entity_id,
+                "type": labels[0] if labels else None,
+                "relationships": [
+                    {
+                        "type": rel["type"],
+                        "target": dict(rel["target"]),
+                        "target_type": (
+                            rel["target_labels"][0] if rel["target_labels"] else None
+                        ),
+                    }
+                    for rel in relationships
+                    if rel["type"] is not None  # Filter out null relationships
+                ],
+            }
+        )
+
+        return entity_data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e

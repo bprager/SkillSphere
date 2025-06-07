@@ -4,6 +4,7 @@ import sys
 
 import yaml
 
+
 # Define the expected schema
 EXPECTED_SCHEMA = {
     "name": str,

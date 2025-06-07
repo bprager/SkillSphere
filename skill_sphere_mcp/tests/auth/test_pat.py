@@ -2,15 +2,21 @@
 
 """Tests for PAT authentication."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
+
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-from skill_sphere_mcp.auth.pat import PAT, PATAuth, get_current_token
+from skill_sphere_mcp.auth.pat import PAT
+from skill_sphere_mcp.auth.pat import PATAuth
+from skill_sphere_mcp.auth.pat import get_current_token
+
 
 HTTP_UNAUTHORIZED = 401
 

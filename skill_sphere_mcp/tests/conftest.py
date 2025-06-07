@@ -1,94 +1,61 @@
-"""Shared pytest fixtures."""
+"""Test configuration and fixtures."""
 
 import logging
 import os
 import sys
 import warnings
+
 from collections.abc import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
 import pytest_asyncio
+
 from fastapi.testclient import TestClient
 from neo4j import AsyncSession
 
-# Suppress SWIG warning
-warnings.filterwarnings(
-    "ignore", message="builtin type SwigPyPacked has no __module__ attribute"
-)
+from skill_sphere_mcp.app import create_app
+from skill_sphere_mcp.models.embedding import get_embedding_model
+
 
 # Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-# Set specific logger levels
-logging.getLogger("skill_sphere_mcp").setLevel(logging.DEBUG)
-logging.getLogger("skill_sphere_mcp.api.mcp.handlers").setLevel(logging.DEBUG)
-
-# Add src directory to Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-
-from skill_sphere_mcp.app import create_app
-from skill_sphere_mcp.db.connection import neo4j_conn
+# Suppress SWIG deprecation warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="_swig")
 
 # Disable OpenTelemetry before any imports
-os.environ["OTEL_SDK_DISABLED"] = "true"
-os.environ["OTEL_TRACES_SAMPLER"] = "always_off"
-os.environ["OTEL_EXPORTER_OTLP_ENABLED"] = "false"
 os.environ["OTEL_EXPORTER_OTLP_TRACES_ENABLED"] = "false"
 os.environ["OTEL_EXPORTER_OTLP_METRICS_ENABLED"] = "false"
 os.environ["OTEL_EXPORTER_OTLP_LOGS_ENABLED"] = "false"
 
+# Add src directory to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+
+
+@pytest_asyncio.fixture
+async def mock_neo4j_session() -> AsyncMock:
+    """Create a mock Neo4j session."""
+    return AsyncMock(spec=AsyncSession)
+
+
+@pytest_asyncio.fixture
+async def mock_embedding_model() -> AsyncMock:
+    """Create a mock embedding model."""
+    return AsyncMock(spec=get_embedding_model())
+
 
 @pytest_asyncio.fixture
 async def client() -> AsyncGenerator[TestClient, None]:
-    """Create a test client for the FastAPI app."""
-    yield TestClient(create_app())
-
-
-@pytest_asyncio.fixture
-async def mock_neo4j_session() -> AsyncGenerator[AsyncMock, None]:
-    """Create a mock Neo4j session."""
-    session = AsyncMock()
-    with patch.object(neo4j_conn, "get_session", return_value=session):
-        yield session
-
-
-@pytest_asyncio.fixture
-async def mock_neo4j_session_context() -> AsyncGenerator[AsyncMock, None]:
-    """Create a mock Neo4j session context."""
-    mock_session = AsyncMock(spec=AsyncSession)
-    mock_result = AsyncMock()
-    mock_result.single.return_value = None
-    mock_result.all.return_value = []
-    mock_session.run.return_value = mock_result
-
-    async def mock_get_session() -> AsyncSession:
-        return mock_session
-
-    with patch(
-        "skill_sphere_mcp.db.connection.neo4j_conn.get_session",
-        mock_get_session,
-    ):
-        yield mock_session
+    """Create a test client."""
+    app = create_app()
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 @pytest.fixture(autouse=True)
-def mock_embedding_model():
-    with patch("skill_sphere_mcp.api.mcp.handlers.MODEL") as mock_model:
-        # Create a deterministic embedding for test cases
-        test_embedding = np.zeros(384)  # All zeros vector for test cases
-        query_embedding = np.ones(384)  # All ones vector for query
-
-        def get_embedding(text: str) -> np.ndarray:
-            # Return test_embedding for test-related text, query_embedding for query
-            if text.lower() == "test":
-                return query_embedding
-            return test_embedding
-
-        mock_model.get_embedding.side_effect = get_embedding
-        yield mock_model
+def mock_numpy_random() -> None:
+    """Mock numpy random functions for deterministic testing."""
+    np.random.seed(42)

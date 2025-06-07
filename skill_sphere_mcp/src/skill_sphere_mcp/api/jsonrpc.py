@@ -1,8 +1,10 @@
 """JSON-RPC implementation for the MCP API."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any, TypeVar
+from dataclasses import dataclass, field
+from typing import Any
+from typing import TypeVar
+
 
 # Error codes
 ERROR_PARSE = -32700
@@ -20,13 +22,11 @@ class JSONRPCRequest:
 
     method: str
     jsonrpc: str = "2.0"
-    params: dict[str, Any] = None
+    params: dict[str, Any] = field(default_factory=dict)
     id: str | int | None = None
 
     def __post_init__(self) -> None:
         """Validate request fields."""
-        if self.params is None:
-            self.params = {}
         if self.jsonrpc != "2.0":
             raise ValueError("Invalid JSON-RPC version")
         if not self.method:

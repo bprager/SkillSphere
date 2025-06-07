@@ -4,7 +4,8 @@ from typing import Any
 
 from fastapi import HTTPException
 from neo4j import AsyncSession
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from pydantic import Field
 
 from ..utils.validation import validate_parameters
 

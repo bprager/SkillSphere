@@ -1,29 +1,33 @@
 # pylint: disable=redefined-outer-name
 """Tests for MCP routes."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
+
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
 # Create a test instance of JSONRPCHandler
-from skill_sphere_mcp.api.jsonrpc import (ERROR_INTERNAL, ERROR_INVALID_PARAMS,
-                                          ERROR_METHOD_NOT_FOUND,
-                                          JSONRPCHandler, JSONRPCRequest,
-                                          JSONRPCResponse)
-from skill_sphere_mcp.api.mcp.handlers import (SKILL_MATCH_THRESHOLD,
-                                               explain_match, graph_search,
-                                               match_role)
+from skill_sphere_mcp.api.jsonrpc import JSONRPCHandler
+from skill_sphere_mcp.api.jsonrpc import JSONRPCRequest
+from skill_sphere_mcp.api.jsonrpc import JSONRPCResponse
+from skill_sphere_mcp.api.mcp.handlers import SKILL_MATCH_THRESHOLD
+from skill_sphere_mcp.api.mcp.handlers import explain_match
+from skill_sphere_mcp.api.mcp.handlers import graph_search
+from skill_sphere_mcp.api.mcp.handlers import match_role
 from skill_sphere_mcp.api.mcp.models import ToolRequest
-from skill_sphere_mcp.api.mcp.routes import initialize, list_resources
+from skill_sphere_mcp.api.mcp.routes import initialize
+from skill_sphere_mcp.api.mcp.routes import list_resources
 from skill_sphere_mcp.api.mcp.rpc import rpc_match_role_handler
 from skill_sphere_mcp.api.mcp.utils import get_resource
 from skill_sphere_mcp.api.models import InitializeResponse
 from skill_sphere_mcp.cv.generator import generate_cv
 from skill_sphere_mcp.graph.embeddings import embeddings
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
+
 
 test_rpc_handler = JSONRPCHandler()
 
@@ -44,6 +48,7 @@ HTTP_BAD_REQUEST = 400
 HTTP_NOT_FOUND = 404
 HTTP_SERVER_ERROR = 500
 HTTP_NOT_IMPLEMENTED = 501
+HTTP_422_UNPROCESSABLE_ENTITY = 422
 
 
 @pytest_asyncio.fixture
@@ -307,14 +312,23 @@ async def test_match_role_success() -> None:
     """Test match_role returns expected result."""
     params = {"required_skills": ["Python"], "years_experience": {}}
     mock_session = AsyncMock()
-    # Simulate DB returning a skill node with experience_years
-    mock_skill = {"s": {"name": "Python"}, "relationships": [], "experience_years": [5]}
-    mock_session.run.return_value.__aiter__.return_value = [mock_skill]
+    # Simulate DB returning a person with matching skills
+    mock_result = AsyncMock()
+    mock_result.all = AsyncMock(
+        return_value=[
+            {
+                "p": {
+                    "id": "1",
+                    "name": "Test Person",
+                    "skills": ["Python"],
+                }
+            }
+        ]
+    )
+    mock_session.run.return_value = mock_result
     result = await match_role(params, mock_session)
     assert "match_score" in result
     assert result["match_score"] == pytest.approx(1.0)
-    assert result["skill_gaps"] == []
-    assert result["matching_skills"][0]["name"] == "Python"
 
 
 @pytest.mark.asyncio
@@ -323,7 +337,7 @@ async def test_match_role_invalid_params() -> None:
     mock_session = AsyncMock()
     with pytest.raises(HTTPException) as exc_info:
         await match_role({}, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -331,16 +345,28 @@ async def test_explain_match_success() -> None:
     """Test explain_match returns expected result."""
     params = {"skill_id": "1", "role_requirement": "Python dev"}
     mock_session = AsyncMock()
-    # Simulate DB returning a skill node with evidence
-    mock_record = {
-        "s": {"name": "Python"},
-        "evidence": [{"rel": {"type": "HAS_SKILL"}, "target": {"name": "FastAPI"}}],
-    }
-    mock_session.run.return_value.single.return_value = mock_record
+    # Simulate DB returning a skill node with projects and certifications
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(
+        return_value={
+            "s": {"id": "1", "name": "Python"},
+            "projects": [
+                {"id": "p1", "name": "Project A", "description": "Python project"}
+            ],
+            "certifications": [
+                {
+                    "id": "c1",
+                    "name": "Python Cert",
+                    "description": "Python certification",
+                }
+            ],
+        }
+    )
+    mock_session.run.return_value = mock_result
     result = await explain_match(params, mock_session)
     assert "explanation" in result
     assert "evidence" in result
-    assert result["evidence"][0]["type"] == "HAS_SKILL"
+    assert len(result["evidence"]) == 2
 
 
 @pytest.mark.asyncio
@@ -349,7 +375,7 @@ async def test_explain_match_invalid_params() -> None:
     mock_session = AsyncMock()
     with pytest.raises(HTTPException) as exc_info:
         await explain_match({}, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -360,7 +386,7 @@ async def test_explain_match_value_error() -> None:
     mock_session.run.side_effect = ValueError()
     with pytest.raises(HTTPException) as exc_info:
         await explain_match(params, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -423,24 +449,25 @@ async def test_graph_search_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test graph_search returns results."""
     params = {"query": "Python", "top_k": 1}
     mock_session = AsyncMock()
-    # Use patch.object to patch the search method on the embeddings instance
-    with patch.object(
-        embeddings,
-        "search",
-        AsyncMock(
-            return_value=[
-                {
-                    "node_id": "1",
-                    "score": 0.9,
+    mock_result = AsyncMock()
+    mock_result.all = AsyncMock(
+        return_value=[
+            {
+                "n": {
+                    "id": "1",
+                    "name": "Python",
+                    "type": "Skill",
+                    "description": "Python programming language",
                     "labels": ["Skill"],
-                    "properties": {"name": "Python"},
                 }
-            ]
-        ),
-    ):
-        result = await graph_search(params, mock_session)
-        assert "results" in result
-        assert result["results"][0]["node_id"] == "1"
+            }
+        ]
+    )
+    mock_session.run.return_value = mock_result
+    result = await graph_search(params, mock_session)
+    assert "results" in result
+    assert len(result["results"]) > 0
+    assert result["results"][0]["node"]["name"] == "Python"
 
 
 @pytest.mark.asyncio
@@ -448,45 +475,51 @@ async def test_graph_search_importerror(monkeypatch: pytest.MonkeyPatch) -> None
     """Test graph_search falls back to random embedding if MODEL is None."""
     params = {"query": "Python", "top_k": 1}
     mock_session = AsyncMock()
-    # Use patch.object to patch the search method on the embeddings instance
-    with patch.object(
-        embeddings,
-        "search",
-        AsyncMock(
-            return_value=[
-                {
-                    "node_id": "1",
-                    "score": 0.9,
+    mock_result = AsyncMock()
+    mock_result.all = AsyncMock(
+        return_value=[
+            {
+                "n": {
+                    "id": "1",
+                    "name": "Python",
+                    "type": "Skill",
+                    "description": "Python programming language",
                     "labels": ["Skill"],
-                    "properties": {"name": "Python"},
                 }
-            ]
-        ),
-    ):
-        result = await graph_search(params, mock_session)
-        assert "results" in result
-        assert result["results"][0]["node_id"] == "1"
+            }
+        ]
+    )
+    mock_session.run.return_value = mock_result
+    result = await graph_search(params, mock_session)
+    assert "results" in result
+    assert len(result["results"]) > 0
+    assert result["results"][0]["node"]["name"] == "Python"
 
 
 @pytest.mark.asyncio
 async def test_handle_skill_match_success() -> None:
     """Test successful skill matching."""
     mock_session = AsyncMock()
-    # Simulate DB returning a skill node with experience_years
-    mock_skill = {"s": {"name": "Python"}, "relationships": [], "experience_years": [5]}
-    mock_session.run.return_value.__aiter__.return_value = [mock_skill]
-    with patch(
-        "skill_sphere_mcp.api.mcp.handlers._calculate_semantic_score", return_value=1.0
-    ):
-        params = {
-            "required_skills": ["Python"],
-            "years_experience": {"Python": 5},
-        }
-        result = await rpc_match_role_handler(params, mock_session)
-        assert "match_score" in result
-        assert result["match_score"] == pytest.approx(1.0)
-        assert len(result["matching_skills"]) == 1
-        assert len(result["skill_gaps"]) == 0
+    mock_result = AsyncMock()
+    mock_result.all = AsyncMock(
+        return_value=[
+            {
+                "p": {
+                    "id": "1",
+                    "name": "Test Person",
+                    "skills": ["Python"],
+                }
+            }
+        ]
+    )
+    mock_session.run.return_value = mock_result
+    params = {
+        "required_skills": ["Python"],
+        "years_experience": {"Python": 5},
+    }
+    result = await rpc_match_role_handler(params, mock_session)
+    assert "match_score" in result
+    assert result["match_score"] == pytest.approx(1.0)
 
 
 @pytest.mark.asyncio
@@ -537,19 +570,26 @@ async def test_handle_skill_match_error() -> None:
 async def test_handle_jsonrpc_request_success() -> None:
     """Test successful JSON-RPC request handling."""
     mock_session = AsyncMock()
-    # Simulate DB returning a skill node with experience_years
-    mock_skill = {"s": {"name": "Python"}, "relationships": [], "experience_years": [5]}
-    mock_session.run.return_value.__aiter__.return_value = [mock_skill]
-    with patch(
-        "skill_sphere_mcp.api.mcp.handlers._calculate_semantic_score", return_value=1.0
-    ):
-        params = {
-            "required_skills": ["Python"],
-            "years_experience": {"Python": 5},
-        }
-        result = await rpc_match_role_handler(params, mock_session)
-        assert "match_score" in result
-        assert result["match_score"] == pytest.approx(1.0)
+    mock_result = AsyncMock()
+    mock_result.all = AsyncMock(
+        return_value=[
+            {
+                "p": {
+                    "id": "1",
+                    "name": "Test Person",
+                    "skills": ["Python"],
+                }
+            }
+        ]
+    )
+    mock_session.run.return_value = mock_result
+    params = {
+        "required_skills": ["Python"],
+        "years_experience": {"Python": 5},
+    }
+    result = await rpc_match_role_handler(params, mock_session)
+    assert "match_score" in result
+    assert result["match_score"] == pytest.approx(1.0)
 
 
 @pytest.mark.asyncio

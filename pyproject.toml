@@ -140,8 +140,14 @@ target-version = "py310"
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
 ignore = ["E501", "B008"]
 
-[tool.ruff.isort]
+[tool.isort]
 known-first-party = ["skill_sphere_mcp"]
+force-wrap-aliases = true
+force-single-line = true
+lines-after-imports = 2
+lines-between-types = 1
+section-default = "THIRDPARTY"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
 [tool.ruff.per-file-ignores]
 "tests/*" = ["PLR2004", "S101"]

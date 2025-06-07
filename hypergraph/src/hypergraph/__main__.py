@@ -1,19 +1,25 @@
 """Main entry point for the hypergraph ingestion pipeline."""
 
 import logging
+
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
+from typing import List
 
 import yaml
+
 from langchain_ollama import OllamaEmbeddings
 
 from hypergraph.core.config import Settings
-from hypergraph.core.utils import chunk, sha256
+from hypergraph.core.utils import chunk
+from hypergraph.core.utils import sha256
 from hypergraph.db.graph import GraphWriter
 from hypergraph.db.registry import Registry
 from hypergraph.embeddings.faiss_manager import FaissManager
-from hypergraph.llm.triples import TripleExtractor, TripleExtractorConfig
+from hypergraph.llm.triples import TripleExtractor
+from hypergraph.llm.triples import TripleExtractorConfig
+
 
 # ───────────────────────────── Logging ────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")

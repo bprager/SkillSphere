@@ -1,10 +1,13 @@
 """LLM-based triple extraction from text."""
 
 import json
+
 from typing import List
 
 import yaml
+
 from langchain_ollama import ChatOllama
+
 
 MARKDOWN_FENCE_COUNT = 2
 MIN_PARTS_COUNT = 2

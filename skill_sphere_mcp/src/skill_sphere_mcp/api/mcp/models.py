@@ -5,12 +5,35 @@ from typing import Any
 from pydantic import BaseModel
 
 
+class HealthResponse(BaseModel):
+    """Health check response model."""
+
+    status: str
+
+
+class InitializeRequest(BaseModel):
+    """Initialize request model."""
+
+    protocol_version: str
+    client_info: dict[str, Any]
+
+
 class InitializeResponse(BaseModel):
     """Initialize response model."""
 
     protocol_version: str
     capabilities: dict[str, Any]
     instructions: str
+
+
+class EntityResponse(BaseModel):
+    """Entity response model."""
+
+    id: str
+    name: str
+    type: str | None = None
+    properties: dict[str, Any] | None = None
+    relationships: list[dict[str, Any]] | None = None
 
 
 class SearchRequest(BaseModel):

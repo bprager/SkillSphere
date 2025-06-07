@@ -1,15 +1,19 @@
 """Route handlers for the MCP server."""
 
 import logging
+
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter
+from fastapi import HTTPException
 from pydantic import BaseModel
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import-untyped]
 
 from .db.connection import neo4j_conn
 from .models.embedding import get_embedding_model
+
 
 logger = logging.getLogger(__name__)
 

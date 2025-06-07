@@ -1,13 +1,19 @@
 """Personal Access Token (PAT) authentication."""
 
 import logging
-from datetime import datetime, timedelta, timezone
+
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import HTTPException, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import HTTPException
+from fastapi import Security
+from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel
+
 
 logger = logging.getLogger(__name__)
 

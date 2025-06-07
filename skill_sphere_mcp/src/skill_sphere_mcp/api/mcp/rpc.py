@@ -4,11 +4,17 @@ from typing import Any
 
 from neo4j import AsyncSession
 
-from ..jsonrpc import JSONRPCHandler, JSONRPCRequest, JSONRPCResponse
-from .handlers import explain_match, graph_search, match_role
-from .handlers import search as search_handler
+from ..jsonrpc import JSONRPCHandler
+from ..jsonrpc import JSONRPCRequest
+from ..jsonrpc import JSONRPCResponse
+from .handlers import explain_match
+from .handlers import graph_search
+from .handlers import handle_search
+from .handlers import match_role
 from .models import SearchRequest
-from .utils import get_initialize_response_dict, get_resource
+from .utils import get_initialize_response_dict
+from .utils import get_resource
+
 
 rpc_handler = JSONRPCHandler()
 
@@ -50,7 +56,7 @@ async def rpc_search(
         raise ValueError("Missing query parameter")
     limit = params.get("limit", 10)
     request = SearchRequest(query=query, limit=limit)
-    response = await search_handler(request, session)
+    response = await handle_search(request.model_dump(), session)
     return response.get("results", [])  # type: ignore[no-any-return]
 
 

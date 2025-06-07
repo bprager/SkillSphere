@@ -17,12 +17,22 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.42b0",
     "opentelemetry-instrumentation-requests>=0.42b0",
     "python-dotenv>=1.0.0",
-    "scipy>=1.11.0,<1.14.0", # Pin scipy to compatible version
+    "scipy>=1.11.0,<1.14.0",  # Pin scipy to compatible version
     "scikit-learn>=1.3.0",
-    "networkx>=3.4.2", # Updated to newer version
+    "networkx>=3.4.2",
     "sentence-transformers>=4.1.0",
     "pytest>=8.3.5",
     "node2vec>=0.4.3",
+    "numpy>=1.24.0",
+    "gensim<4.3.0",
+    "httpx>=0.28.1",
+    "markitdown>=0.1.1",
+    "pylint>=3.3.7",
+    "pytest-cov>=6.1.1",
+    "pytest-asyncio>=0.21.0",
+    "isort>=6.0.1",
+    "mypy>=1.15.0",
+    "ruff>=0.1.0",
 ]
 requires-python = ">=3.10"
 
@@ -34,6 +44,9 @@ dev = [
     "pytest-cov>=4.1.0",
     "pytest>=7.4.0",
     "ruff>=0.1.0",
+    "httpx>=0.28.1",
+    "markitdown>=0.1.1",
+    "pylint>=3.3.7",
 ]
 
 [build-system]
@@ -53,7 +66,7 @@ known-first-party = ["skill_sphere_mcp", "hypergraph"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=skill_sphere_mcp"
-pythonpath = ["src"]  # Add this line to fix import paths
+pythonpath = ["src"]
 
 [tool.mypy]
 python_version = "3.9"
@@ -72,18 +85,6 @@ warn_unreachable = true
 [[tool.mypy.overrides]]
 module = ["numpy.*", "sklearn.*", "gensim.*", "node2vec.*"]
 ignore_missing_imports = true
-
-[dependency-groups]
-dev = [
-    "httpx>=0.28.1",
-    "markitdown>=0.1.1",
-    "pylint>=3.3.7",
-    "pytest>=8.3.5",
-    "pytest-cov>=6.1.1",
-]
-
-[tool.poetry.dependencies]
-gensim = "<4.3.0"
 
 [tool.coverage.run]
 omit = ["hypergraph/skills_hypergraph_ontology.py"]

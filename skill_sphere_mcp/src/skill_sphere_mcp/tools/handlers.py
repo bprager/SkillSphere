@@ -85,7 +85,7 @@ async def graph_search(
     LIMIT $top_k
     """
     result = await session.run(cypher_query, search_query=query, top_k=top_k)
-    records = await result.fetch_all()  # type: ignore[attr-defined]
+    records = await result.all()  # type: ignore[attr-defined]
     results = [{"node": record["n"]} for record in records]
 
     return {"results": results, "query": query, "top_k": top_k}
@@ -119,7 +119,7 @@ async def match_role(
     RETURN p
     """
     result = await session.run(query, required_skills=required_skills)
-    records = await result.fetch_all()
+    records = await result.all()  # type: ignore[attr-defined]
 
     matching_skills = []
     skill_gaps = []

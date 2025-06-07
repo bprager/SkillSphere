@@ -2,10 +2,12 @@
 
 # pylint: disable=import-error, redefined-outer-name
 import os
+
 from pathlib import Path
 from typing import AsyncGenerator
 
 import pytest_asyncio
+
 from neo4j import GraphDatabase
 
 from hypergraph.core.config import Settings
