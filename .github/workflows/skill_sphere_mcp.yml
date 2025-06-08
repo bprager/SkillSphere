@@ -56,7 +56,7 @@ jobs:
         source .venv/bin/activate
         uv pip install --upgrade pip
         uv pip install -r requirements.txt
-        uv pip install pytest pytest-cov pylint pytest-asyncio
+        uv pip install pytest pytest-cov pylint pytest-asyncio coverage[toml] coverage-badge
         uv pip install -e skill_sphere_mcp
 
     - name: Create pylint config
