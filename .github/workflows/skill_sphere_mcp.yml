@@ -23,40 +23,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for proper versioning
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Install uv
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-    - name: Cache uv packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-uv-
-
-    - name: Cache virtual environment
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: ${{ runner.os }}-venv-mcp-${{ hashFiles('skill_sphere_mcp/src/**/*.py', 'pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-venv-mcp-
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
-        uv venv
-        source .venv/bin/activate
-        uv pip install --upgrade pip
-        uv pip install pytest pytest-cov pylint pytest-asyncio coverage[toml] coverage-badge
-        uv pip install -e .
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pylint pytest-asyncio coverage[toml] coverage-badge
+        pip install -e .
 
     - name: Create pylint config
       run: |
@@ -72,23 +52,20 @@ jobs:
     - name: Run pylint
       if: matrix.check == 'pylint'
       run: |
-        source .venv/bin/activate
         cd skill_sphere_mcp/src
         pylint --rcfile=../../.pylintrc --fail-under=9.0 $(git ls-files '*.py')
 
     - name: Run pytest
       if: matrix.check == 'pytest'
       run: |
-        source .venv/bin/activate
         cd skill_sphere_mcp
-        pytest tests/ -v
+        pytest tests/ -v --asyncio-mode=auto
 
     - name: Run coverage and generate badge
       if: matrix.check == 'coverage'
       run: |
-        source .venv/bin/activate
         cd skill_sphere_mcp
-        pytest tests/ -v --cov=src --cov-report=xml
+        pytest tests/ -v --cov=src --cov-report=xml --asyncio-mode=auto
         coverage report -m
 
     - name: Generate coverage badge
@@ -97,18 +74,14 @@ jobs:
       with:
         working-directory: ./skill_sphere_mcp
         output: coverage.svg
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Debug directory structure
       if: matrix.check == 'coverage'
-      run: ls -R ./skill_sphere_mcp
-
-    - name: Validate coverage badge generation
-      if: matrix.check == 'coverage'
       run: |
-        if [ ! -f ./skill_sphere_mcp/coverage.svg ]; then
-          echo "Error: Coverage badge not generated."
-          exit 1
-        fi
+        pwd
+        ls -la
+        ls -la ./skill_sphere_mcp
 
     - name: Commit files
       if: matrix.check == 'coverage'
