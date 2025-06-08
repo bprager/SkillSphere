@@ -66,6 +66,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Implement graph-based résumé generation
 - [ ] Add support for multiple output formats (PDF, HTML, Markdown)
 
+## [0.2.0] - Fri Jun 8 18:48:47 PDT 2025
+
+### Added
+
+- CV generation module with support for multiple formats
+  - Markdown and HTML output formats
+  - Structured CV sections (contact, summary, skills, experience, education)
+  - Template-based formatting
+  - Graph-based data retrieval
+- Enhanced test coverage for MCP server
+  - Added comprehensive test suite for API endpoints
+  - Improved mock data and fixtures
+  - Added async test support
+  - Enhanced error handling tests
+
+### Changed
+
+- Improved package structure and installation
+  - Moved to src-based layout
+  - Enhanced development mode installation
+  - Fixed Python path issues
+  - Improved dependency management
+- Updated GitHub Actions workflow
+  - Switched to standard pip for package management
+  - Added proper Python path configuration
+  - Enhanced test execution with asyncio support
+  - Improved coverage reporting
+- Enhanced error handling and validation
+  - Added parameter validation for CV generation
+  - Improved error messages and status codes
+  - Enhanced type checking and validation
+
+### Fixed
+
+- Module import issues in tests
+  - Fixed Python path configuration
+  - Corrected package installation
+  - Resolved import errors
+- GitHub Actions workflow issues
+  - Fixed package installation
+  - Corrected test execution
+  - Resolved coverage reporting
+  - Fixed badge generation
+
 ## [0.1.9] - Thu May 23 16:45:00 PDT 2025
 
 ### Added
