@@ -38,7 +38,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-uv-
 
@@ -46,7 +46,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .venv
-        key: ${{ runner.os }}-venv-mcp-${{ hashFiles('skill_sphere_mcp/src/**/*.py', 'requirements.txt') }}
+        key: ${{ runner.os }}-venv-mcp-${{ hashFiles('skill_sphere_mcp/src/**/*.py', 'pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-venv-mcp-
 
@@ -55,9 +55,8 @@ jobs:
         uv venv
         source .venv/bin/activate
         uv pip install --upgrade pip
-        uv pip install -r requirements.txt
         uv pip install pytest pytest-cov pylint pytest-asyncio coverage[toml] coverage-badge
-        uv pip install -e skill_sphere_mcp
+        uv pip install -e .
 
     - name: Create pylint config
       run: |
