@@ -190,3 +190,6 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=skill_sphere_mcp --cov-report=term-missing"
+
+[tool.hatch.build.targets.wheel]
+packages = ["skill_sphere_mcp"]
