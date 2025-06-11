@@ -74,12 +74,6 @@ async def search(
     return await handle_search(request.model_dump(), session)
 
 
-@router.post("/mcp/initialize")
-async def initialize() -> dict[str, Any]:
-    """Initialize the MCP."""
-    return get_initialize_response_dict()
-
-
 @router.get("/mcp/resources/list")
 async def list_resources() -> list[str]:
     """List available resources."""

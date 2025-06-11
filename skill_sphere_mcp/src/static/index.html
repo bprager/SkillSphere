@@ -1,79 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillSphere MCP Server</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-            color: #333;
-        }
-        .container {
-            background: #fff;
-            border-radius: 8px;
-            padding: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2563eb;
-            margin-bottom: 1.5rem;
-        }
-        .description {
-            margin-bottom: 2rem;
-        }
-        .api-link {
-            display: inline-block;
-            background: #2563eb;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-        .api-link:hover {
-            background: #1d4ed8;
-        }
-        .features {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: #f8fafc;
-            border-radius: 4px;
-        }
-        .features h2 {
-            color: #1e40af;
-            margin-top: 0;
-        }
-        .features ul {
-            margin: 0;
-            padding-left: 1.5rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>SkillSphere MCP Server</h1>
-        
-        <div class="description">
-            <p>Welcome to the SkillSphere Model Context Protocol (MCP) Server. This service provides a standardized API that enables LangChain agents to query and interact with a Neo4j-powered Hypergraph-of-Thought, which contains enriched career records and professional experiences.</p>
-        </div>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <div class="features">
-            <h2>Key Features</h2>
-            <ul>
-                <li>Converts plain-text career records into a structured knowledge graph</li>
-                <li>Enriches data through local LLM gleaning loops</li>
-                <li>Provides Node2Vec embeddings for structural similarity search</li>
-                <li>Offers end-to-end tracing and metrics through OpenTelemetry</li>
-                <li>Delivers ATS-optimized résumé generation capabilities</li>
-            </ul>
-        </div>
+    <title>SkillSphere · Bernd Prager – AI Architect</title>
+    <meta
+      name="description"
+      content="SkillSphere MCP · Graph-driven AI tooling by Bernd Prager — AI Architect, Mentor & Thought-Partner" />
 
-        <a href="/docs" class="api-link">View API Documentation</a>
-    </div>
-</body>
-</html> 
+    <!-- Tailwind CDN (no build step) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { inter: ["Inter", "Segoe UI", "sans-serif"] },
+            colors: {
+              brand: {
+                DEFAULT: "#00D0FF",   /* accent cyan */
+                dark: "#2563EB"       /* rich blue */
+              },
+              ink: {
+                900: "#222222",
+                700: "#4F545A"
+              }
+            }
+          }
+        }
+      };
+    </script>
+    <style>body{font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif}</style>
+  </head>
+
+  <body class="bg-white text-ink-900 antialiased leading-relaxed">
+    <!-- ░░ Hero ░░ -->
+    <header
+      class="relative isolate overflow-hidden bg-gradient-to-br
+                 from-brand via-brand/80 to-brand-dark/90
+                 py-24 text-white">
+      <div class="mx-auto max-w-4xl px-6 text-center">
+        <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight">
+          Bernd Prager
+        </h1>
+        <p class="mt-2 text-lg sm:text-xl font-light">
+          AI Architect · Mentor &amp; Thought-Partner
+        </p>
+        <p class="mt-6 mx-auto max-w-2xl text-base sm:text-lg opacity-90">
+          “I build tomorrow’s&nbsp;AI with the insight of five decades in technology.”
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+          <!-- Primary CTA -->
+          <a href="https://calendly.com/bernd-prager/30min"
+             class="inline-block rounded-xl bg-white/90 px-6 py-3
+                    text-brand-dark font-medium shadow-sm ring-1 ring-white/30
+                    transition hover:bg-white">
+            Book a 30-min Strategy Call
+          </a>
+
+          <!-- Secondary CTA -->
+          <a href="#features"
+             class="inline-block rounded-xl bg-transparent px-6 py-3
+                    font-medium text-white ring-1 ring-white/50
+                    hover:bg-white/10 transition">
+            Explore the MCP&nbsp;Tooling
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ░░ Features ░░ -->
+    <main id="features" class="mx-auto max-w-4xl px-6 py-16">
+      <section class="space-y-12">
+        <article class="space-y-6">
+          <h2 class="text-2xl font-semibold text-brand-dark">
+            SkillSphere MCP Server
+          </h2>
+          <p class="text-ink-700">
+            A standardized API that lets LangChain agents tap into a Neo4j-powered
+            <em>Hypergraph-of-Thought</em> built from enriched career records.
+          </p>
+
+          <ul class="grid divide-y divide-ink-700/10 text-ink-700
+                     sm:grid-cols-2 sm:divide-y-0 sm:gap-x-8">
+            <li class="py-3 pl-4 sm:pl-0 before:content-['➜']
+                       before:-ml-4 before:mr-2 before:text-brand-dark">
+              Plain-text → Structured knowledge graph
+            </li>
+            <li class="py-3 pl-4 sm:pl-0 before:content-['➜']
+                       before:-ml-4 before:mr-2 before:text-brand-dark">
+              Local LLM “gleaning loop” for fact-boost
+            </li>
+            <li class="py-3 pl-4 sm:pl-0 before:content-['➜']
+                       before:-ml-4 before:mr-2 before:text-brand-dark">
+              Node2Vec embeddings for similarity search
+            </li>
+            <li class="py-3 pl-4 sm:pl-0 before:content-['➜']
+                       before:-ml-4 before:mr-2 before:text-brand-dark">
+              End-to-end OpenTelemetry observability
+            </li>
+            <li class="py-3 pl-4 sm:pl-0 before:content-['➜']
+                       before:-ml-4 before:mr-2 before:text-brand-dark">
+              One-click ATS-optimized résumé generation
+            </li>
+          </ul>
+
+          <a href="/docs"
+             class="inline-flex items-center gap-2 rounded-lg bg-brand-dark
+                    px-5 py-3 text-white shadow hover:bg-brand/90 transition">
+            <span>Open API Docs</span>
+            <svg class="h-5 w-5 stroke-current" fill="none"
+                 viewBox="0 0 24 24" stroke-width="2"
+                 xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M17.25 6.75L20.5 10m0 0l-3.25 3.25M20.5 10H8.5m0 9.25v-15"/>
+            </svg>
+          </a>
+        </article>
+      </section>
+    </main>
+
+    <!-- ░░ Footer ░░ -->
+    <footer class="bg-ink-900 text-white py-8">
+      <div class="mx-auto max-w-4xl px-6 flex flex-col sm:flex-row
+                  items-center justify-between gap-y-3">
+        <div class="text-sm opacity-80">
+          © 2025&nbsp;Bernd&nbsp;Prager &nbsp;·&nbsp;
+          <a href="https://www.prager.ws" class="underline hover:text-brand">
+            prager.ws
+          </a>
+        </div>
+        <div class="flex gap-6 text-sm">
+          <a href="tel:+13239835320" class="hover:text-brand">
+            +1&nbsp;(323)&nbsp;983-5320
+          </a>
+          <span class="select-all" title="PGP Fingerprint">
+            PGP F70C 71E3 44B1 BCD2 40C3 937C EA1D 3645 C901 BD79
+          </span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+

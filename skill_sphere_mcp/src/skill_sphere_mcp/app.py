@@ -57,6 +57,24 @@ def create_app() -> FastAPI:
         title="SkillSphere MCP",
         version="0.2.0",
         lifespan=lifespan,
+        description="""Model Context Protocol (MCP) server for SkillSphere.
+        
+        This server implements the MCP standard using JSON-RPC 2.0. All MCP operations
+        should be performed through the `/mcp/rpc` endpoint using JSON-RPC requests.
+        
+        Example initialize request:
+        ```json
+        {
+            "jsonrpc": "2.0",
+            "method": "mcp.initialize",
+            "params": {},
+            "id": 1
+        }
+        ```
+        
+        The server also provides some REST endpoints for health checks and resource
+        information, but all MCP operations should use the RPC endpoint.
+        """,
     )
 
     # Mount static files
