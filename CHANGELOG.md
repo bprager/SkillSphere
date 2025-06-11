@@ -1,4 +1,3 @@
-<!-- markdownlint-disable MD024 -->
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -22,10 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Infrastructure
 
-- [ ] Create Docker-based deployment configuration
 - [ ] Add Kubernetes deployment manifests
-- [ ] Implement health check endpoints
-- [ ] Set up monitoring and alerting
 - [ ] Add rate limiting middleware
 - [ ] Implement connection pooling for Neo4j
 - [ ] Add query optimization strategies
@@ -37,13 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Add development tools and utilities
 - [ ] Create testing utilities and fixtures
 - [ ] Add contract tests for schema changes
-- [ ] Implement CI/CD pipeline improvements
 
 ### Documentation
 
 - [ ] Create installation guide
 - [ ] Add deployment documentation
-- [ ] Write contribution guidelines
 - [ ] Create troubleshooting guide
 - [ ] Add performance tuning guide
 - [ ] Document security best practices
@@ -65,6 +59,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Add CV generation pipeline
 - [ ] Implement graph-based résumé generation
 - [ ] Add support for multiple output formats (PDF, HTML, Markdown)
+
+## [0.2.1] - 2024-03-19
+
+### Added
+- Static HTML landing page for the MCP server with key features and API documentation link
+- OpenTelemetry integration with Grafana Tempo for distributed tracing
+- Docker Compose configuration for local development with Tempo and OpenTelemetry collector
+- New user-friendly landing page with responsive design and modern typography
+- Integration with Grafana Tempo for distributed tracing visualization
+- OpenTelemetry collector configuration for metrics and traces
+- Configurable MCP instructions for LLM clients with owner identification and usage guidelines
+- Environment variable-based configuration for MCP server behavior
+
+### Changed
+- Removed internal Neo4j service from docker-compose.yml in favor of external Neo4j instance
+- Updated MCP server to serve static files from the root path
+- Improved container networking configuration to avoid port conflicts
+- Enhanced observability with end-to-end tracing capabilities
+- Updated architecture documentation to reflect new UI and observability features
+- Moved MCP instructions to environment configuration for better maintainability
+- Updated MCP initialization response to include owner context and usage guidelines
+
+### Fixed
+- Resolved permission issues with Tempo data directory
+- Fixed port conflict between OpenTelemetry collector and Tempo services
+- Improved container startup reliability
+- Addressed networking issues between services
+- Fixed static file serving configuration in FastAPI application
+
+### Infrastructure
+- Added Grafana Tempo for distributed tracing
+- Configured OpenTelemetry collector for metrics and traces
+- Implemented proper container networking between services
+- Set up persistent storage for Tempo data
+- Improved Docker Compose configuration for local development
 
 ## [0.2.0] - Fri Jun 8 18:48:47 PDT 2025
 
@@ -251,18 +280,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Branding files
-- Initial website
-
-## [0.1.1] - Fri Apr 18 13:53:33 PDT 2025
-
-### Added
-
-- First experience files
-- Prompt to improve experience data
-
-## [0.1.0] - Sat Feb  8 10:19:16 PST 2025
-
-### Added
-
-- Initial version
-- Changelog
+- Initial website 

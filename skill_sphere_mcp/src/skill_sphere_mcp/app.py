@@ -1,13 +1,13 @@
 """MCP Server - FastAPI application setup and configuration."""
 
 import logging
-
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
-
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from .api.mcp_routes import router as mcp_router
 from .config.settings import get_settings
@@ -58,6 +58,10 @@ def create_app() -> FastAPI:
         version="0.2.0",
         lifespan=lifespan,
     )
+
+    # Mount static files
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    mcp_server_app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
     # Include API routes
     mcp_server_app.include_router(api_router)

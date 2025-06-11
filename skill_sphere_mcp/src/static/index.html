@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillSphere MCP Server</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }
+        .container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 1.5rem;
+        }
+        .description {
+            margin-bottom: 2rem;
+        }
+        .api-link {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .api-link:hover {
+            background: #1d4ed8;
+        }
+        .features {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 4px;
+        }
+        .features h2 {
+            color: #1e40af;
+            margin-top: 0;
+        }
+        .features ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SkillSphere MCP Server</h1>
+        
+        <div class="description">
+            <p>Welcome to the SkillSphere Model Context Protocol (MCP) Server. This service provides a standardized API that enables LangChain agents to query and interact with a Neo4j-powered Hypergraph-of-Thought, which contains enriched career records and professional experiences.</p>
+        </div>
+
+        <div class="features">
+            <h2>Key Features</h2>
+            <ul>
+                <li>Converts plain-text career records into a structured knowledge graph</li>
+                <li>Enriches data through local LLM gleaning loops</li>
+                <li>Provides Node2Vec embeddings for structural similarity search</li>
+                <li>Offers end-to-end tracing and metrics through OpenTelemetry</li>
+                <li>Delivers ATS-optimized résumé generation capabilities</li>
+            </ul>
+        </div>
+
+        <a href="/docs" class="api-link">View API Documentation</a>
+    </div>
+</body>
+</html> 

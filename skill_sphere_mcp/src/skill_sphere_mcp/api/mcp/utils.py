@@ -22,7 +22,7 @@ def get_initialize_response() -> InitializeResponse:
             "tool_dispatch": True,
             "features": client_info["features"],
         },
-        instructions=f"Public access enabled. Environment: {client_info['environment']}",
+        instructions=client_info["mcp_instructions"],
     )
 
 

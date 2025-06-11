@@ -2,7 +2,7 @@
 title: "SkillSphere Architecture"
 author: "Bernd Prager"
 date: 2025-05-29            # rendered automatically
-subtitle: "Revision v2.1"
+subtitle: "Revision v2.2"
 abstract: |
   **SkillSphere** converts plain-text career records into a Neo4j‑powered
   *Hypergraph‑of‑Thought*, enriched by local LLM gleaning loops and served
@@ -16,12 +16,12 @@ abstract: |
 | What it does | Why it matters |
 |--------------|----------------|
 | **Markdown ➜ Hypergraph** | One source of truth for jobs, projects & certifications |
-| **LLM gleaning loop** | Wring ~25 % extra facts *locally* (Gemma 3 12 B on Ollama) |
+| **LLM gleaning loop** | Wring ~25 % extra facts *locally* (Gemma 3 12 B on Ollama) |
 | **Node2Vec embeddings** | Structural similarity search and résumé ranking |
 | **MCP Server** | Standardised API that any LangChain agent can query |
 | **Graph ➜ Markdown ➜ PDF** | One‑click, ATS‑optimised résumé for any job spec |
 | **OpenTelemetry inside** | End‑to‑end tracing & Prom‑ready metrics out of the box |
-| **100 % unit‑tested core** | CI badges say what words can’t fileciteturn2file5 |
+| **100 % unit‑tested core** | CI badges say what words can't fileciteturn2file5 |
 
 > **TL;DR for decision‑makers** – this is a live, reproducible sample of my
 > graph‑thinking, Python craftsmanship and DevOps rigour. Fork it for your org
@@ -43,7 +43,7 @@ package "Data Layer" {
 
 package "Processing Layer" {
   D : Hypergraph Package (Python)
-  E : Ollama LLMs\nGemma 3 12B / nomic-embed
+  E : Ollama LLMs\nGemma 3 12B / nomic-embed
 }
 
 package "Graph Layer" {
@@ -102,13 +102,13 @@ hypergraph/
 ### 3.1  Processing Steps
 
 1. **Change detection** – SHA‑256 hashes skip unchanged docs (SQLite registry).
-2. **Chunk & embed** – 1 500‑word windows, 200‑word overlap; vectors stored in
+2. **Chunk & embed** – 1 500‑word windows, 200‑word overlap; vectors stored in
    FAISS for hybrid search.
 3. **Gleaning loop** – up to 3 Gemma passes ask *only* for missing triples.
 4. **Graph update** – deterministic Cypher `MERGE` ensures alias‑safe nodes.
 5. **Node2Vec refresh** – post‑ingest GDS batch writes 128‑d embeddings.
 
-*First full build: ~3 × v1 runtime; incremental runs ≈ 45 s on 800 docs.*
+*First full build: ~3 × v1 runtime; incremental runs ≈ 45 s on 800 docs.*
 
 <!-- ─────────────────────────────────────────────────────────────────────────── -->
 ## 4  MCP Server
@@ -155,14 +155,16 @@ neo4j --> db
 @enduml
 ```
 
-### 4.1  Runtime Flow
+### 4.1  Runtime Flow
 
 1. **Startup** – configuration, health‑check Neo4j, init OTEL.
-2. **Authenticated request** – PAT → dependency‑injected session → Cypher/Vector
+2. **Static Content** – serves a modern HTML landing page with key features and API documentation link.
+3. **MCP Initialization** – provides context-aware instructions to LLM clients, including owner identification and usage guidelines.
+4. **Authenticated request** – PAT → dependency‑injected session → Cypher/Vector
    search → JSON/Streaming response.
-3. **Shutdown** – graceful driver close; spans flushed.
+5. **Shutdown** – graceful driver close; spans flushed.
 
-### 4.2  OpenTelemetry at a glance
+### 4.2  OpenTelemetry at a glance
 
 | Signal | Exporter | Destination |
 |--------|----------|-------------|
@@ -184,18 +186,49 @@ span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="tempo:4317"))
 trace.get_tracer_provider().add_span_processor(span_processor)
 ```
 
-*20 µs overhead per request; worth every byte for end‑to‑end flame‑graphs.*
+*20 µs overhead per request; worth every byte for end‑to‑end flame‑graphs.*
+
+### 4.3  User Interface
+
+The MCP server provides a clean, modern landing page that serves as the entry point for human users:
+
+- **Static HTML** – Served from the root path (`/`)
+- **Key Features** – Highlights the main capabilities of the system
+- **API Documentation** – Direct link to FastAPI's interactive OpenAPI documentation
+- **Responsive Design** – Mobile-friendly layout with modern typography
+
+The landing page is built with vanilla HTML and CSS, ensuring fast loading times and no external dependencies.
+
+### 4.4  MCP Configuration
+
+The MCP server's behavior and context are configurable through environment variables:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `MCP_INSTRUCTIONS` | Context and usage instructions for LLM clients | See `.env` |
+| `MCP_CLIENT_NAME` | Client application name | "SkillSphere" |
+| `MCP_CLIENT_VERSION` | Client version | "1.0.0" |
+| `MCP_CLIENT_ENVIRONMENT` | Runtime environment | "development" |
+| `MCP_CLIENT_FEATURES` | Enabled features | See `settings.py` |
+
+The `MCP_INSTRUCTIONS` environment variable is particularly important as it:
+- Identifies the owner of the skills-graph
+- Provides context about the system's purpose
+- Guides LLM clients on how to use the available tools
+- Ensures proper attribution of all content
+
+This configuration allows for easy maintenance and updates to the MCP server's behavior without code changes.
 
 <!-- ─────────────────────────────────────────────────────────────────────────── -->
 ## 5  Infrastructure & Ops
 
 | Host | Stack | Ports |
 |------|-------|-------|
-| **odin** | Neo4j 5.15 + GDS 2.x | 7474 / 7687 |
-| **odin** | Ollama 0.6.8 | 11434 |
+| **odin** | Neo4j 5.15 + GDS 2.x | 7474 / 7687 |
+| **odin** | Ollama 0.6.8 | 11434 |
 | **odin** | Ingestion Worker (systemd / Docker) | – |
 | **odin** | MCP Server (FastAPI) | **8000** |
-| **odin** | Grafana + Tempo + Loki + Prometheus | 3000 / 9090 / 3200 |
+| **odin** | Grafana + Tempo + Loki + Prometheus | 3000 / 9090 / 3200 |
 
 ### 5.1  Docker‑Compose deployment
 
@@ -282,7 +315,7 @@ $ docker compose logs -f mcp | sed -e "s/\x1b\[[0-9;]*m//g" | lnav
 | Method | When to use | How |
 |--------|-------------|-----|
 | **Docker watch‑mode** | Simple demos / dev | `--watch 300` flag (see compose) |
-| **Systemd timer** | Single prod host | `systemctl enable hypergraph-ingest.timer` (5 min) |
+| **Systemd timer** | Single prod host | `systemctl enable hypergraph-ingest.timer` (5 min) |
 | **GitHub Actions CRON** | Cloud Neo4j Aura | `schedule: '*/15 * * * *'` triggers `ingest` job |
 
 All methods call the same entry‑point:
@@ -303,15 +336,15 @@ Once up, browse Swagger UI at <http://localhost:8000/docs> – traces stream to
 Tempo automatically.
 
 <!-- ─────────────────────────────────────────────────────────────────────────── -->
-## 6  Performance Snapshot (M1 Max, 32 GB)
+## 6  Performance Snapshot (M1 Max, 32 GB)
 
-| Stage | Docs = 800 | Docs Δ = 8 |
+| Stage | Docs = 800 | Docs Δ = 8 |
 |-------|-----------|-----------|
-| Ingest + Glean | 4 m 20 s | 18 s |
-| Node2Vec 128‑d | 55 s | 55 s |
-| Total wall‑clock | **5 m 15 s** | **1 m 13 s** |
+| Ingest + Glean | 4 m 20 s | 18 s |
+| Node2Vec 128‑d | 55 s | 55 s |
+| Total wall‑clock | **5 m 15 s** | **1 m 13 s** |
 
-*Graphs stay snappy – 50 k nodes, 220 k rels queries < 100 ms.*
+*Graphs stay snappy – 50 k nodes, 220 k rels queries < 100 ms.*
 
 <!-- ─────────────────────────────────────────────────────────────────────────── -->
 ## 7  Research Foundation
@@ -330,7 +363,7 @@ Further reading lives in `docs/research.md`.
 ## 8  Roadmap
 
 1. **Edge weighting + centrality pre‑compute** for richer MCP ranking.
-2. **Auto‑summary blurbs** per entity (Gemma 3 distillation).
+2. **Auto‑summary blurbs** per entity (Gemma 3 distillation).
 3. **Incremental Node2Vec** once graph size justifies it.
 4. **Async ingest with two‑pass RAG** for high‑QPS environments.
 5. **Helm chart** for Kubernetes deploys with horizontal pod autoscale.
@@ -339,10 +372,10 @@ Further reading lives in `docs/research.md`.
 ## 9  Hire Me
 
 Need *graph‑driven AI* in your org? Book a 30‑min strategy call
-(<https://calendly.com/bernd-prager/30min>) and let’s build your competitive
+(<https://calendly.com/bernd-prager/30min>) and let's build your competitive
 edge together.
 
 ---
-<sup>© 2025 Bernd Prager — Apache 2.0. Clone it, fork it, improve it, and tell me
+<sup>© 2025 Bernd Prager — Apache 2.0. Clone it, fork it, improve it, and tell me
 what you build!</sup>
 

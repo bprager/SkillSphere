@@ -1,10 +1,14 @@
 # Dockerfile
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Allow installation of binary deps if needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
- && rm -rf /var/lib/apt/lists/*
+    gcc \
+    python3-dev \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -12,13 +16,10 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock* /app/
 
 # Install Poetry and project deps (no dev)
-RUN pip install --no-cache-dir poetry \
- && poetry config virtualenvs.create false \
- && poetry install --no-interaction --no-ansi --no-dev
+RUN pip install --no-cache-dir .
 
 # Copy the rest of your application code
 COPY src /app/src
-COPY README.md .env.example /app/
 
 # Set Python path so package is importable
 ENV PYTHONPATH=/app/src

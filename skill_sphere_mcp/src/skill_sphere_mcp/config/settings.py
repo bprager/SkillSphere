@@ -35,6 +35,16 @@ class ClientInfo(BaseModel):
         ],
         validation_alias="MCP_CLIENT_FEATURES",
     )
+    mcp_instructions: str = Field(
+        default="""You are connected to Bernd Prager's (bernd@prager.ws) skills-graph. \
+This MCP server provides access to a Neo4j-powered Hypergraph-of-Thought containing enriched career records and professional experiences. \
+Use `graph.search` or traverse `skills.node` to gather evidence, \
+then call `skill.match_role` or `cv.generate` as appropriate. \
+Prefer nodes labelled 'JOB' or 'CERTIFICATION' for hard evidence. \
+If a requirement is missing, suggest relevant up-skilling. \
+All context and content provided through this MCP server is specifically for Bernd Prager.""",
+        validation_alias="MCP_INSTRUCTIONS",
+    )
 
     model_config = SettingsConfigDict(
         populate_by_name=True,
