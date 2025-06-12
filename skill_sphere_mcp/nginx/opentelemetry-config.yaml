@@ -1,0 +1,16 @@
+exporter:
+  otlp:
+    endpoint: "http://odin:4317"  # Points to our OpenTelemetry collector
+    protocol: "grpc"
+
+service:
+  name: "nginx"
+  namespace: "fenrir"
+
+sampler:
+  type: "parentbased_traceidratio"
+  ratio: 1.0  # Sample 100% of requests for now
+
+propagators:
+  - "tracecontext"
+  - "baggage" 

@@ -8,6 +8,8 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from neo4j import AsyncSession
+from fastapi.responses import Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter
 
 from ..db.deps import get_db_session
 from ..db.utils import get_entity_by_id
@@ -16,6 +18,9 @@ from ..models.skill import Skill
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Define a counter metric
+request_count = Counter('request_count', 'Total number of requests')
 
 
 @router.get("/health")
@@ -68,3 +73,10 @@ async def get_entity(
     except Exception as exc:
         logger.error("Failed to fetch entity: %s", exc)
         raise HTTPException(status_code=500, detail="Failed to fetch entity") from exc
+
+
+@router.get("/metrics")
+async def metrics():
+    """Expose Prometheus metrics."""
+    request_count.inc()  # Increment the counter
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

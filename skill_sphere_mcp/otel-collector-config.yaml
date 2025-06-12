@@ -3,11 +3,49 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  filelog:
+    include:
+      - /var/log/nginx/*.log
+    start_at: beginning
+    include_file_path: true
+    include_file_name: true
+    resource:
+      service.name: nginx
+      service.namespace: fenrir
+    operators:
+      - type: regex_parser
+        regex: '^(?P<remote_addr>[\d\.]+) - (?P<remote_user>[\w-]+) \[(?P<time_local>[\w/: +-]+)\] "(?P<request_method>\w+) (?P<request_uri>[\w/\.-]+) (?P<http_version>HTTP/\d\.\d)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)" (?P<request_time>[\d\.]+) (?P<upstream_response_time>[\d\.]+) (?P<upstream_addr>[\w\.:]+) (?P<upstream_status>\d+) rt=(?P<rt>[\d\.]+) uct="(?P<uct>[\d\.-]+)" uht="(?P<uht>[\d\.-]+)" urt="(?P<urt>[\d\.-]+)"'
+        timestamp:
+          parse_from: attributes.time_local
+          layout: "02/Jan/2006:15:04:05 -0700"
 
 processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1500
+    spike_limit_mib: 512
+  attributes:
+    actions:
+      - key: nginx.status
+        action: extract
+        pattern: ^(?P<status>\d+)
+      - key: nginx.method
+        action: extract
+        pattern: ^(?P<method>\w+)
+      - key: nginx.path
+        action: extract
+        pattern: ^(?P<path>[^\s]+)
+      - key: nginx.request_time
+        action: extract
+        pattern: rt=(?P<rt>[\d\.]+)
+      - key: nginx.upstream_response_time
+        action: extract
+        pattern: urt="(?P<urt>[\d\.-]+)"
 
 exporters:
   logging:
@@ -16,10 +54,36 @@ exporters:
     endpoint: tempo:4317
     tls:
       insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    default_labels_enabled:
+      resource: true
+      record: true
+    resource_attributes:
+      service.name: "service.name"
+      service.namespace: "service.namespace"
+    record_attributes:
+      severity: "severity"
+      level: "level"
+      nginx.status: "nginx.status"
+      nginx.method: "nginx.method"
+      nginx.path: "nginx.path"
+      nginx.request_time: "nginx.request_time"
+      nginx.upstream_response_time: "nginx.upstream_response_time"
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [logging, otlp] 
+      processors: [memory_limiter, batch]
+      exporters: [logging, otlp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [logging, prometheus]
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, batch, attributes]
+      exporters: [logging, loki] 

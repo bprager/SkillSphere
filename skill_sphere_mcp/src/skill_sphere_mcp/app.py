@@ -8,8 +8,10 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from .api.mcp_routes import router as mcp_router
+from .api.routes import router as metrics_router
 from .config.settings import get_settings
 from .routes import router as api_router
 from .telemetry.otel import setup_telemetry
@@ -77,13 +79,21 @@ def create_app() -> FastAPI:
         """,
     )
 
-    # Mount static files
+    # Get the static directory path
     static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-    mcp_server_app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
-    # Include API routes
-    mcp_server_app.include_router(api_router)
-    mcp_server_app.include_router(mcp_router)
+    # Include API routes first
+    mcp_server_app.include_router(api_router)  # /v1 routes
+    mcp_server_app.include_router(mcp_router)  # /mcp routes
+    mcp_server_app.include_router(metrics_router)  # /metrics and other API routes
+
+    # Mount static files at /static for all static assets
+    mcp_server_app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    # Add a route for the root path to serve index.html
+    @mcp_server_app.get("/")
+    async def root():
+        return FileResponse(os.path.join(static_dir, "index.html"))
 
     return mcp_server_app
 
