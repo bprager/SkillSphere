@@ -20,6 +20,8 @@ receivers:
         timestamp:
           parse_from: attributes.time_local
           layout: "02/Jan/2006:15:04:05 -0700"
+  docker_stats:
+    endpoint: "unix:///var/run/docker.sock"
 
 processors:
   batch:
@@ -46,6 +48,17 @@ processors:
       - key: nginx.upstream_response_time
         action: extract
         pattern: urt="(?P<urt>[\d\.-]+)"
+  resource:
+    attributes:
+      - key: container.name
+        action: insert
+        from_attribute: container.name
+      - key: container.id
+        action: insert
+        from_attribute: container.id
+      - key: container.image.name
+        action: insert
+        from_attribute: container.image.name
 
 exporters:
   logging:
@@ -59,19 +72,11 @@ exporters:
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
     default_labels_enabled:
-      resource: true
-      record: true
-    resource_attributes:
-      service.name: "service.name"
-      service.namespace: "service.namespace"
-    record_attributes:
-      severity: "severity"
-      level: "level"
-      nginx.status: "nginx.status"
-      nginx.method: "nginx.method"
-      nginx.path: "nginx.path"
-      nginx.request_time: "nginx.request_time"
-      nginx.upstream_response_time: "nginx.upstream_response_time"
+      container.name: true
+      container.id: true
+      container.image.name: true
+      service.name: true
+      service.namespace: true
 
 service:
   pipelines:
@@ -80,10 +85,10 @@ service:
       processors: [memory_limiter, batch]
       exporters: [logging, otlp]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, docker_stats]
       processors: [memory_limiter, batch]
       exporters: [logging, prometheus]
     logs:
       receivers: [otlp, filelog]
-      processors: [memory_limiter, batch, attributes]
+      processors: [memory_limiter, batch, attributes, resource]
       exporters: [logging, loki] 

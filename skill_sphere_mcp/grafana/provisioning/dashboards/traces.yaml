@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: 'Traces'
+    orgId: 1
+    folder: 'Traces'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/traces 

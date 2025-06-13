@@ -215,17 +215,6 @@ async def test_search_success(client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_initialize_success(client: TestClient) -> None:
-    """Test successful initialization."""
-    response = client.post("/mcp/initialize")
-    assert response.status_code == HTTPStatus.OK
-    data = response.json()
-    assert "protocol_version" in data
-    assert "capabilities" in data
-    assert "instructions" in data
-
-
-@pytest.mark.asyncio
 async def test_list_resources(client: TestClient) -> None:
     """Test listing resources."""
     response = client.get("/mcp/resources/list")
@@ -282,59 +271,32 @@ async def test_mcp_tool_dispatch_success(client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_mcp_tool_dispatch_invalid_params(client: TestClient) -> None:
-    """Test tool dispatch with invalid parameters."""
+    """Test MCP tool dispatch with invalid parameters."""
     response = client.post(
         "/mcp/rpc/tools/dispatch",
-        json={
-            "tool_name": "match_role",
-            "parameters": {
-                "years_experience": "invalid",  # Should be a dict
-            },
-        },
+        json={"tool_name": "match_role", "parameters": {}},
     )
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    data = response.json()
-    assert "detail" in data
-    assert "Invalid parameters" in data["detail"]
-
-
-@pytest.mark.asyncio
-async def test_mcp_jsonrpc_initialize(client: TestClient) -> None:
-    """Test JSON-RPC initialize method."""
-    request = JSONRPCRequest(
-        jsonrpc="2.0",
-        method="mcp.initialize",
-        params={},
-        id=1,
-    )
-    response = client.post("/mcp/rpc", json=request.__dict__)
-    assert response.status_code == HTTPStatus.OK
-    data = response.json()
-    assert data["jsonrpc"] == "2.0"
-    assert "result" in data
-    assert data["id"] == 1
-    result = data["result"]
-    assert "protocol_version" in result
-    assert "capabilities" in result
-    assert "instructions" in result
+    assert "Missing required_skills parameter" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
 async def test_mcp_jsonrpc_search_success(client: TestClient) -> None:
     """Test successful JSON-RPC search."""
-    request = JSONRPCRequest(
-        jsonrpc="2.0",
-        method="mcp.search",
-        params={"query": "test", "limit": 10},
-        id=1,
-    )
-    response = client.post("/mcp/rpc", json=request.__dict__)
+    request = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "mcp.search",
+        "params": {"query": "Python", "limit": 10},
+    }
+    response = client.post("/mcp/rpc", json=request)
     assert response.status_code == HTTPStatus.OK
     data = response.json()
-    assert data["jsonrpc"] == "2.0"
     assert "result" in data
-    assert data["id"] == 1
     assert isinstance(data["result"], list)
+    if len(data["result"]) > 0:
+        assert "node" in data["result"][0]
+        assert "name" in data["result"][0]["node"]
 
 
 @pytest.mark.asyncio

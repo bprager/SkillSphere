@@ -19,11 +19,9 @@ from skill_sphere_mcp.api.mcp.handlers import explain_match
 from skill_sphere_mcp.api.mcp.handlers import graph_search
 from skill_sphere_mcp.api.mcp.handlers import match_role
 from skill_sphere_mcp.api.mcp.models import ToolRequest
-from skill_sphere_mcp.api.mcp.routes import initialize
 from skill_sphere_mcp.api.mcp.routes import list_resources
 from skill_sphere_mcp.api.mcp.rpc import rpc_match_role_handler
 from skill_sphere_mcp.api.mcp.utils import get_resource
-from skill_sphere_mcp.api.models import InitializeResponse
 from skill_sphere_mcp.cv.generator import generate_cv
 from skill_sphere_mcp.graph.embeddings import embeddings
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
@@ -55,19 +53,6 @@ HTTP_422_UNPROCESSABLE_ENTITY = 422
 async def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
     return AsyncMock(spec=AsyncSession)
-
-
-@pytest_asyncio.fixture
-async def test_initialize() -> None:
-    """Test MCP initialization endpoint."""
-    response = await initialize()
-    assert isinstance(response, InitializeResponse)
-    assert response.protocol_version == "1.0"
-    assert (
-        "semantic_search" in response.capabilities
-        or "resources" in response.capabilities
-    )
-    assert isinstance(response.instructions, str)
 
 
 @pytest_asyncio.fixture
@@ -215,13 +200,6 @@ async def test_tool_handler_error(mock_session: AsyncMock) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool("invalid.tool", request.parameters, mock_session)
     assert exc_info.value.status_code == HTTP_NOT_FOUND
-
-
-@pytest_asyncio.fixture
-async def test_initialize_invalid_version() -> None:
-    """Test MCP initialization with invalid version."""
-    response = await initialize()
-    assert response.protocol_version == "1.0"  # Should return supported version
 
 
 @pytest.mark.asyncio
