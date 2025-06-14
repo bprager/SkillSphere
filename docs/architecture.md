@@ -229,8 +229,9 @@ This configuration allows for easy maintenance and updates to the MCP server's b
 | **odin** | Ingestion Worker (systemd / Docker) | – |
 | **odin** | MCP Server (FastAPI) | **8000** |
 | **odin** | Grafana + Tempo + Loki + Prometheus | 3000 / 9090 / 3200 |
+| **odin** | Matomo Analytics + MySQL | 8080 |
 
-### 5.1  Docker‑Compose deployment
+### 5.1  Docker‑Compose deployment
 
 A single‑command setup for local dev or PoC:
 
@@ -310,7 +311,43 @@ $ docker compose up -d
 $ docker compose logs -f mcp | sed -e "s/\x1b\[[0-9;]*m//g" | lnav
 ```
 
-### 5.2  Periodic ingestion
+### 5.2  Analytics & Monitoring
+
+The system uses two complementary approaches for monitoring and analytics:
+
+1. **OpenTelemetry Stack** (Grafana + Tempo + Loki + Prometheus)
+   - End-to-end request tracing
+   - System metrics and performance monitoring
+   - Centralized logging with trace correlation
+
+2. **Matomo Analytics** (Web Analytics)
+   - Privacy-focused web analytics
+   - Geo-location tracking using GeoIP2
+   - Custom event tracking
+   - User behavior analysis
+   - A/B testing capabilities
+
+The Matomo setup includes:
+- Dedicated MySQL database for analytics data
+- GeoIP2 integration for accurate location tracking
+- Nginx reverse proxy with geo-location headers
+- Separate Docker network for isolation
+- Persistent storage for analytics data
+
+To enable geo-location tracking in the main application, add the following JavaScript to your web pages:
+
+```javascript
+// Matomo tracking with geo-location
+var _paq = window._paq = window._paq || [];
+_paq.push(['setTrackerUrl', 'http://matomo.local/matomo.php']);
+_paq.push(['setSiteId', '1']);
+_paq.push(['enableLinkTracking']);
+_paq.push(['trackPageView']);
+```
+
+The geo-location data is automatically collected and passed through Nginx headers, providing detailed visitor location information in the Matomo dashboard.
+
+### 5.3  Periodic ingestion
 
 | Method | When to use | How |
 |--------|-------------|-----|
@@ -324,7 +361,7 @@ All methods call the same entry‑point:
 python -m hypergraph.cli.ingest  # defaults: one‑shot
 ```
 
-### 5.3  Running the MCP server
+### 5.4  Running the MCP server
 
 | Context | Command |
 |---------|---------|
