@@ -7,13 +7,16 @@ from typing import Annotated
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-from neo4j import AsyncSession
 from fastapi.responses import Response
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter
+from neo4j import AsyncSession
+from prometheus_client import CONTENT_TYPE_LATEST
+from prometheus_client import Counter
+from prometheus_client import generate_latest
 
 from ..db.deps import get_db_session
 from ..db.utils import get_entity_by_id
 from ..models.skill import Skill
+from .mcp.utils import create_skill_in_db
 
 
 logger = logging.getLogger(__name__)
@@ -48,18 +51,7 @@ async def create_skill(
     skill: Skill, session: Annotated[AsyncSession, Depends(get_db_session)]
 ) -> Skill:
     """Create a new skill in the database."""
-    try:
-        result = await session.run(
-            "CREATE (s:Skill $skill) RETURN s",
-            skill=skill.model_dump(exclude_none=True),
-        )
-        record = await result.single()
-        if not record:
-            raise HTTPException(status_code=500, detail="Failed to create skill")
-        return Skill(**record["s"])
-    except Exception as exc:
-        logger.error("Failed to create skill: %s", exc)
-        raise HTTPException(status_code=500, detail="Failed to create skill") from exc
+    return await create_skill_in_db(skill, session)
 
 
 @router.get("/entities/{entity_id}", response_model=dict)

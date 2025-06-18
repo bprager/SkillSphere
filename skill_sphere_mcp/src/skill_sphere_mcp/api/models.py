@@ -1,26 +1,8 @@
 """Models for the MCP server."""
 
-from typing import Any
-
-from pydantic import BaseModel
-
-
-class HealthResponse(BaseModel):
-    """Health check response model."""
-
-    status: str
+from .mcp.models import HealthResponse
+from .mcp.models import InitializeRequest
+from .mcp.models import InitializeResponse
 
 
-class InitializeRequest(BaseModel):
-    """Initialize request model."""
-
-    protocol_version: str
-    client_info: dict[str, Any]
-
-
-class InitializeResponse(BaseModel):
-    """Initialize response model."""
-
-    protocol_version: str
-    capabilities: dict[str, Any]
-    instructions: str
+__all__ = ["HealthResponse", "InitializeRequest", "InitializeResponse"]

@@ -8,6 +8,7 @@ import pytest
 import pytest_asyncio
 
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from neo4j import AsyncSession
 
 # Create a test instance of JSONRPCHandler
@@ -19,9 +20,11 @@ from skill_sphere_mcp.api.mcp.handlers import explain_match
 from skill_sphere_mcp.api.mcp.handlers import graph_search
 from skill_sphere_mcp.api.mcp.handlers import match_role
 from skill_sphere_mcp.api.mcp.models import ToolRequest
+from skill_sphere_mcp.api.mcp.routes import get_db_session
 from skill_sphere_mcp.api.mcp.routes import list_resources
 from skill_sphere_mcp.api.mcp.rpc import rpc_match_role_handler
 from skill_sphere_mcp.api.mcp.utils import get_resource
+from skill_sphere_mcp.app import create_app
 from skill_sphere_mcp.cv.generator import generate_cv
 from skill_sphere_mcp.graph.embeddings import embeddings
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
@@ -47,12 +50,15 @@ HTTP_NOT_FOUND = 404
 HTTP_SERVER_ERROR = 500
 HTTP_NOT_IMPLEMENTED = 501
 HTTP_422_UNPROCESSABLE_ENTITY = 422
+HTTP_UNPROCESSABLE_ENTITY = 422
 
 
 @pytest_asyncio.fixture
 async def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
-    return AsyncMock(spec=AsyncSession)
+    session = AsyncMock()
+    session.run = AsyncMock()
+    return session
 
 
 @pytest_asyncio.fixture
@@ -200,6 +206,7 @@ async def test_tool_handler_error(mock_session: AsyncMock) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool("invalid.tool", request.parameters, mock_session)
     assert exc_info.value.status_code == HTTP_NOT_FOUND
+    assert "Unknown tool" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -230,20 +237,23 @@ async def test_explain_match_tool_invalid_params(mock_session: AsyncMock) -> Non
     request = ToolRequest(tool_name="skill.explain_match", parameters=parameters)
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool(request.tool_name, request.parameters, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "Role requirement is required" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
 async def test_generate_cv_tool_invalid_format(mock_session: AsyncMock) -> None:
     """Test CV generation tool with invalid format."""
     parameters = {
+        "profile_id": "123",  # Add required profile_id
         "target_keywords": ["Python"],
         "format": "invalid_format",  # Invalid format
     }
     request = ToolRequest(tool_name="cv.generate", parameters=parameters)
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool(request.tool_name, request.parameters, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "Validation error" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -256,7 +266,8 @@ async def test_graph_search_tool_invalid_top_k(mock_session: AsyncMock) -> None:
     request = ToolRequest(tool_name="graph.search", parameters=parameters)
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool(request.tool_name, request.parameters, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "top_k must be a positive integer" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -269,7 +280,8 @@ async def test_match_role_tool_empty_skills(mock_session: AsyncMock) -> None:
     request = ToolRequest(tool_name=MOCK_TOOL_NAME, parameters=parameters)
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool(request.tool_name, request.parameters, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "Required skills are missing" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -282,7 +294,8 @@ async def test_match_role_tool_invalid_experience(mock_session: AsyncMock) -> No
     request = ToolRequest(tool_name=MOCK_TOOL_NAME, parameters=parameters)
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool(request.tool_name, request.parameters, mock_session)
-    assert exc_info.value.status_code == HTTP_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "Invalid years_experience for skill 'Python'" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -353,7 +366,7 @@ async def test_explain_match_invalid_params() -> None:
     mock_session = AsyncMock()
     with pytest.raises(HTTPException) as exc_info:
         await explain_match({}, mock_session)
-    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -364,7 +377,8 @@ async def test_explain_match_value_error() -> None:
     mock_session.run.side_effect = ValueError()
     with pytest.raises(HTTPException) as exc_info:
         await explain_match(params, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "skill_id must be a number" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -387,11 +401,12 @@ async def test_generate_cv_success() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_cv_invalid_params() -> None:
-    """Test generate_cv with invalid parameters raises ValueError."""
+    """Test generate_cv with invalid parameters raises HTTPException."""
     mock_session = AsyncMock()
-    with pytest.raises(ValueError) as exc_info:
-        await generate_cv({}, mock_session)
-    assert "validation errors for GenerateCVRequest" in str(exc_info.value)
+    with pytest.raises(HTTPException) as exc_info:
+        await generate_cv({"target_keywords": ["Python"], "format": "invalid"}, mock_session)
+    assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert "1 validation error for GenerateCVRequest" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -625,3 +640,153 @@ async def test_handle_jsonrpc_request_internal_error() -> None:
         assert result.jsonrpc == "2.0"
         assert result.id == 1
         assert result.error is not None
+
+
+@pytest.fixture
+def client(mock_session):
+    """Create a test client with mocked dependencies."""
+    app = create_app()
+    app.dependency_overrides[get_db_session] = lambda: mock_session
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+def test_health_check(client):
+    """Test health check endpoint."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_search_endpoint_success(client, mock_session):
+    """Test successful search endpoint."""
+    # Mock search results
+    mock_result = AsyncMock()
+    mock_result.all = AsyncMock(return_value=[
+        {
+            "node": {
+                "id": "1",
+                "name": "Python",
+                "type": "Skill",
+                "description": "Python programming language"
+            }
+        }
+    ])
+    mock_session.run.return_value = mock_result
+
+    response = client.post(
+        "/mcp/search",
+        json={"query": "Python", "limit": 10}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "results" in data
+    assert len(data["results"]) == 1
+    assert data["results"][0]["node"]["name"] == "Python"
+
+
+def test_search_endpoint_empty_query(client):
+    """Test search endpoint with empty query."""
+    response = client.post(
+        "/mcp/search",
+        json={"query": "", "limit": 10}
+    )
+    assert response.status_code == 400
+    assert 'Query is required' in response.json()["detail"]
+
+
+def test_tool_dispatch_endpoint_success(client, mock_session):
+    """Test successful tool dispatch endpoint."""
+    with patch("skill_sphere_mcp.tools.dispatcher.dispatch_tool") as mock_dispatch:
+        mock_dispatch.return_value = {
+            "match_score": 0.0,
+            "skill_gaps": ["Python"],
+            "matching_skills": []
+        }
+
+        response = client.post(
+            "/mcp/rpc/tools/dispatch",
+            json={
+                "tool_name": "skill.match_role",  # Use a valid tool name
+                "parameters": {
+                    "required_skills": ["Python"],
+                    "years_experience": {"Python": 5}
+                }
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["result"] == "success"
+        assert "match_score" in data["data"]
+        assert "skill_gaps" in data["data"]
+        assert "matching_skills" in data["data"]
+
+
+def test_tool_dispatch_endpoint_missing_name(client):
+    """Test tool dispatch endpoint with missing tool name."""
+    response = client.post(
+        "/mcp/rpc/tools/dispatch",
+        json={"parameters": {}}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Tool name is required"
+
+
+def test_get_entity_endpoint_success(client, mock_session):
+    """Test successful entity retrieval endpoint."""
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(return_value={
+        "n": {
+            "id": "1",
+            "name": "Test Entity",
+            "type": "Skill",
+            "description": "Test description"
+        }
+    })
+    mock_session.run.return_value = mock_result
+
+    response = client.get("/mcp/entities/1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "1"
+    assert data["name"] == "Test Entity"
+    assert data["type"] == "Skill"
+
+
+def test_get_entity_endpoint_not_found(client, mock_session):
+    """Test entity retrieval endpoint for non-existent entity."""
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(return_value=None)
+    mock_session.run.return_value = mock_result
+
+    response = client.get("/mcp/entities/nonexistent")
+    assert response.status_code == 404
+    assert "Entity not found" in response.json()["detail"]
+
+
+def test_list_resources_endpoint(client):
+    """Test resource listing endpoint."""
+    response = client.get("/mcp/resources/list")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert "nodes" in data
+    assert "relationships" in data
+    assert "search" in data
+
+
+def test_get_resource_endpoint_valid(client):
+    """Test valid resource retrieval endpoint."""
+    response = client.get("/mcp/resources/get/nodes")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "nodes"
+    assert "description" in data
+    assert "properties" in data
+
+
+def test_get_resource_endpoint_invalid(client):
+    """Test invalid resource retrieval endpoint."""
+    response = client.get("/mcp/resources/get/invalid")
+    assert response.status_code == 400
+    assert "Invalid resource type" in response.json()["detail"]

@@ -1,0 +1,43 @@
+# SkillSphere Project Rules
+
+## Code Style
+- Use Black for code formatting
+- Follow MyPy type checking rules
+- Adhere to Ruff linting guidelines
+- Maintain 100% test coverage
+
+## Project Patterns
+- FastAPI for API endpoints
+- Neo4j for graph storage
+- Node2Vec for embeddings
+- Ollama for local AI processing
+
+## Error Handling
+- Consistent error messages
+- Standard status codes
+- Proper validation
+- Clear error documentation
+
+## Testing
+- Unit tests for all components
+- Integration tests for core flows
+- Coverage reporting
+- Error case coverage
+
+## Documentation
+- Keep Memory Bank updated
+- Document API changes
+- Update error patterns
+- Maintain test documentation
+
+## Development Workflow
+- Use virtual environment
+- Run tests before commits
+- Check type hints
+- Verify coverage
+
+## Project Structure
+- Follow module organization
+- Maintain clear imports
+- Use proper file naming
+- Keep documentation current 

@@ -208,12 +208,12 @@ async def test_neo4j_connection() -> None:
 
 
 @pytest.mark.asyncio
-async def test_neo4j_query(mock_neo4j_session: AsyncMock) -> None:
+async def test_neo4j_query(mock_session: AsyncMock) -> None:
     """Test Neo4j query execution."""
     mock_result = AsyncMock()
     mock_result.single.return_value = {"n": 1}
-    mock_neo4j_session.run.return_value = mock_result
+    mock_session.run.return_value = mock_result
 
-    result = await mock_neo4j_session.run("RETURN 1 as n")
+    result = await mock_session.run("MATCH (n) RETURN n")
     record = await result.single()
     assert record["n"] == 1

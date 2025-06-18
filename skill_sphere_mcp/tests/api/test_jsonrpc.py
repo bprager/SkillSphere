@@ -5,13 +5,19 @@
 import pytest
 import pytest_asyncio
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from starlette.status import HTTP_200_OK
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
+from skill_sphere_mcp.api.jsonrpc import ERROR_INVALID_PARAMS
 from skill_sphere_mcp.api.jsonrpc import ERROR_INVALID_REQUEST
 from skill_sphere_mcp.api.jsonrpc import ERROR_METHOD_NOT_FOUND
 from skill_sphere_mcp.api.jsonrpc import JSONRPCRequest
 from skill_sphere_mcp.api.jsonrpc import JSONRPCResponse
+from skill_sphere_mcp.api.jsonrpc import create_jsonrpc_error
+from skill_sphere_mcp.api.jsonrpc import create_jsonrpc_response
+from skill_sphere_mcp.api.jsonrpc import validate_jsonrpc_request
 from skill_sphere_mcp.app import app
 
 
@@ -21,53 +27,107 @@ async def jsonrpc_client():
     return TestClient(app)
 
 
-def test_jsonrpc_request_validation() -> None:
+def test_jsonrpc_request_validation():
     """Test JSON-RPC request validation."""
+    # Valid request
+    valid_request = {
+        "jsonrpc": "2.0",
+        "method": "test_method",
+        "params": {"key": "value"},
+        "id": 1
+    }
+    assert validate_jsonrpc_request(valid_request) is True
+
+    # Invalid JSON-RPC version
+    invalid_version = {
+        "jsonrpc": "1.0",
+        "method": "test_method",
+        "params": {"key": "value"},
+        "id": 1
+    }
+    with pytest.raises(HTTPException) as exc_info:
+        validate_jsonrpc_request(invalid_version)
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert "Invalid JSON-RPC version" in str(exc_info.value.detail)
+
+    # Missing method
+    missing_method = {
+        "jsonrpc": "2.0",
+        "params": {"key": "value"},
+        "id": 1
+    }
+    with pytest.raises(HTTPException) as exc_info:
+        validate_jsonrpc_request(missing_method)
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert "Missing method" in str(exc_info.value.detail)
+
+    # Invalid params type
+    invalid_params = {
+        "jsonrpc": "2.0",
+        "method": "test_method",
+        "params": "not_a_dict",
+        "id": 1
+    }
+    with pytest.raises(HTTPException) as exc_info:
+        validate_jsonrpc_request(invalid_params)
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert "Invalid params" in str(exc_info.value.detail)
+
+
+def test_jsonrpc_response_creation():
+    """Test JSON-RPC response creation."""
+    # Success response
+    result = {"data": "test"}
+    response = create_jsonrpc_response(result, 1)
+    assert response["jsonrpc"] == "2.0"
+    assert response["result"] == result
+    assert response["id"] == 1
+
+    # Error response
+    error = {"code": -32602, "message": "Invalid params"}
+    response = create_jsonrpc_error(error, 1)
+    assert response["jsonrpc"] == "2.0"
+    assert response["error"] == error
+    assert response["id"] == 1
+
+
+def test_jsonrpc_request_model():
+    """Test JSONRPCRequest model."""
     # Valid request
     request = JSONRPCRequest(
         jsonrpc="2.0",
-        method="test.method",
+        method="test_method",
         params={"key": "value"},
-        id=1,
+        id=1
     )
     assert request.jsonrpc == "2.0"
-    assert request.method == "test.method"
+    assert request.method == "test_method"
     assert request.params == {"key": "value"}
     assert request.id == 1
 
-    # Invalid jsonrpc version
-    with pytest.raises(ValueError):
-        JSONRPCRequest(jsonrpc="1.0", method="test")
-
-    # Missing method
-    with pytest.raises(ValueError):
-        JSONRPCRequest(method="", id=1)
-
-
-def test_jsonrpc_response_creation() -> None:
-    """Test JSON-RPC response creation."""
-    # Success response
-    response = JSONRPCResponse(
+    # Test with optional params
+    request = JSONRPCRequest(
         jsonrpc="2.0",
-        result={"key": "value"},
-        id=1,
+        method="test_method",
+        id=1
     )
-    assert response.jsonrpc == "2.0"
-    assert response.result == {"key": "value"}
-    assert response.id == 1
+    assert request.params is None
 
-    # Error response
-    error_response = JSONRPCResponse(
+    # Test with string ID
+    request = JSONRPCRequest(
         jsonrpc="2.0",
-        error={"code": ERROR_INVALID_REQUEST, "message": "Invalid request"},
-        id=1,
+        method="test_method",
+        id="request-1"
     )
-    assert error_response.jsonrpc == "2.0"
-    assert error_response.error == {
-        "code": ERROR_INVALID_REQUEST,
-        "message": "Invalid request",
-    }
-    assert error_response.id == 1
+    assert request.id == "request-1"
+
+
+def test_jsonrpc_error_constants():
+    """Test JSON-RPC error constants."""
+    assert ERROR_INVALID_PARAMS["code"] == -32602
+    assert ERROR_METHOD_NOT_FOUND["code"] == -32601
+    assert "Invalid params" in ERROR_INVALID_PARAMS["message"]
+    assert "Method not found" in ERROR_METHOD_NOT_FOUND["message"]
 
 
 def test_rpc_endpoint_initialize(client: TestClient) -> None:
@@ -103,5 +163,5 @@ def test_rpc_endpoint_method_not_found(client: TestClient) -> None:
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
-    assert data["error"]["code"] == ERROR_METHOD_NOT_FOUND
+    assert data["error"]["code"] == ERROR_METHOD_NOT_FOUND["code"]
     assert data["id"] == 1

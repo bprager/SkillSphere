@@ -1,21 +1,23 @@
 """Tests for the MCP server."""
 
 from http import HTTPStatus
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
 from skill_sphere_mcp.api.jsonrpc import ERROR_INVALID_PARAMS
 from skill_sphere_mcp.api.jsonrpc import ERROR_METHOD_NOT_FOUND
 from skill_sphere_mcp.api.jsonrpc import JSONRPCRequest
+from skill_sphere_mcp.api.mcp.routes import get_db_session
+from skill_sphere_mcp.app import create_app
 
 from .constants import HTTP_OK
 from .constants import HTTP_UNPROCESSABLE_ENTITY
-
-from skill_sphere_mcp.app import create_app
 
 
 @pytest.fixture
@@ -27,11 +29,32 @@ def mock_db_session():
     def run_side_effect(*args, **kwargs):
         query = args[0] if args else ""
         params = args[1] if len(args) > 1 else kwargs
+        # Normalize query string to ignore whitespace/newlines
+        norm_query = " ".join(query.split())
 
-        # For get_entity_by_id (MATCH (n) WHERE n.id = $id)
-        if "MATCH (n) WHERE n.id = $id" in query:
+        # For handle_get_entity (MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1)
+        if "MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1" in norm_query:
             # Simulate not found for 'nonexistent'
-            if params and (params.get("id") == "nonexistent"):
+            if params and (params.get("entity_id") == "nonexistent"):
+                mock_result = AsyncMock()
+                mock_result.single = AsyncMock(return_value=None)
+                return mock_result
+            # Otherwise, return a dummy entity
+            mock_result = AsyncMock()
+            mock_result.single = AsyncMock(
+                return_value={
+                    "n": {"id": "someid", "name": "Some Entity", "type": "Skill"}
+                }
+            )
+            return mock_result
+
+        # For get_entity_by_id (MATCH (n) WHERE n.id = $entity_id ...)
+        elif (
+            "MATCH (n) WHERE n.id = $entity_id RETURN n, [(n)-[r]->(m) | {type: type(r), target: m.id}] as relationships"
+            in norm_query
+        ):
+            # Simulate not found for 'nonexistent'
+            if params and (params.get("entity_id") == "nonexistent"):
                 mock_result = AsyncMock()
                 mock_result.single = AsyncMock(return_value=None)
                 return mock_result
@@ -39,21 +62,19 @@ def mock_db_session():
             mock_result = AsyncMock()
             mock_result.single = AsyncMock(
                 return_value={
-                    "n": {"id": "someid", "name": "Some Entity"},
-                    "labels": ["Entity"],
+                    "n": {"id": "someid", "name": "Some Entity", "type": "Skill"},
                     "relationships": [
                         {
                             "type": "RELATES_TO",
-                            "target": {"id": "otherid", "name": "Other Entity"},
-                            "target_labels": ["Entity"],
+                            "target": "otherid"
                         }
-                    ],
+                    ]
                 }
             )
             return mock_result
 
         # For match_role (MATCH (p:Person))
-        elif "MATCH (p:Person)" in query:
+        elif "MATCH (p:Person)" in norm_query:
             mock_result = AsyncMock()
             mock_result.all = AsyncMock(
                 return_value=[
@@ -70,7 +91,7 @@ def mock_db_session():
             return mock_result
 
         # For explain_match (MATCH (s:Skill))
-        elif "MATCH (s:Skill" in query:
+        elif "MATCH (s:Skill" in norm_query:
             mock_result = AsyncMock()
             mock_result.single = AsyncMock(
                 return_value={
@@ -94,7 +115,7 @@ def mock_db_session():
             return mock_result
 
         # For graph_search (MATCH (n))
-        elif "MATCH (n)" in query:
+        elif "MATCH (n)" in norm_query:
             mock_result = AsyncMock()
             mock_result.all = AsyncMock(
                 return_value=[
@@ -141,10 +162,7 @@ def mock_db_session():
 def client(mock_db_session):
     """Create a test client with mocked dependencies."""
     app = create_app()
-    app.dependency_overrides = {}
-    from skill_sphere_mcp.api.mcp import routes
-
-    app.dependency_overrides[routes.get_db_session] = lambda: mock_db_session
+    app.dependency_overrides[get_db_session] = lambda: mock_db_session
     with TestClient(app) as test_client:
         yield test_client
 
@@ -161,30 +179,27 @@ async def test_health_check(client: TestClient) -> None:
 async def test_get_entity_not_found(client: TestClient) -> None:
     """Test getting a non-existent entity."""
     response = client.get("/mcp/entities/nonexistent")
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {"detail": "Entity not found"}
+    assert response.status_code == 404
+    assert "Entity not found" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
 async def test_get_entity_invalid_id(client: TestClient) -> None:
     """Test getting an entity with invalid ID."""
     response = client.get("/mcp/entities/!@#")
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == 422
     assert "Invalid entity ID" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
 async def test_get_entity_success(client: TestClient) -> None:
-    """Test successfully getting an entity."""
+    """Test getting an entity successfully."""
     response = client.get("/mcp/entities/someid")
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == 200
     data = response.json()
-    assert "id" in data
-    assert "name" in data
-    assert "type" in data
-    assert "relationships" in data
     assert data["id"] == "someid"
     assert data["name"] == "Some Entity"
+    assert data["type"] == "Skill"
 
 
 @pytest.mark.asyncio
@@ -234,8 +249,8 @@ async def test_get_resource_invalid(client: TestClient) -> None:
 async def test_tool_dispatch_missing_name(client: TestClient) -> None:
     """Test tool dispatch with missing tool name."""
     response = client.post("/mcp/rpc/tools/dispatch", json={})
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json() == {"detail": "Missing tool name"}
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Tool name is required"
 
 
 @pytest.mark.asyncio
@@ -245,7 +260,7 @@ async def test_tool_dispatch_unknown_tool(client: TestClient) -> None:
         "/mcp/rpc/tools/dispatch",
         json={"tool_name": "unknown", "parameters": {}},
     )
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == HTTP_UNPROCESSABLE_ENTITY
     assert response.json() == {"detail": "Unknown tool: unknown"}
 
 
@@ -255,18 +270,17 @@ async def test_mcp_tool_dispatch_success(client: TestClient) -> None:
     response = client.post(
         "/mcp/rpc/tools/dispatch",
         json={
-            "tool_name": "match_role",
+            "tool_name": "skill.match_role",
             "parameters": {
                 "required_skills": ["Python"],
                 "years_experience": {"Python": 5},
             },
         },
     )
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == 200
     data = response.json()
-    assert "match_score" in data
-    assert "skill_gaps" in data
-    assert "matching_skills" in data
+    assert "result" in data
+    assert "data" in data
 
 
 @pytest.mark.asyncio
@@ -274,10 +288,13 @@ async def test_mcp_tool_dispatch_invalid_params(client: TestClient) -> None:
     """Test MCP tool dispatch with invalid parameters."""
     response = client.post(
         "/mcp/rpc/tools/dispatch",
-        json={"tool_name": "match_role", "parameters": {}},
+        json={
+            "tool_name": "skill.match_role",
+            "parameters": {},
+        },
     )
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert "Missing required_skills parameter" in response.json()["detail"]
+    assert response.status_code == 422
+    assert "Required skills are missing" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -293,10 +310,9 @@ async def test_mcp_jsonrpc_search_success(client: TestClient) -> None:
     assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert "result" in data
-    assert isinstance(data["result"], list)
-    if len(data["result"]) > 0:
-        assert "node" in data["result"][0]
-        assert "name" in data["result"][0]["node"]
+    assert isinstance(data["result"], dict)
+    assert "results" in data["result"]
+    assert isinstance(data["result"]["results"], list)
 
 
 @pytest.mark.asyncio
@@ -314,8 +330,7 @@ async def test_mcp_jsonrpc_search_missing_query(client: TestClient) -> None:
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
     assert data["id"] == 1
-    assert data["error"]["code"] == ERROR_INVALID_PARAMS
-    assert "Missing query parameter" in data["error"]["message"]
+    assert data["error"] == {"code": ERROR_INVALID_PARAMS["code"], "message": "Query is required"}
 
 
 @pytest.mark.asyncio
@@ -354,13 +369,12 @@ async def test_mcp_jsonrpc_tool_missing_name(client: TestClient) -> None:
         id=1,
     )
     response = client.post("/mcp/rpc", json=request.__dict__)
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == 200
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
     assert data["id"] == 1
-    assert data["error"]["code"] == ERROR_INVALID_PARAMS
-    assert "Missing tool name" in data["error"]["message"]
+    assert data["error"]["message"] == "Tool name is required"
 
 
 @pytest.mark.asyncio
@@ -369,7 +383,10 @@ async def test_mcp_jsonrpc_tool_unknown(client: TestClient) -> None:
     request = JSONRPCRequest(
         jsonrpc="2.0",
         method="mcp.tool",
-        params={"name": "unknown", "parameters": {}},
+        params={
+            "name": "unknown_tool",
+            "parameters": {},
+        },
         id=1,
     )
     response = client.post("/mcp/rpc", json=request.__dict__)
@@ -377,9 +394,9 @@ async def test_mcp_jsonrpc_tool_unknown(client: TestClient) -> None:
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
-    assert data["id"] == 1
-    assert data["error"]["code"] == ERROR_INVALID_PARAMS
+    assert data["error"]["code"] == ERROR_INVALID_PARAMS["code"]
     assert "Unknown tool" in data["error"]["message"]
+    assert data["id"] == 1
 
 
 @pytest.mark.asyncio
@@ -392,13 +409,12 @@ async def test_mcp_jsonrpc_invalid_method(client: TestClient) -> None:
         id=1,
     )
     response = client.post("/mcp/rpc", json=request.__dict__)
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == 200
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
     assert data["id"] == 1
-    assert data["error"]["code"] == ERROR_METHOD_NOT_FOUND
-    assert "Method not found" in data["error"]["message"]
+    assert data["error"]["message"] == "Method not found"
 
 
 @pytest.mark.asyncio

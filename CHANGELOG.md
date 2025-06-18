@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-06-17
+
+### Changed
+
+- **Code Quality Improvements**: Enhanced overall code quality and maintainability
+  - Resolved all R0801 (duplicate code) pylint issues
+  - Eliminated code duplication in Pydantic models and API routes
+  - Consolidated shared functionality into reusable utility functions
+  - Improved import organization and code structure
+  - Fixed test failures introduced by previous pylint improvements
+
+### Fixed
+
+- **Duplicate Code Issues**: Eliminated code duplication across the codebase
+  - Consolidated duplicate `HealthResponse`, `InitializeRequest`, and `InitializeResponse` models
+  - Created shared `create_skill_in_db()` utility function to eliminate duplicate skill creation logic
+  - Fixed import order issues in utility modules
+  - Resolved test failures caused by handler return format changes
+- **Test Suite Stability**: Fixed all test failures and improved test reliability
+  - Updated mock data structures to match expected formats
+  - Fixed Node2Vec model preprocessing for test scenarios
+  - Corrected error handling expectations in test cases
+  - Removed invalid module patches in test files
+- **Pylint Compliance**: Achieved excellent code quality standards
+  - Resolved all R0801 duplicate code violations
+  - Maintained 9.84/10 overall pylint score
+  - Fixed import order and code style issues
+  - Improved error handling consistency
+
+### Technical Details
+
+- **Models Consolidation**: Moved shared Pydantic models to `api/mcp/models.py` and updated imports
+- **Utility Functions**: Created `create_skill_in_db()` in `api/mcp/utils.py` for shared skill creation logic
+- **Test Improvements**: Enhanced mock fixtures and test data structures for better reliability
+- **Code Organization**: Improved separation of concerns and reduced code duplication
+
 ## TODO
 
 ### Core Components

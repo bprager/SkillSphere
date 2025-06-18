@@ -4,14 +4,13 @@ from typing import Any
 
 from neo4j import AsyncSession
 
+from ..jsonrpc import ERROR_INVALID_PARAMS
 from ..jsonrpc import JSONRPCHandler
 from ..jsonrpc import JSONRPCRequest
 from ..jsonrpc import JSONRPCResponse
 from .handlers import explain_match
 from .handlers import graph_search
-from .handlers import handle_search
 from .handlers import match_role
-from .models import SearchRequest
 from .utils import get_initialize_response_dict
 from .utils import get_resource
 
@@ -47,17 +46,11 @@ async def rpc_get_resource(
 
 
 @rpc_handler.register("mcp.search")
-async def rpc_search(
-    params: dict[str, Any], session: AsyncSession
-) -> list[dict[str, Any]]:
-    """Handle search RPC method."""
-    query = params.get("query")
-    if not query:
-        raise ValueError("Missing query parameter")
-    limit = params.get("limit", 10)
-    request = SearchRequest(query=query, limit=limit)
-    response = await handle_search(request.model_dump(), session)
-    return response.get("results", [])  # type: ignore[no-any-return]
+async def rpc_search(params: dict[str, Any], session: AsyncSession) -> dict[str, Any]:
+    """Handle search requests."""
+    if not params.get("query"):
+        raise ValueError("Query is required")
+    return await graph_search(params, session)
 
 
 @rpc_handler.register("mcp.tool")
@@ -65,7 +58,7 @@ async def rpc_tool(params: dict[str, Any], session: AsyncSession) -> dict[str, A
     """Handle tool dispatch requests."""
     tool_name = params.get("name")
     if not tool_name:
-        raise ValueError("Missing tool name")
+        raise ValueError("Tool name is required")
 
     if tool_name == "match_role":
         return await match_role(params.get("parameters", {}), session)
@@ -90,5 +83,11 @@ async def handle_rpc_request(
     """Handle JSON-RPC requests."""
     try:
         return await rpc_handler.handle_request(request, session)
-    except (ValueError, TypeError, KeyError, RuntimeError) as e:
+    except ValueError as e:
+        return JSONRPCResponse.create_error(
+            ERROR_INVALID_PARAMS["code"],
+            str(e),
+            request.id
+        )
+    except (TypeError, KeyError, RuntimeError) as e:
         return JSONRPCResponse.handle_error(e, request.id)

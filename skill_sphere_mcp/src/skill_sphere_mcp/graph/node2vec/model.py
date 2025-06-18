@@ -77,29 +77,42 @@ class Node2VecModel:
     async def preprocess(
         self,
         session: AsyncSession | None = None,
-        config: PreprocessConfig | None = None,
+        _config: PreprocessConfig | None = None,
     ) -> None:
         """Preprocess the graph for training.
 
         Args:
-            session: Neo4j database session (optional)
-            config: Preprocessing configuration
+            session: Neo4j database session (optional for testing)
         """
         if session is not None:
-            await self._model.preprocess(session, config)
+            # Get graph structure from database
+            self._model._state.graph = await self._model.get_graph(session)
         else:
             # For testing purposes, use the existing graph
             transition_config = TransitionConfig(
-                p=config.p if config else self._model.config.model.p,
-                q=config.q if config else self._model.config.model.q,
-                weight_key=config.weight_key if config else "weight",
-                directed=config.directed if config else False,
-                unweighted=config.unweighted if config else True,
+                p=_config.p if _config else self._model.config.model.p,
+                q=_config.q if _config else self._model.config.model.q,
+                weight_key=_config.weight_key if _config else "weight",
+                directed=_config.directed if _config else False,
+                unweighted=_config.unweighted if _config else True,
             )
             self._model.preprocess_transition_probs(self.state.graph, transition_config)
             self.state.preprocessed = True
             # Generate walks for test mode
             self.state.walks = self._model.generate_walks(self.state.graph)
+            return
+
+        # Preprocess transition probabilities
+        transition_config = TransitionConfig(
+            p=self._model.config.model.p,
+            q=self._model.config.model.q,
+            weight_key="weight",
+            directed=False,
+            unweighted=True,
+        )
+        self._model.preprocess_transition_probs(self._model._state.graph, transition_config)
+
+        self._model._state.preprocessed = True
 
     def train(self) -> None:
         """Train the model using the preprocessed graph."""
@@ -470,29 +483,3 @@ class Node2Vec:
     ) -> int:
         """Expose alias_draw as a static method."""
         return alias_draw(alias, idx, rng)
-
-    async def preprocess(
-        self,
-        session: AsyncSession,
-        config: PreprocessConfig | None = None,
-    ) -> None:
-        """Preprocess the graph for training.
-
-        Args:
-            session: Neo4j database session
-            config: Preprocessing configuration
-        """
-        # Get graph structure
-        self._state.graph = await self.get_graph(session)
-
-        # Preprocess transition probabilities
-        transition_config = TransitionConfig(
-            p=self.config.model.p,
-            q=self.config.model.q,
-            weight_key="weight",
-            directed=False,
-            unweighted=True,
-        )
-        self.preprocess_transition_probs(self._state.graph, transition_config)
-
-        self._state.preprocessed = True

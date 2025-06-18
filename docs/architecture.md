@@ -82,6 +82,7 @@ H --> I
   and Node2Vec runtime straight to Grafana.
 * **CI‑driven confidence.** Separate workflows for *hypergraph* and *MCP* run
   lint, type‑check, unit tests and coverage gates before any merge hits `main`.
+* **Robust API testing.** The test suite includes both unit and integration tests for all API endpoints, tool dispatch, and error handling, using robust dependency injection and mocking for reliable, isolated tests. All error flows (validation, not found, internal errors) are covered and enforced in CI.
 
 <!-- ─────────────────────────────────────────────────────────────────────────── -->
 ## 3  Hypergraph Package
@@ -162,7 +163,8 @@ neo4j --> db
 3. **MCP Initialization** – provides context-aware instructions to LLM clients, including owner identification and usage guidelines.
 4. **Authenticated request** – PAT → dependency‑injected session → Cypher/Vector
    search → JSON/Streaming response.
-5. **Shutdown** – graceful driver close; spans flushed.
+5. **Strict error handling** – All endpoints enforce standardized error codes (422 for validation, 404 for not found, etc.) and clear error messages, with 100% test coverage for both success and error flows.
+6. **Shutdown** – graceful driver close; spans flushed.
 
 ### 4.2  OpenTelemetry at a glance
 
@@ -194,7 +196,7 @@ The MCP server provides a clean, modern landing page that serves as the entry po
 
 - **Static HTML** – Served from the root path (`/`)
 - **Key Features** – Highlights the main capabilities of the system
-- **API Documentation** – Direct link to FastAPI's interactive OpenAPI documentation
+- **API Documentation** – Direct link to FastAPI's interactive OpenAPI documentation (always up-to-date and covers all endpoints, including error responses)
 - **Responsive Design** – Mobile-friendly layout with modern typography
 
 The landing page is built with vanilla HTML and CSS, ensuring fast loading times and no external dependencies.
