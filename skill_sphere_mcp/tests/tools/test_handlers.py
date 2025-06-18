@@ -192,11 +192,18 @@ async def test_generate_cv_success(mock_session: AsyncMock) -> None:
 @pytest.mark.asyncio
 async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
     """Test CV generation with invalid format."""
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(HTTPException) as exc_info:
         await generate_cv(
-            {"target_keywords": ["Python"], "format": "invalid"}, mock_session
+            {
+                "profile_id": "123",
+                "target_keywords": ["Python"],
+                "format": "invalid"
+            },
+            mock_session
         )
-    assert "format" in str(exc_info.value)
+    assert exc_info.value.status_code == 422
+    assert "Validation error" in str(exc_info.value.detail)
+    assert "format" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -410,12 +417,9 @@ async def test_graph_search_empty_results(mock_session: AsyncMock) -> None:
     mock_result.all = AsyncMock(return_value=[])
     mock_session.run.return_value = mock_result
 
-    # Mock embeddings.search to return empty results
-    with patch("skill_sphere_mcp.api.mcp.handlers.embeddings.search") as mock_search:
-        mock_search.return_value = []
-        result = await graph_search({"query": "nonexistent", "top_k": 5}, mock_session)
-        assert "results" in result
-        assert len(result["results"]) == 0
+    result = await graph_search({"query": "nonexistent", "top_k": 5}, mock_session)
+    assert "results" in result
+    assert len(result["results"]) == 0
 
 
 @pytest.mark.asyncio
@@ -429,20 +433,10 @@ async def test_graph_search_special_characters(mock_session: AsyncMock) -> None:
     )
     mock_session.run.return_value = mock_result
 
-    # Mock embeddings.search to return results
-    with patch("skill_sphere_mcp.api.mcp.handlers.embeddings.search") as mock_search:
-        mock_search.return_value = [
-            {
-                "node_id": "1",
-                "name": "C++",
-                "description": "Programming language",
-                "score": 0.9,
-            }
-        ]
-        result = await graph_search({"query": "C++", "top_k": 5}, mock_session)
-        assert "results" in result
-        assert len(result["results"]) > 0
-        assert result["results"][0]["node"]["name"] == "C++"
+    result = await graph_search({"query": "C++", "top_k": 5}, mock_session)
+    assert "results" in result
+    assert len(result["results"]) > 0
+    assert result["results"][0]["node"]["name"] == "C++"
 
 
 @pytest.mark.asyncio
@@ -454,14 +448,9 @@ async def test_graph_search_large_top_k(mock_session: AsyncMock) -> None:
     )
     mock_session.run.return_value = mock_result
 
-    # Mock embeddings.search to return results
-    with patch("skill_sphere_mcp.api.mcp.handlers.embeddings.search") as mock_search:
-        mock_search.return_value = [
-            {"node_id": str(i), "name": f"Node {i}", "score": 0.9} for i in range(100)
-        ]
-        result = await graph_search({"query": "Node", "top_k": 100}, mock_session)
-        assert "results" in result
-        assert len(result["results"]) == 100
+    result = await graph_search({"query": "Node", "top_k": 100}, mock_session)
+    assert "results" in result
+    assert len(result["results"]) == 100
 
 
 @pytest.mark.asyncio

@@ -290,3 +290,57 @@ async def test_global_embeddings_instance() -> None:
     # Verify that embeddings is an instance of Node2VecEmbeddings
     assert isinstance(embeddings, Node2VecEmbeddings)
     assert embeddings.dimension == TEST_DIMENSION
+
+
+@pytest.mark.asyncio
+async def test_load_embeddings_with_missing_embeddings(mock_session: AsyncMock) -> None:
+    """Test load_embeddings when some nodes have no embeddings."""
+    # Simulate two nodes, but only one gets an embedding
+    sample_nodes = [
+        {"node_id": 1},
+        {"node_id": 2},
+    ]
+    class FakeNode2Vec:
+        async def fit(self, session):
+            pass
+        def get_embedding(self, node_id):
+            if node_id == "1":
+                return rng.random(TEST_DIMENSION)
+            return None
+    mock_result = AsyncMock()
+    mock_result.__aiter__.return_value = iter(sample_nodes)
+    mock_session.run.return_value = mock_result
+    with patch("skill_sphere_mcp.graph.embeddings.Node2Vec", return_value=FakeNode2Vec()):
+        emb = Node2VecEmbeddings(dimension=TEST_DIMENSION)
+        await emb.load_embeddings(mock_session)
+        all_embs = emb.get_all_embeddings()
+        assert "1" in all_embs
+        assert "2" not in all_embs
+
+
+@pytest.mark.asyncio
+async def test_search_loads_embeddings_if_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test search calls load_embeddings if _embeddings is empty."""
+    emb = Node2VecEmbeddings(dimension=TEST_DIMENSION)
+    called = {}
+    async def fake_load_embeddings(session):
+        called["load"] = True
+        emb._embeddings = {"1": rng.random(TEST_DIMENSION)}
+    emb.load_embeddings = fake_load_embeddings
+    mock_session = AsyncMock()
+    query_embedding = rng.random(TEST_DIMENSION)
+    mock_session.run.return_value.single.return_value = None  # No node details found
+    results = await emb.search(mock_session, query_embedding, top_k=1)
+    assert called["load"]
+    assert results == []
+
+
+def test_get_all_embeddings_direct():
+    """Test get_all_embeddings returns a copy and works on fresh instance."""
+    emb = Node2VecEmbeddings(dimension=TEST_DIMENSION)
+    assert emb.get_all_embeddings() == {}
+    emb.set_all_embeddings({"x": rng.random(TEST_DIMENSION)})
+    out = emb.get_all_embeddings()
+    assert "x" in out
+    # Ensure it's a new dict, but arrays are not deep-copied
+    assert out is not emb._embeddings

@@ -2,19 +2,27 @@
 
 import logging
 import os
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
+
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from .api.mcp_routes import router as mcp_router
 from .api.routes import router as metrics_router
 from .config.settings import get_settings
 from .routes import router as api_router
-from .telemetry.otel import setup_telemetry
 
 
 # Configure logging
@@ -36,14 +44,30 @@ except ImportError:
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(fastapi_app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
-    # Setup OpenTelemetry
-    tracer = setup_telemetry()
-    if tracer:
-        logger.info("OpenTelemetry tracing enabled")
-    else:
-        logger.warning("OpenTelemetry tracing disabled")
+    settings = get_settings()
+
+    # Set up OpenTelemetry if enabled
+    if settings.enable_telemetry:
+        try:
+            # Set up the tracer provider
+            resource = Resource.create({"service.name": settings.otel_service_name})
+            provider = TracerProvider(resource=resource)
+            trace.set_tracer_provider(provider)
+
+            # Set up the OTLP exporter
+            otlp_exporter = OTLPSpanExporter(endpoint=settings.otel_endpoint)
+            span_processor = BatchSpanProcessor(otlp_exporter)
+            provider.add_span_processor(span_processor)
+
+            # Instrument FastAPI
+            FastAPIInstrumentor.instrument_app(fastapi_app)
+
+            logger.info("OpenTelemetry instrumentation enabled")
+        except Exception as e:
+            logger.error("Failed to initialize OpenTelemetry: %s", e)
+            logger.warning("Continuing without telemetry")
 
     # Startup
     logger.info("Starting MCP server")
@@ -52,18 +76,28 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Shutting down MCP server")
 
+    # Cleanup
+    if settings.enable_telemetry:
+        try:
+            provider = trace.get_tracer_provider()
+            provider.force_flush()
+            logger.info("OpenTelemetry cleanup completed")
+        except Exception as e:
+            logger.error("Error during OpenTelemetry cleanup: %s", e)
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
+
     mcp_server_app = FastAPI(
         title="SkillSphere MCP",
         version="0.2.0",
         lifespan=lifespan,
         description="""Model Context Protocol (MCP) server for SkillSphere.
-        
+
         This server implements the MCP standard using JSON-RPC 2.0. All MCP operations
         should be performed through the `/mcp/rpc` endpoint using JSON-RPC requests.
-        
+
         Example initialize request:
         ```json
         {
@@ -73,10 +107,19 @@ def create_app() -> FastAPI:
             "id": 1
         }
         ```
-        
+
         The server also provides some REST endpoints for health checks and resource
         information, but all MCP operations should use the RPC endpoint.
         """,
+    )
+
+    # Configure CORS
+    mcp_server_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # In production, replace with specific origins
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Get the static directory path

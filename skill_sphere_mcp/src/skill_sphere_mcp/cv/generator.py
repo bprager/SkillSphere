@@ -59,18 +59,22 @@ def _format_summary(person: dict[str, Any], is_html: bool = False) -> str:
 
 def _format_skills(skills: list[dict[str, Any]], is_html: bool = False) -> str:
     """Format skills section."""
-    if not skills:
-        return ""
-
     if is_html:
-        content = "<h2>Skills</h2><ul>"
-        for skill in skills:
-            content += f"<li>{skill['name']}</li>"
-        content += "</ul>"
+        content = "<h2>Skills</h2>"
+        if skills:
+            content += "<ul>"
+            for skill in skills:
+                content += f"<li>{skill['name']}</li>"
+            content += "</ul>"
+        else:
+            content += "<p>No skills listed</p>"
     else:
         content = "## Skills\n"
-        for skill in skills:
-            content += f"- {skill['name']}\n"
+        if skills:
+            for skill in skills:
+                content += f"- {skill['name']}\n"
+        else:
+            content += "No skills listed\n"
         content += "\n"
 
     return content
@@ -104,16 +108,20 @@ def _format_company(company: dict[str, Any], is_html: bool = False) -> str:
 
 def _format_experience(companies: list[dict[str, Any]], is_html: bool = False) -> str:
     """Format experience section."""
-    if not companies:
-        return ""
-
     if is_html:
         content = "<h2>Experience</h2>"
+        if companies:
+            for company in companies:
+                content += _format_company(company, is_html)
+        else:
+            content += "<p>No experience listed</p>"
     else:
         content = "## Experience\n"
-
-    for company in companies:
-        content += _format_company(company, is_html)
+        if companies:
+            for company in companies:
+                content += _format_company(company, is_html)
+        else:
+            content += "No experience listed\n\n"
 
     return content
 
@@ -144,16 +152,20 @@ def _format_education_entry(edu: dict[str, Any], is_html: bool = False) -> str:
 
 def _format_education(education: list[dict[str, Any]], is_html: bool = False) -> str:
     """Format education section."""
-    if not education:
-        return ""
-
     if is_html:
         content = "<h2>Education</h2>"
+        if education:
+            for edu in education:
+                content += _format_education_entry(edu, is_html)
+        else:
+            content += "<p>No education listed</p>"
     else:
         content = "## Education\n"
-
-    for edu in education:
-        content += _format_education_entry(edu, is_html)
+        if education:
+            for edu in education:
+                content += _format_education_entry(edu, is_html)
+        else:
+            content += "No education listed\n\n"
 
     return content
 
@@ -207,7 +219,11 @@ async def generate_cv(
     Raises:
         HTTPException: If parameters are invalid or profile not found
     """
-    request = validate_parameters(parameters, GenerateCVRequest)
+    try:
+        request = validate_parameters(parameters, GenerateCVRequest)
+    except ValueError as e:
+        # Always raise 422 for validation errors
+        raise HTTPException(status_code=422, detail=f"Validation error: {str(e)}") from e
 
     # Query to find a profile matching the target keywords
     query = """
@@ -221,29 +237,38 @@ async def generate_cv(
            collect(DISTINCT c) as companies,
            collect(DISTINCT e) as education
     """
-    result = await session.run(query, keywords=request.target_keywords)
-    record = await result.single()
-    if not record:
-        raise HTTPException(status_code=404, detail="Profile not found")
+    try:
+        result = await session.run(query, keywords=request.target_keywords)
+        record = await result.single()
+        if not record:
+            raise HTTPException(status_code=404, detail="Profile not found")
 
-    # Convert Neo4j Record to dictionary
-    record_dict = {
-        "p": dict(record["p"]),
-        "skills": [dict(s) for s in record["skills"]],
-        "companies": [dict(c) for c in record["companies"]],
-        "education": [dict(e) for e in record["education"]],
-    }
+        # Convert Neo4j Record to dictionary
+        record_dict = {
+            "p": dict(record["p"]),
+            "skills": [dict(s) for s in record["skills"]],
+            "companies": [dict(c) for c in record["companies"]],
+            "education": [dict(e) for e in record["education"]],
+        }
 
-    # Generate CV content based on the format
-    if request.format == "markdown":
-        content = _generate_markdown_cv(record_dict)
-    elif request.format == "html":
-        content = _generate_html_cv(record_dict)
-    elif request.format == "pdf":
-        raise HTTPException(status_code=501, detail="PDF format not implemented")
-    else:
-        raise HTTPException(
-            status_code=400, detail=f"Unsupported format: {request.format}"
-        )
+        # Generate CV content based on the format
+        if request.format == "markdown":
+            content = _generate_markdown_cv(record_dict)
+        elif request.format == "html":
+            content = _generate_html_cv(record_dict)
+        elif request.format == "pdf":
+            raise HTTPException(
+                status_code=501,
+                detail="PDF format not implemented",
+            )
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid format: {request.format}. Must be one of: markdown, html, pdf",
+            )
 
-    return {"content": content, "format": request.format}
+        return {"content": content, "format": request.format}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e

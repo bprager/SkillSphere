@@ -1,13 +1,20 @@
-"""Utility functions for the MCP API."""
+"""MCP API utilities."""
+
+import logging
 
 from typing import Any
 
 from fastapi import HTTPException
+from neo4j import AsyncSession
 
 from ...config.settings import get_settings
 from ...models.graph import GraphNode
 from ...models.graph import GraphRelationship
+from ...models.skill import Skill
 from ..models import InitializeResponse
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_initialize_response() -> InitializeResponse:
@@ -44,7 +51,9 @@ async def get_resource(resource: str) -> dict[str, Any]:
     """Get resource information."""
     resources = {
         "nodes": {
-            "type": "collection",
+            "type": "nodes",
+            "description": "Collection of nodes",
+            "properties": [],
             "schema": GraphNode.model_json_schema(),
         },
         "relationships": {
@@ -128,3 +137,32 @@ async def get_resource(resource: str) -> dict[str, Any]:
             status_code=400, detail=f"Invalid resource type: {resource}"
         )
     return resources[resource]
+
+
+async def create_skill_in_db(skill: Skill, session: AsyncSession) -> Skill:
+    """Create a new skill in the database.
+    
+    Args:
+        skill: The skill model to create
+        session: Database session
+        
+    Returns:
+        The created skill
+        
+    Raises:
+        HTTPException: If skill creation fails
+    """
+    try:
+        result = await session.run(
+            "CREATE (s:Skill $skill) RETURN s",
+            skill=skill.model_dump(exclude_none=True),
+        )
+        record = await result.single()
+        if not record:
+            raise HTTPException(status_code=500, detail="Failed to create skill")
+        return Skill(**record["s"])
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to create skill: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to create skill") from e

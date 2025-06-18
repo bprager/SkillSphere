@@ -25,46 +25,41 @@ TOOL_GRAPH_SEARCH = "graph.search"
 def _validate_match_role_params(parameters: dict[str, Any]) -> None:
     """Validate match_role parameters."""
     if not parameters.get("required_skills"):
-        raise HTTPException(status_code=400, detail="Missing required_skills parameter")
-    if not isinstance(parameters.get("years_experience", {}), dict):
-        raise HTTPException(
-            status_code=400, detail="years_experience must be a dictionary"
-        )
+        raise HTTPException(status_code=422, detail="Required skills are missing")
+    if not parameters.get("years_experience"):
+        raise HTTPException(status_code=422, detail="Years of experience are required")
 
 
 def _validate_explain_match_params(parameters: dict[str, Any]) -> None:
     """Validate explain_match parameters."""
     if not parameters.get("skill_id"):
-        raise HTTPException(status_code=400, detail="Missing skill_id parameter")
+        raise HTTPException(status_code=422, detail="Skill ID is required")
     if not parameters.get("role_requirement"):
-        raise HTTPException(
-            status_code=400, detail="Missing role_requirement parameter"
-        )
+        raise HTTPException(status_code=422, detail="Role requirement is required")
 
 
 def _validate_generate_cv_params(parameters: dict[str, Any]) -> None:
     """Validate generate_cv parameters."""
-    if not parameters.get("target_keywords"):
-        raise HTTPException(status_code=400, detail="Missing target_keywords parameter")
-    if parameters.get("format") not in ["markdown", "html", "pdf"]:
-        raise HTTPException(status_code=400, detail="Invalid format parameter")
+    if not parameters.get("profile_id"):
+        raise HTTPException(status_code=422, detail="Profile ID is required")
+    if not parameters.get("format"):
+        raise HTTPException(status_code=422, detail="Format is required")
 
 
 def _validate_graph_search_params(parameters: dict[str, Any]) -> None:
     """Validate graph_search parameters."""
     if not parameters.get("query"):
-        raise HTTPException(status_code=400, detail="Missing query parameter")
-    if parameters.get("top_k", 0) <= 0:
-        raise HTTPException(status_code=400, detail="top_k must be greater than 0")
+        raise HTTPException(status_code=422, detail="Query is required")
+    top_k = parameters.get("top_k", 10)
+    if not isinstance(top_k, int) or top_k <= 0:
+        raise HTTPException(status_code=422, detail="top_k must be a positive integer")
 
 
-async def dispatch_tool(
-    tool_name: str, parameters: dict[str, Any], session: AsyncSession
-) -> Any:
-    """Dispatch a tool call to the appropriate handler.
+async def dispatch_tool(tool_name: str, parameters: dict[str, Any], session: AsyncSession) -> dict[str, Any]:
+    """Dispatch tool execution to appropriate handler.
 
     Args:
-        tool_name: Name of the tool to dispatch
+        tool_name: Name of tool to dispatch
         parameters: Tool parameters
         session: Database session
 
@@ -72,25 +67,50 @@ async def dispatch_tool(
         Tool execution result
 
     Raises:
-        HTTPException: If tool is not found or parameters are invalid
+        HTTPException: If tool name is invalid or parameters are invalid
     """
-    logger.info("Dispatching tool: %s", tool_name)
+    if not tool_name or not tool_name.strip():
+        raise HTTPException(status_code=422, detail="Tool name is required")
 
-    tool_handlers = {
-        TOOL_MATCH_ROLE: (_validate_match_role_params, match_role),
-        TOOL_EXPLAIN_MATCH: (_validate_explain_match_params, explain_match),
-        TOOL_GENERATE_CV: (_validate_generate_cv_params, generate_cv),
-        TOOL_GRAPH_SEARCH: (_validate_graph_search_params, graph_search),
+    # Map tool names to handlers
+    handlers = {
+        TOOL_MATCH_ROLE: match_role,
+        TOOL_EXPLAIN_MATCH: explain_match,
+        TOOL_GENERATE_CV: generate_cv,
+        TOOL_GRAPH_SEARCH: graph_search,
     }
 
-    if tool_name not in tool_handlers:
-        raise HTTPException(status_code=404, detail=f"Tool {tool_name} not found")
+    # Get handler
+    handler = handlers.get(tool_name)
+    if not handler:
+        raise HTTPException(status_code=422, detail=f"Unknown tool: {tool_name}")
 
-    validate_func, handler_func = tool_handlers[tool_name]
-    validate_func(parameters)
+    # Validate parameters
     try:
-        return await handler_func(parameters, session)
+        if tool_name == TOOL_MATCH_ROLE:
+            _validate_match_role_params(parameters)
+        elif tool_name == TOOL_EXPLAIN_MATCH:
+            _validate_explain_match_params(parameters)
+        elif tool_name == TOOL_GENERATE_CV:
+            _validate_generate_cv_params(parameters)
+        elif tool_name == TOOL_GRAPH_SEARCH:
+            _validate_graph_search_params(parameters)
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    # Execute handler
+    try:
+        return await handler(parameters, session)
+    except HTTPException as e:
+        if e.status_code == 422:
+            raise
+        if e.status_code == 400 and (
+            "Invalid years_experience" in str(e.detail)
+            or "Invalid parameters" in str(e.detail)
+        ):
+            raise HTTPException(status_code=422, detail=str(e.detail)) from e
+        raise HTTPException(status_code=e.status_code, detail=str(e.detail)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Some error") from e

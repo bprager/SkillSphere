@@ -10,6 +10,7 @@ from unittest.mock import patch
 import pytest
 import pytest_asyncio
 
+from fastapi import HTTPException
 from neo4j import AsyncGraphDatabase
 from neo4j import AsyncSession
 from neo4j.exceptions import AuthError
@@ -114,9 +115,10 @@ async def test_verify_connectivity_service_unavailable(
     conn._driver = driver
     driver.verify_connectivity.side_effect = ServiceUnavailable("Connection failed")
 
-    result = await conn.verify_connectivity()
-    assert result is False
-    driver.verify_connectivity.assert_called_once()
+    with pytest.raises(HTTPException) as exc_info:
+        await conn.verify_connectivity()
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Database service unavailable"
 
 
 @pytest.mark.asyncio
@@ -130,9 +132,10 @@ async def test_verify_connectivity_auth_error(
     conn._driver = driver
     driver.verify_connectivity.side_effect = AuthError("Invalid credentials")
 
-    result = await conn.verify_connectivity()
-    assert result is False
-    driver.verify_connectivity.assert_called_once()
+    with pytest.raises(HTTPException) as exc_info:
+        await conn.verify_connectivity()
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Database authentication failed"
 
 
 @pytest.mark.asyncio
