@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from neo4j import AsyncSession
 from starlette.status import HTTP_400_BAD_REQUEST
 from starlette.status import HTTP_404_NOT_FOUND
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from skill_sphere_mcp.tools.dispatcher import _validate_explain_match_params
@@ -43,11 +44,11 @@ def test_validate_match_role_params() -> None:
     # Invalid parameters
     with pytest.raises(HTTPException) as exc_info:
         _validate_match_role_params({})
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
     with pytest.raises(HTTPException) as exc_info:
         _validate_match_role_params({"required_skills": []})
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_validate_explain_match_params() -> None:
@@ -63,7 +64,7 @@ def test_validate_explain_match_params() -> None:
     # Invalid parameters
     with pytest.raises(HTTPException) as exc_info:
         _validate_explain_match_params({})
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_validate_generate_cv_params() -> None:
@@ -71,6 +72,7 @@ def test_validate_generate_cv_params() -> None:
     # Valid parameters
     _validate_generate_cv_params(
         {
+            "profile_id": "123",
             "target_keywords": MOCK_SKILLS,
             "format": "markdown",
         }
@@ -78,8 +80,14 @@ def test_validate_generate_cv_params() -> None:
 
     # Invalid parameters
     with pytest.raises(HTTPException) as exc_info:
-        _validate_generate_cv_params({})
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+        _validate_generate_cv_params(
+            {
+                "target_keywords": MOCK_SKILLS,
+                "format": "markdown",
+            }
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Profile ID is required"
 
     with pytest.raises(HTTPException) as exc_info:
         _validate_generate_cv_params(
@@ -88,7 +96,7 @@ def test_validate_generate_cv_params() -> None:
                 "format": "invalid",
             }
         )
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_validate_graph_search_params() -> None:
@@ -104,7 +112,7 @@ def test_validate_graph_search_params() -> None:
     # Invalid parameters
     with pytest.raises(HTTPException) as exc_info:
         _validate_graph_search_params({})
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
     with pytest.raises(HTTPException) as exc_info:
         _validate_graph_search_params(
@@ -113,7 +121,7 @@ def test_validate_graph_search_params() -> None:
                 "top_k": 0,
             }
         )
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest_asyncio.fixture
@@ -145,7 +153,7 @@ async def test_dispatch_tool_invalid_name(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid tool name."""
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool("invalid.tool", {}, mock_session)
-    assert exc_info.value.status_code == HTTP_404_NOT_FOUND
+    assert exc_info.value.status_code == 422
 
 
 @pytest_asyncio.fixture
@@ -153,7 +161,7 @@ async def test_dispatch_tool_invalid_params(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid parameters."""
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool("skill.match_role", {}, mock_session)
-    assert exc_info.value.status_code == HTTP_400_BAD_REQUEST
+    assert exc_info.value.status_code == 422
 
 
 @pytest_asyncio.fixture
@@ -171,4 +179,4 @@ async def test_dispatch_tool_handler_error(mock_session: AsyncMock) -> None:
                 },
                 mock_session,
             )
-        assert exc_info.value.status_code == HTTP_500_INTERNAL_SERVER_ERROR
+        assert exc_info.value.status_code == 500

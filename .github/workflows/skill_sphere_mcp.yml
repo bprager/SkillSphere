@@ -75,7 +75,6 @@ jobs:
       with:
         working-directory: ./skill_sphere_mcp
         output: coverage.svg
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Debug directory structure
       if: matrix.check == 'coverage'
@@ -106,12 +105,8 @@ jobs:
       if: matrix.check == 'coverage'
       run: |
         if [ -f ./skill_sphere_mcp/coverage.svg ]; then
-          if git diff --staged --quiet; then
-            echo "No changes to push"
-            exit 0
-          fi
-          git push
+          git push origin HEAD:${GITHUB_HEAD_REF:-main}
         else
-          echo "No changes to push"
+          echo "No coverage badge to push"
           exit 0
         fi

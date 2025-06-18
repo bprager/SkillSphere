@@ -1,8 +1,12 @@
 """MCP API models."""
 
 from typing import Any
+from typing import Dict
+from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import Field
+from pydantic import field_validator
 
 
 class HealthResponse(BaseModel):
@@ -31,7 +35,8 @@ class EntityResponse(BaseModel):
 
     id: str
     name: str
-    type: str | None = None
+    type: str
+    description: str
     properties: dict[str, Any] | None = None
     relationships: list[dict[str, Any]] | None = None
 
@@ -39,14 +44,33 @@ class EntityResponse(BaseModel):
 class SearchRequest(BaseModel):
     """Search request model."""
 
-    query: str
-    limit: int = 10
+    query: str = Field(
+        ...,
+        min_length=1,
+        description="Search query string",
+        json_schema_extra={"error_messages": {"min_length": "Query cannot be empty"}}
+    )
+    limit: int = Field(
+        default=20,
+        gt=0,
+        description="Maximum number of results",
+        json_schema_extra={"error_messages": {"gt": "Limit must be greater than 0"}}
+    )
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Validate that query is not empty."""
+        if not v.strip():
+            raise ValueError("Query cannot be empty")
+        return v
 
 
 class SearchResponse(BaseModel):
     """Search response model."""
 
     results: list[dict[str, Any]]
+    total: int
 
 
 class MatchRoleRequest(BaseModel):
@@ -97,3 +121,48 @@ class GraphSearchRequest(BaseModel):
 
     query: str
     top_k: int = 10
+
+
+class ToolDispatchRequest(BaseModel):
+    """Tool dispatch request model."""
+
+    tool_name: str = Field(
+        ...,
+        min_length=1,
+        description="Name of the tool to dispatch",
+        json_schema_extra={"error_messages": {"min_length": "Tool name is required"}}
+    )
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Tool parameters",
+        json_schema_extra={"error_messages": {"type": "Parameters must be a dictionary"}}
+    )
+    context: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Additional context"
+    )
+
+    @field_validator("tool_name")
+    @classmethod
+    def validate_tool_name(cls, v: str) -> str:
+        """Validate that tool name is not empty."""
+        if not v.strip():
+            raise ValueError("Tool name is required")
+        return v
+
+
+class ResourceResponse(BaseModel):
+    """Resource response model."""
+
+    type: str
+    description: str
+    properties: list[str]
+    relationships: list[str]
+
+
+class ToolDispatchResponse(BaseModel):
+    """Tool dispatch response model."""
+
+    result: str
+    data: dict[str, Any]
+    message: str
