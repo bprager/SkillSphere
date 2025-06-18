@@ -105,7 +105,7 @@ jobs:
       if: matrix.check == 'coverage'
       run: |
         if [ -f ./skill_sphere_mcp/coverage.svg ]; then
-          git push
+          git push origin HEAD:${GITHUB_HEAD_REF:-main}
         else
           echo "No coverage badge to push"
           exit 0
