@@ -133,6 +133,10 @@ def create_app() -> FastAPI:
     # Mount static files at /static for all static assets
     mcp_server_app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # Mount .well-known for OAuth discovery document
+    well_known_dir = os.path.join(static_dir, ".well-known")
+    mcp_server_app.mount("/.well-known", StaticFiles(directory=well_known_dir), name="well-known")
+
     # Add a route for the root path to serve index.html
     @mcp_server_app.get("/")
     async def root():

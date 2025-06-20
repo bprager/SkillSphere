@@ -8,17 +8,22 @@ import numpy as np
 
 from fastapi import APIRouter
 from fastapi import HTTPException
+from fastapi import Depends
 from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import-untyped]
 
 from .db.connection import neo4j_conn
 from .models.embedding import get_embedding_model
+from .auth.oauth import validate_access_token
 
 
 logger = logging.getLogger(__name__)
 
-# Initialize router
-router = APIRouter(prefix="/v1")
+# Initialize router with OAuth2 dependency (except healthz)
+router = APIRouter(
+    prefix="/v1",
+    dependencies=[Depends(validate_access_token)]
+)
 
 # Get the model instance
 MODEL = get_embedding_model()
@@ -47,7 +52,7 @@ class SearchResult(BaseModel):
     score: float
 
 
-@router.get("/healthz", summary="Health check")
+@router.get("/healthz", summary="Health check", include_in_schema=True)
 async def health_check() -> dict[str, str]:
     """Return service health status."""
     logger.debug("Health check requested")

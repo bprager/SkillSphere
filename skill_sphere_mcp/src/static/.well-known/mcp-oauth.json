@@ -1,0 +1,6 @@
+{
+    "introspection_endpoint": "https://your-idp.example.com/auth/realms/yourrealm/protocol/openid-connect/token/introspect",
+    "resource_id": "skillsphere-mcp",
+    "token_type": "Bearer",
+    "protocol_version": "2025-06-18"
+}
