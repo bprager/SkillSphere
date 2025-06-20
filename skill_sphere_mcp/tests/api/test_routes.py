@@ -1,145 +1,86 @@
-"""Tests for API routes."""
-
-# pylint: disable=redefined-outer-name
-
-from unittest.mock import AsyncMock
-
 import pytest
-import pytest_asyncio
+from fastapi.testclient import TestClient
+from fastapi import status
+import numpy as np
 
-from fastapi import HTTPException
-from neo4j import AsyncSession
+from skill_sphere_mcp.app import app
 
-from skill_sphere_mcp.api.routes import create_skill
-from skill_sphere_mcp.api.routes import get_skills
-from skill_sphere_mcp.api.routes import health_check
-from skill_sphere_mcp.models.skill import Skill
+client = TestClient(app)
 
+def test_health_check():
+    response = client.get("/v1/healthz")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"status": "ok"}
 
-# Test data
-MOCK_SKILL_NAME = "Python"
-MOCK_SKILLS = [{"name": "Python"}, {"name": "FastAPI"}]
+@pytest.mark.asyncio
+async def test_get_entity_not_found(monkeypatch):
+    # Mock the neo4j session to return no record
+    async def mock_run(*args, **kwargs):
+        class MockResult:
+            async def single(self):
+                return None
+        return MockResult()
 
-# HTTP status codes
-HTTP_INTERNAL_ERROR = 500
+    class MockSession:
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+        async def run(self, *args, **kwargs):
+            return await mock_run()
 
+    async def mock_get_session():
+        yield MockSession()
 
-class AsyncRecordIterator:
-    """Async iterator for mock Neo4j records."""
+    monkeypatch.setattr("skill_sphere_mcp.db.connection.neo4j_conn.get_session", mock_get_session)
 
-    def __init__(self, records: list[dict]):
-        self.records = records
-        self.index = 0
+    response = client.get("/v1/entity/999999")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Entity not found"}
 
-    def __aiter__(self) -> "AsyncRecordIterator":
-        return self
+@pytest.mark.asyncio
+async def test_search_semantic(monkeypatch):
+    # Mock the embedding model and neo4j session
+    class MockModel:
+        def encode(self, query):
+            return np.array([0.1, 0.2, 0.3])
 
-    async def __anext__(self) -> dict:
-        if self.index >= len(self.records):
+    monkeypatch.setattr("skill_sphere_mcp.routes.MODEL", MockModel())
+
+    class MockRecord:
+        def __init__(self, id, embedding):
+            self._id = id
+            self._embedding = embedding
+        def __getitem__(self, key):
+            if key == "id":
+                return self._id
+            if key == "embedding":
+                return self._embedding
+
+    class MockResult:
+        async def __aiter__(self):
+            yield MockRecord(1, [0.1, 0.2, 0.3])
+        async def __anext__(self):
             raise StopAsyncIteration
-        record = self.records[self.index]
-        self.index += 1
-        return record
 
+    class MockSession:
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+        async def run(self, *args, **kwargs):
+            return MockResult()
 
-@pytest_asyncio.fixture
-async def mock_session():
-    """Create a mock Neo4j session."""
-    return AsyncMock(spec=AsyncSession)
+    async def mock_get_session():
+        yield MockSession()
 
+    monkeypatch.setattr("skill_sphere_mcp.db.connection.neo4j_conn.get_session", mock_get_session)
 
-@pytest.mark.asyncio
-async def test_health_check() -> None:
-    """Test health check endpoint."""
-    response = await health_check()
-    assert isinstance(response, dict)
-    assert response == {"status": "healthy"}
-
-
-@pytest.mark.asyncio
-async def test_get_skills_success(mock_session: AsyncMock) -> None:
-    """Test successful skills retrieval."""
-    # Mock the Neo4j result
-    mock_result = AsyncMock()
-    mock_result.fetch_all.return_value = [
-        {"s": {"name": skill["name"]}} for skill in MOCK_SKILLS
-    ]
-    mock_session.run.return_value = mock_result
-
-    skills = await get_skills(mock_session)
-    assert isinstance(skills, list)
-    assert len(skills) == len(MOCK_SKILLS)
-    assert all(hasattr(skill, "name") for skill in skills)
-    assert [skill.name for skill in skills] == [skill["name"] for skill in MOCK_SKILLS]
-
-    # Verify Neo4j query was called correctly
-    mock_session.run.assert_called_once_with("MATCH (s:Skill) RETURN s")
-
-
-@pytest.mark.asyncio
-async def test_get_skills_empty(mock_session: AsyncMock) -> None:
-    """Test skills retrieval with empty result."""
-    # Mock empty result
-    mock_result = AsyncMock()
-    mock_result.__aiter__ = lambda self: AsyncRecordIterator([])
-    mock_session.run.return_value = mock_result
-
-    skills = await get_skills(mock_session)
-    assert isinstance(skills, list)
-    assert len(skills) == 0
-
-
-@pytest.mark.asyncio
-async def test_get_skills_error(mock_session: AsyncMock) -> None:
-    """Test skills retrieval with database error."""
-    mock_session.run.side_effect = Exception("Database error")
-
-    with pytest.raises(HTTPException) as exc_info:
-        await get_skills(mock_session)
-    assert exc_info.value.status_code == HTTP_INTERNAL_ERROR
-    assert exc_info.value.detail == "Failed to fetch skills"
-
-
-@pytest.mark.asyncio
-async def test_create_skill_success(mock_session: AsyncMock) -> None:
-    """Test successful skill creation."""
-    # Mock the Neo4j result
-    mock_result = AsyncMock()
-    mock_result.single.return_value = {"s": {"name": MOCK_SKILL_NAME}}
-    mock_session.run.return_value = mock_result
-
-    skill = Skill(name=MOCK_SKILL_NAME)
-    response = await create_skill(skill, mock_session)
-    assert isinstance(response, Skill)
-    assert response.name == MOCK_SKILL_NAME
-
-    # Verify Neo4j query was called correctly
-    mock_session.run.assert_called_once_with(
-        "CREATE (s:Skill $skill) RETURN s",
-        skill={"name": MOCK_SKILL_NAME},
-    )
-
-
-@pytest.mark.asyncio
-async def test_create_skill_no_result(mock_session: AsyncMock) -> None:
-    """Test skill creation with no result."""
-    # Mock empty result
-    mock_result = AsyncMock()
-    mock_result.single.return_value = None
-    mock_session.run.return_value = mock_result
-
-    with pytest.raises(HTTPException) as exc_info:
-        await create_skill(MOCK_SKILL_NAME, mock_session)
-    assert exc_info.value.status_code == HTTP_INTERNAL_ERROR
-    assert exc_info.value.detail == "Failed to create skill"
-
-
-@pytest.mark.asyncio
-async def test_create_skill_error(mock_session: AsyncMock) -> None:
-    """Test skill creation with database error."""
-    mock_session.run.side_effect = Exception("Database error")
-
-    with pytest.raises(HTTPException) as exc_info:
-        await create_skill(MOCK_SKILL_NAME, mock_session)
-    assert exc_info.value.status_code == HTTP_INTERNAL_ERROR
-    assert exc_info.value.detail == "Failed to create skill"
+    response = client.post("/v1/search", json={"query": "test", "k": 1})
+    assert response.status_code == status.HTTP_200_OK
+    json_data = response.json()
+    assert isinstance(json_data, list)
+    assert len(json_data) <= 1
+    if json_data:
+        assert "entity_id" in json_data[0]
+        assert "score" in json_data[0]

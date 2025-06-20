@@ -29,7 +29,7 @@ request_count = Counter('request_count', 'Total number of requests')
 @router.get("/health")
 async def health_check() -> dict[str, str]:
     """Health check endpoint."""
-    return {"status": "healthy"}
+    return {"status": "ok"}
 
 
 @router.get("/skills", response_model=list[Skill])

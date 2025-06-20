@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     service_version: str = Field(default="0.2.0")
 
     # Client info
-    client_info: ClientInfo = Field(default_factory=ClientInfo, env=None)
+    client_info: ClientInfo = Field(default_factory=ClientInfo, json_schema_extra={"env": None})
 
     # Feature flags
     enable_telemetry: bool = Field(default=True)

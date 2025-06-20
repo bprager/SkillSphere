@@ -35,10 +35,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/health", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+@router.get("/health")
+async def health_check() -> dict[str, str]:
     """Health check endpoint."""
-    return HealthResponse(status="ok")
+    return {"status": "ok"}
 
 
 @router.get("/mcp/entities/{entity_id}")

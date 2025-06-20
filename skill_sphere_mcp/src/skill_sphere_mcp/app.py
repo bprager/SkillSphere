@@ -18,11 +18,17 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+import os
+import logging
+import uvicorn
 
-from .api.mcp_routes import router as mcp_router
+from .api.mcp.routes import router as mcp_router
 from .api.routes import router as metrics_router
 from .config.settings import get_settings
 from .routes import router as api_router
+from .api.mcp import router as elicitation_router
 
 
 # Configure logging
@@ -129,6 +135,7 @@ def create_app() -> FastAPI:
     mcp_server_app.include_router(api_router)  # /v1 routes
     mcp_server_app.include_router(mcp_router)  # /mcp routes
     mcp_server_app.include_router(metrics_router)  # /metrics and other API routes
+    mcp_server_app.include_router(elicitation_router)  # /elicitation routes
 
     # Mount static files at /static for all static assets
     mcp_server_app.mount("/static", StaticFiles(directory=static_dir), name="static")

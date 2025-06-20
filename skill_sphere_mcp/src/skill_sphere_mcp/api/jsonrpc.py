@@ -171,6 +171,13 @@ async def handle_request(request: JSONRPCRequest, session: AsyncSession) -> dict
     Returns:
         JSON-RPC response
     """
+    # Reject batch requests (list of requests)
+    if isinstance(request, list):
+        return create_jsonrpc_error(
+            {"code": -32600, "message": "Batch requests are not supported"},
+            None,
+        )
+
     # Validate request
     if not request.jsonrpc or request.jsonrpc != "2.0":
         return create_jsonrpc_error(ERROR_INVALID_REQUEST, request.id)

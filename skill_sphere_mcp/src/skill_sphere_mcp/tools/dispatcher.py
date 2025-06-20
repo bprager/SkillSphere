@@ -11,6 +11,9 @@ from ..cv import generate_cv
 from ..tools.handlers import explain_match
 from ..tools.handlers import graph_search
 from ..tools.handlers import match_role
+from ..tools.handlers import ExplainMatchOutputModel
+from ..tools.handlers import GraphSearchOutputModel
+from ..tools.handlers import MatchRoleOutputModel
 
 
 logger = logging.getLogger(__name__)
@@ -55,13 +58,19 @@ def _validate_graph_search_params(parameters: dict[str, Any]) -> None:
         raise HTTPException(status_code=422, detail="top_k must be a positive integer")
 
 
-async def dispatch_tool(tool_name: str, parameters: dict[str, Any], session: AsyncSession) -> dict[str, Any]:
+from typing import Any, Type
+from fastapi import HTTPException
+from neo4j import AsyncSession
+from pydantic import BaseModel
+
+async def dispatch_tool(tool_name: str, parameters: dict[str, Any], session: AsyncSession, structured_output: bool = False) -> dict[str, Any]:
     """Dispatch tool execution to appropriate handler.
 
     Args:
         tool_name: Name of tool to dispatch
         parameters: Tool parameters
         session: Database session
+        structured_output: Whether to wrap results in structured_result key
 
     Returns:
         Tool execution result
@@ -72,18 +81,20 @@ async def dispatch_tool(tool_name: str, parameters: dict[str, Any], session: Asy
     if not tool_name or not tool_name.strip():
         raise HTTPException(status_code=422, detail="Tool name is required")
 
-    # Map tool names to handlers
-    handlers = {
-        TOOL_MATCH_ROLE: match_role,
-        TOOL_EXPLAIN_MATCH: explain_match,
-        TOOL_GENERATE_CV: generate_cv,
-        TOOL_GRAPH_SEARCH: graph_search,
+    # Map tool names to handlers and their output models
+    handlers: dict[str, tuple[Any, Type[BaseModel] | None]] = {
+        TOOL_MATCH_ROLE: (match_role, MatchRoleOutputModel),
+        TOOL_EXPLAIN_MATCH: (explain_match, ExplainMatchOutputModel),
+        TOOL_GENERATE_CV: (generate_cv, None),  # Assuming no OutputModel yet
+        TOOL_GRAPH_SEARCH: (graph_search, GraphSearchOutputModel),
     }
 
-    # Get handler
-    handler = handlers.get(tool_name)
-    if not handler:
+    # Get handler and output model
+    handler_tuple = handlers.get(tool_name)
+    if not handler_tuple:
         raise HTTPException(status_code=422, detail=f"Unknown tool: {tool_name}")
+
+    handler, output_model = handler_tuple
 
     # Validate parameters
     try:
@@ -102,7 +113,24 @@ async def dispatch_tool(tool_name: str, parameters: dict[str, Any], session: Asy
 
     # Execute handler
     try:
-        return await handler(parameters, session)
+        result = await handler(parameters, session)
+        if output_model:
+            # Validate and return structured result
+            if isinstance(result, output_model):
+                validated_result = result.model_dump()
+            else:
+                # If result is dict, validate by parsing
+                validated = output_model.parse_obj(result)
+                validated_result = validated.model_dump()
+            
+            # Return structured or raw based on parameter
+            if structured_output:
+                return {"structured_result": validated_result}
+            else:
+                return validated_result
+        else:
+            # No output model, return raw result
+            return result
     except HTTPException as e:
         if e.status_code == 422:
             raise

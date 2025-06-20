@@ -4,11 +4,17 @@ from typing import Any
 
 from fastapi import HTTPException
 from neo4j import AsyncSession
+from pydantic import BaseModel, Field
+
+
+class ExplainMatchOutputModel(BaseModel):
+    explanation: str = Field(..., description="Explanation of the skill match")
+    evidence: list[dict[str, Any]] = Field(..., description="List of evidence items")
 
 
 async def explain_match(
     parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
+) -> ExplainMatchOutputModel:
     """Explain why a skill matches a role requirement.
 
     Args:
@@ -60,15 +66,21 @@ async def explain_match(
         f"based on {len(projects)} projects and {len(certifications)} certifications."
     )
 
-    return {
-        "explanation": explanation,
-        "evidence": evidence,
-    }
+    return ExplainMatchOutputModel(
+        explanation=explanation,
+        evidence=evidence,
+    )
+
+
+class GraphSearchOutputModel(BaseModel):
+    results: list[dict[str, Any]] = Field(..., description="List of search results")
+    query: str = Field(..., description="Search query string")
+    top_k: int = Field(..., description="Number of top results returned")
 
 
 async def graph_search(
     parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
+) -> GraphSearchOutputModel:
     """Graph search tool handler."""
     query = parameters.get("query")
     top_k = parameters.get("top_k", 5)
@@ -88,12 +100,34 @@ async def graph_search(
     records = await result.all()  # type: ignore[attr-defined]
     results = [{"node": record["n"]} for record in records]
 
-    return {"results": results, "query": query, "top_k": top_k}
+    # Add .links array with deep-links to nodes
+    for r in results:
+        node = r["node"]
+        node_id = node.get("id") or node.get("uuid") or None
+        if node_id:
+            r["links"] = [
+                f"bolt://localhost/{node_id}",
+                f"https://graphviewer.example.com/node/{node_id}"
+            ]
+        else:
+            r["links"] = []
+
+    return GraphSearchOutputModel(
+        results=results,
+        query=query,
+        top_k=top_k,
+    )
+
+
+class MatchRoleOutputModel(BaseModel):
+    match_score: float = Field(..., description="Match score between 0 and 1")
+    skill_gaps: list[str] = Field(..., description="List of missing skills")
+    matching_skills: list[dict[str, Any]] = Field(..., description="List of matching skills")
 
 
 async def match_role(
     parameters: dict[str, Any], session: AsyncSession
-) -> dict[str, Any]:
+) -> MatchRoleOutputModel:
     """Match role tool handler (returns match_score, skill_gaps, matching_skills)."""
     required_skills = parameters.get("required_skills")
     years_experience = parameters.get("years_experience", {})
@@ -137,8 +171,8 @@ async def match_role(
         len(matching_skills) / len(required_skills) if required_skills else 0.0
     )
 
-    return {
-        "match_score": match_score,
-        "skill_gaps": skill_gaps,
-        "matching_skills": matching_skills,
-    }
+    return MatchRoleOutputModel(
+        match_score=match_score,
+        skill_gaps=skill_gaps,
+        matching_skills=matching_skills,
+    )

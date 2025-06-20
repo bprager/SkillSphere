@@ -1,28 +1,27 @@
-"""MCP API models."""
-
 from typing import Any
 from typing import Dict
 from typing import Optional
 
-from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 
+from skill_sphere_mcp.models.extended_fields import ExtendedFields
 
-class HealthResponse(BaseModel):
+
+class HealthResponse(ExtendedFields):
     """Health check response model."""
 
     status: str
 
 
-class InitializeRequest(BaseModel):
+class InitializeRequest(ExtendedFields):
     """Initialize request model."""
 
     protocol_version: str
     client_info: dict[str, Any]
 
 
-class InitializeResponse(BaseModel):
+class InitializeResponse(ExtendedFields):
     """Initialize response model."""
 
     protocol_version: str
@@ -30,7 +29,7 @@ class InitializeResponse(BaseModel):
     instructions: str
 
 
-class EntityResponse(BaseModel):
+class EntityResponse(ExtendedFields):
     """Entity response model."""
 
     id: str
@@ -41,7 +40,7 @@ class EntityResponse(BaseModel):
     relationships: list[dict[str, Any]] | None = None
 
 
-class SearchRequest(BaseModel):
+class SearchRequest(ExtendedFields):
     """Search request model."""
 
     query: str = Field(
@@ -66,21 +65,21 @@ class SearchRequest(BaseModel):
         return v
 
 
-class SearchResponse(BaseModel):
+class SearchResponse(ExtendedFields):
     """Search response model."""
 
     results: list[dict[str, Any]]
     total: int
 
 
-class MatchRoleRequest(BaseModel):
+class MatchRoleRequest(ExtendedFields):
     """Match role request model."""
 
     required_skills: list[str]
     years_experience: dict[str, int] = {}
 
 
-class MatchRoleResponse(BaseModel):
+class MatchRoleResponse(ExtendedFields):
     """Match role response model."""
 
     match_score: float
@@ -88,42 +87,42 @@ class MatchRoleResponse(BaseModel):
     matching_skills: list[dict[str, Any]]
 
 
-class ResourceRequest(BaseModel):
+class ResourceRequest(ExtendedFields):
     """Resource request model."""
 
     resource_type: str
     resource_id: str
 
 
-class ToolRequest(BaseModel):
+class ToolRequest(ExtendedFields):
     """Tool request model."""
 
     tool_name: str
     parameters: dict[str, Any]
 
 
-class ExplainMatchRequest(BaseModel):
+class ExplainMatchRequest(ExtendedFields):
     """Match explanation request."""
 
     skill_id: str
     role_requirement: str
 
 
-class ExplainMatchResponse(BaseModel):
+class ExplainMatchResponse(ExtendedFields):
     """Match explanation response."""
 
     explanation: str
     evidence: list[dict[str, Any]]
 
 
-class GraphSearchRequest(BaseModel):
+class GraphSearchRequest(ExtendedFields):
     """Graph search request."""
 
     query: str
     top_k: int = 10
 
 
-class ToolDispatchRequest(BaseModel):
+class ToolDispatchRequest(ExtendedFields):
     """Tool dispatch request model."""
 
     tool_name: str = Field(
@@ -151,7 +150,7 @@ class ToolDispatchRequest(BaseModel):
         return v
 
 
-class ResourceResponse(BaseModel):
+class ResourceResponse(ExtendedFields):
     """Resource response model."""
 
     type: str
@@ -160,7 +159,7 @@ class ResourceResponse(BaseModel):
     relationships: list[str]
 
 
-class ToolDispatchResponse(BaseModel):
+class ToolDispatchResponse(ExtendedFields):
     """Tool dispatch response model."""
 
     result: str
