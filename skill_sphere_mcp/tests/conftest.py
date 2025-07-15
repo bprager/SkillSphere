@@ -3,8 +3,10 @@
 import logging
 import os
 
+from typing import Any
 from typing import AsyncGenerator
 from typing import Generator
+from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
@@ -25,6 +27,24 @@ from skill_sphere_mcp.config.settings import settings
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class AsyncIterator:
+    """Helper class to create async iterators for mocking."""
+    
+    def __init__(self, items: List[Any]):
+        self.items = items
+        self.index = 0
+    
+    def __aiter__(self):
+        return self
+    
+    async def __anext__(self):
+        if self.index >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.index]
+        self.index += 1
+        return item
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -103,12 +123,12 @@ def mock_db_session():
             # Simulate not found for 'nonexistent'
             if params and (params.get("id") == "nonexistent"):
                 mock_result = AsyncMock()
-                mock_result.single = AsyncMock(return_value=None)
+                mock_result.__aiter__.return_value = AsyncIterator([])
                 return mock_result
             # Otherwise, return a dummy entity with relationships
             mock_result = AsyncMock()
-            mock_result.single = AsyncMock(
-                return_value={
+            mock_result.__aiter__.return_value = AsyncIterator([
+                {
                     "n": {"id": "someid", "name": "Some Entity"},
                     "labels": ["Entity"],
                     "relationships": [
@@ -119,31 +139,29 @@ def mock_db_session():
                         }
                     ],
                 }
-            )
+            ])
             return mock_result
 
         # For match_role (MATCH (p:Person))
         elif "MATCH (p:Person)" in query:
             mock_result = AsyncMock()
-            mock_result.all = AsyncMock(
-                return_value=[
-                    {
-                        "p": {
-                            "id": "1",
-                            "name": "Test Person",
-                            "skills": ["Python", "FastAPI"],
-                            "experience": {"Python": 5, "FastAPI": 3},
-                        }
+            mock_result.__aiter__.return_value = AsyncIterator([
+                {
+                    "p": {
+                        "id": "1",
+                        "name": "Test Person",
+                        "skills": ["Python", "FastAPI"],
+                        "experience": {"Python": 5, "FastAPI": 3},
                     }
-                ]
-            )
+                }
+            ])
             return mock_result
 
         # For explain_match (MATCH (s:Skill))
         elif "MATCH (s:Skill" in query:
             mock_result = AsyncMock()
-            mock_result.single = AsyncMock(
-                return_value={
+            mock_result.__aiter__.return_value = AsyncIterator([
+                {
                     "s": {"id": "1", "name": "Python"},
                     "projects": [
                         {
@@ -160,47 +178,45 @@ def mock_db_session():
                         }
                     ],
                 }
-            )
+            ])
             return mock_result
 
         # For graph_search (MATCH (n))
         elif "MATCH (n)" in query:
             mock_result = AsyncMock()
-            mock_result.all = AsyncMock(
-                return_value=[
-                    {
-                        "n": {
-                            "id": "1",
+            mock_result.__aiter__.return_value = AsyncIterator([
+                {
+                    "n": {
+                        "id": "1",
+                        "name": "Python",
+                        "type": "Skill",
+                        "description": "Python programming language",
+                        "labels": ["Skill"],
+                        "properties": {
                             "name": "Python",
-                            "type": "Skill",
                             "description": "Python programming language",
-                            "labels": ["Skill"],
-                            "properties": {
-                                "name": "Python",
-                                "description": "Python programming language",
-                            },
-                        }
-                    },
-                    {
-                        "n": {
-                            "id": "2",
+                        },
+                    }
+                },
+                {
+                    "n": {
+                        "id": "2",
+                        "name": "FastAPI",
+                        "type": "Skill",
+                        "description": "FastAPI web framework",
+                        "labels": ["Skill"],
+                        "properties": {
                             "name": "FastAPI",
-                            "type": "Skill",
                             "description": "FastAPI web framework",
-                            "labels": ["Skill"],
-                            "properties": {
-                                "name": "FastAPI",
-                                "description": "FastAPI web framework",
-                            },
-                        }
-                    },
-                ]
-            )
+                        },
+                    }
+                },
+            ])
             return mock_result
 
         # Default case
         mock_result = AsyncMock()
-        mock_result.all = AsyncMock(return_value=[])
+        mock_result.__aiter__.return_value = AsyncIterator([])
         return mock_result
 
     session.run.side_effect = run_side_effect

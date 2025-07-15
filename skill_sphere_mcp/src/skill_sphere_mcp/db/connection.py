@@ -1,104 +1,80 @@
-"""Neo4j database connection management."""
+"""Database connection management."""
 
 import logging
 
-from typing import AsyncGenerator
 from typing import Optional
+from typing import cast
 
-from fastapi import HTTPException
 from neo4j import AsyncDriver
-from neo4j import AsyncGraphDatabase
 from neo4j import AsyncSession
+from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError
 from neo4j.exceptions import ServiceUnavailable
-
-from skill_sphere_mcp.config.settings import get_settings
 
 
 logger = logging.getLogger(__name__)
 
 
-class Neo4jConnection:
-    """Neo4j connection manager."""
+class DatabaseConnection:
+    """Database connection manager."""
 
-    _instance: Optional["Neo4jConnection"] = None
-    _driver: Optional[AsyncDriver] = None
-
-    def __new__(cls) -> "Neo4jConnection":
-        """Ensure singleton instance."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self) -> None:
-        """Initialize Neo4j connection."""
-        if self._driver is None:
-            self._initialize_driver()
-
-    def _initialize_driver(self) -> None:
-        """Initialize Neo4j driver."""
-        settings = get_settings()
-        try:
-            self._driver = AsyncGraphDatabase.driver(
-                settings.neo4j_uri,
-                auth=(settings.neo4j_user, settings.neo4j_password),
-            )
-            logger.info("Neo4j driver initialized successfully")
-        except ServiceUnavailable as e:
-            logger.error("Failed to connect to Neo4j: %s", e)
-            raise
-
-    @property
-    def driver(self) -> AsyncDriver:
-        """Get Neo4j driver instance."""
-        if self._driver is None:
-            self._initialize_driver()
-        return self._driver
+    def __init__(self, uri: str, user: str, password: str) -> None:
+        """Initialize database connection."""
+        self.uri = uri
+        self.user = user
+        self.password = password
+        self._driver: Optional[AsyncDriver] = None
 
     async def connect(self) -> None:
-        """Connect to Neo4j database."""
-        if self._driver is None:
-            self._initialize_driver()
-        await self.verify_connectivity()
+        """Establish database connection."""
+        try:
+            driver = GraphDatabase.driver(
+                self.uri,
+                auth=(self.user, self.password)
+            )
+            self._driver = cast(AsyncDriver, driver)
+            logger.info("Database connection established")
+        except Exception as e:
+            logger.error("Failed to establish database connection: %s", e)
+            raise
 
     async def verify_connectivity(self) -> bool:
         """Verify database connectivity."""
-        if self._driver is None:
-            self._initialize_driver()
+        if not self._driver:
+            return False
+
         try:
             await self._driver.verify_connectivity()
             return True
-        except ServiceUnavailable as e:
-            logger.error("Service unavailable: %s", e)
-            raise HTTPException(status_code=503, detail="Database service unavailable") from e
-        except AuthError as e:
-            logger.error("Authentication failed: %s", e)
-            raise HTTPException(status_code=401, detail="Database authentication failed") from e
+        except ServiceUnavailable:
+            logger.error("Database service unavailable")
+            return False
+        except AuthError:
+            logger.error("Database authentication failed")
+            return False
         except Exception as e:
-            logger.error("Connection verification failed: %s", e)
-            raise HTTPException(status_code=500, detail="Database connection failed") from e
-
-    async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
-        """Get a Neo4j database session.
-
-        Yields:
-            Neo4j database session
-        """
-        if self._driver is None:
-            self._initialize_driver()
-        session = self._driver.session()
-        try:
-            yield session
-        finally:
-            await session.close()
+            logger.error("Database connectivity check failed: %s", e)
+            return False
 
     async def close(self) -> None:
-        """Close Neo4j connection."""
+        """Close database connection."""
         if self._driver is not None:
-            await self._driver.close()
-            self._driver = None
-            logger.info("Neo4j connection closed")
+            try:
+                await self._driver.close()
+            except Exception as e:
+                logger.error("Error closing database connection: %s", e)
+            finally:
+                self._driver = None
+                logger.info("Database connection closed")
 
+    def get_session(self) -> Optional[AsyncSession]:
+        """Get database session."""
+        if not self._driver:
+            logger.error("No database driver available")
+            return None
 
-# Create a singleton instance
-neo4j_conn = Neo4jConnection()
+        try:
+            return self._driver.session()
+        except Exception as e:
+            logger.error("Failed to create database session: %s", e)
+            return None

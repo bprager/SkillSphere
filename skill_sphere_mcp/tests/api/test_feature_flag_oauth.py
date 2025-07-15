@@ -1,9 +1,12 @@
 import os
+
 import pytest
+
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from skill_sphere_mcp.app import app
+
 
 @pytest.mark.asyncio
 async def test_oauth_feature_flag_disabled(monkeypatch):

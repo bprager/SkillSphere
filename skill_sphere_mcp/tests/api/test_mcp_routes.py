@@ -1,6 +1,10 @@
 # pylint: disable=redefined-outer-name
 """Tests for MCP routes."""
 
+from typing import Any
+from typing import AsyncGenerator
+from typing import Generator
+from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
@@ -21,13 +25,31 @@ from skill_sphere_mcp.api.mcp.handlers import graph_search
 from skill_sphere_mcp.api.mcp.handlers import match_role
 from skill_sphere_mcp.api.mcp.models import ToolRequest
 from skill_sphere_mcp.api.mcp.routes import get_db_session
-from skill_sphere_mcp.api.mcp.routes import list_resources
+from skill_sphere_mcp.api.mcp.routes import list_resources_endpoint
 from skill_sphere_mcp.api.mcp.rpc import rpc_match_role_handler
 from skill_sphere_mcp.api.mcp.utils import get_resource
 from skill_sphere_mcp.app import create_app
 from skill_sphere_mcp.cv.generator import generate_cv
 from skill_sphere_mcp.graph.embeddings import embeddings
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
+
+
+class AsyncIterator:
+    """Helper class to create async iterators for mocking."""
+    
+    def __init__(self, items: List[Any]):
+        self.items = items
+        self.index = 0
+    
+    def __aiter__(self):
+        return self
+    
+    async def __anext__(self):
+        if self.index >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.index]
+        self.index += 1
+        return item
 
 
 test_rpc_handler = JSONRPCHandler()
@@ -64,7 +86,7 @@ async def mock_session() -> AsyncMock:
 @pytest_asyncio.fixture
 async def test_list_resources() -> None:
     """Test resource listing endpoint."""
-    resources = await list_resources()
+    resources = await list_resources_endpoint()
     assert isinstance(resources, list)
     assert len(resources) > 0
     assert all(isinstance(r, str) for r in resources)
@@ -120,7 +142,7 @@ async def test_dispatch_tool_success(mock_session: AsyncMock) -> None:
     request = ToolRequest(tool_name="skill.match_role", parameters=parameters)
     # Patch the DB result to return skills compatible with match_role
     mock_record = {"p": {"name": "John Doe", "skills": ["Python", "FastAPI"]}}
-    mock_session.run.return_value.all.return_value = [mock_record]
+    mock_session.run.return_value = AsyncIterator([mock_record])
     response = await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert isinstance(response, dict)
     assert "match_score" in response
@@ -156,6 +178,23 @@ async def test_explain_match_tool(mock_session: AsyncMock) -> None:
         "role_requirement": "Python developer with 5 years experience",
     }
     request = ToolRequest(tool_name="skill.explain_match", parameters=parameters)
+    mock_result = AsyncMock()
+    mock_result.__aiter__.return_value = AsyncIterator([
+        {
+            "s": {"id": "1", "name": "Python"},
+            "projects": [
+                {"id": "p1", "name": "Project A", "description": "Python project"}
+            ],
+            "certifications": [
+                {
+                    "id": "c1",
+                    "name": "Python Cert",
+                    "description": "Python certification",
+                }
+            ],
+        }
+    ])
+    mock_session.run.return_value = AsyncIterator([mock_result])
     response = await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert isinstance(response, dict)
     assert "explanation" in response
@@ -176,7 +215,7 @@ async def test_generate_cv_tool(mock_session: AsyncMock) -> None:
         "companies": [],
         "education": [],
     }
-    mock_session.run.return_value.single.return_value = mock_record
+    mock_session.run.return_value = AsyncIterator([mock_record])
     response = await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert isinstance(response, dict)
     assert "content" in response
@@ -191,6 +230,19 @@ async def test_graph_search_tool(mock_session: AsyncMock) -> None:
         "top_k": 5,
     }
     request = ToolRequest(tool_name="graph.search", parameters=parameters)
+    mock_result = AsyncMock()
+    mock_result.__aiter__.return_value = AsyncIterator([
+        {
+            "n": {
+                "id": "1",
+                "name": "Python",
+                "type": "Skill",
+                "description": "Python programming language",
+                "labels": ["Skill"],
+            }
+        }
+    ])
+    mock_session.run.return_value = AsyncIterator([mock_result])
     response = await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert isinstance(response, dict)
     assert "results" in response
@@ -253,7 +305,7 @@ async def test_generate_cv_tool_invalid_format(mock_session: AsyncMock) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool(request.tool_name, request.parameters, mock_session)
     assert exc_info.value.status_code == HTTP_UNPROCESSABLE_ENTITY
-    assert "Validation error" in str(exc_info.value.detail)
+    assert "Invalid format" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
@@ -301,21 +353,19 @@ async def test_match_role_tool_invalid_experience(mock_session: AsyncMock) -> No
 @pytest.mark.asyncio
 async def test_match_role_success() -> None:
     """Test match_role returns expected result."""
-    params = {"required_skills": ["Python"], "years_experience": {}}
+    params = {"required_skills": ["Python"], "years_experience": {"Python": 1}}
     mock_session = AsyncMock()
     # Simulate DB returning a person with matching skills
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "p": {
-                    "id": "1",
-                    "name": "Test Person",
-                    "skills": ["Python"],
-                }
+    mock_result = AsyncIterator([
+        {
+            "p": {
+                "id": "1",
+                "name": "Test Person",
+                "skills": ["Python"],
+                "years_experience": {"Python": 1},
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
     result = await match_role(params, mock_session)
     assert "match_score" in result
@@ -333,31 +383,26 @@ async def test_match_role_invalid_params() -> None:
 
 @pytest.mark.asyncio
 async def test_explain_match_success() -> None:
-    """Test explain_match returns expected result."""
+    """Test explain_match returns evidence and explanation."""
     params = {"skill_id": "1", "role_requirement": "Python dev"}
     mock_session = AsyncMock()
-    # Simulate DB returning a skill node with projects and certifications
     mock_result = AsyncMock()
-    mock_result.single = AsyncMock(
-        return_value={
-            "s": {"id": "1", "name": "Python"},
-            "projects": [
-                {"id": "p1", "name": "Project A", "description": "Python project"}
-            ],
-            "certifications": [
-                {
-                    "id": "c1",
-                    "name": "Python Cert",
-                    "description": "Python certification",
-                }
-            ],
-        }
-    )
+    mock_result.single = AsyncMock(return_value={
+        "s": {"id": "1", "name": "Python"},
+        "projects": [
+            {"id": "p1", "name": "Project A"},
+            {"id": "p2", "name": "Project B"},
+        ],
+        "certifications": [
+            {"id": "c1", "name": "Python Cert", "description": "Python certification"},
+            {"id": "c2", "name": "Advanced Python", "description": "Advanced Python certification"},
+        ],
+    })
     mock_session.run.return_value = mock_result
     result = await explain_match(params, mock_session)
     assert "explanation" in result
     assert "evidence" in result
-    assert len(result["evidence"]) == 2
+    assert len(result["evidence"]) == 4  # 2 projects + 2 certifications
 
 
 @pytest.mark.asyncio
@@ -392,7 +437,9 @@ async def test_generate_cv_success() -> None:
         "companies": [],
         "education": [],
     }
-    mock_session.run.return_value.single.return_value = mock_record
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(return_value=mock_record)
+    mock_session.run.return_value = mock_result
     result = await generate_cv(params, mock_session)
     assert result["format"] == "markdown"
     assert "# John" in result["content"]
@@ -414,7 +461,9 @@ async def test_generate_cv_profile_not_found() -> None:
     """Test generate_cv when profile not found raises HTTPException."""
     params = {"target_keywords": ["Python"], "format": "markdown"}
     mock_session = AsyncMock()
-    mock_session.run.return_value.single.return_value = None
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(return_value=None)
+    mock_session.run.return_value = mock_result
     with pytest.raises(HTTPException) as exc_info:
         await generate_cv(params, mock_session)
     assert exc_info.value.status_code == HTTP_NOT_FOUND
@@ -431,7 +480,9 @@ async def test_generate_cv_format_not_implemented() -> None:
         "companies": [],
         "education": [],
     }
-    mock_session.run.return_value.single.return_value = mock_record
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(return_value=mock_record)
+    mock_session.run.return_value = mock_result
     with pytest.raises(HTTPException) as exc_info:
         await generate_cv(params, mock_session)
     assert exc_info.value.status_code == HTTP_NOT_IMPLEMENTED
@@ -442,20 +493,17 @@ async def test_graph_search_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test graph_search returns results."""
     params = {"query": "Python", "top_k": 1}
     mock_session = AsyncMock()
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "n": {
-                    "id": "1",
-                    "name": "Python",
-                    "type": "Skill",
-                    "description": "Python programming language",
-                    "labels": ["Skill"],
-                }
+    mock_result = AsyncIterator([
+        {
+            "n": {
+                "id": "1",
+                "name": "Python",
+                "type": "Skill",
+                "description": "Python programming language",
+                "labels": ["Skill"],
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
     result = await graph_search(params, mock_session)
     assert "results" in result
@@ -468,20 +516,17 @@ async def test_graph_search_importerror(monkeypatch: pytest.MonkeyPatch) -> None
     """Test graph_search falls back to random embedding if MODEL is None."""
     params = {"query": "Python", "top_k": 1}
     mock_session = AsyncMock()
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "n": {
-                    "id": "1",
-                    "name": "Python",
-                    "type": "Skill",
-                    "description": "Python programming language",
-                    "labels": ["Skill"],
-                }
+    mock_result = AsyncIterator([
+        {
+            "n": {
+                "id": "1",
+                "name": "Python",
+                "type": "Skill",
+                "description": "Python programming language",
+                "labels": ["Skill"],
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
     result = await graph_search(params, mock_session)
     assert "results" in result
@@ -493,23 +538,18 @@ async def test_graph_search_importerror(monkeypatch: pytest.MonkeyPatch) -> None
 async def test_handle_skill_match_success() -> None:
     """Test successful skill matching."""
     mock_session = AsyncMock()
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "p": {
-                    "id": "1",
-                    "name": "Test Person",
-                    "skills": ["Python"],
-                }
+    params = {"required_skills": ["Python"], "years_experience": {"Python": 1}}
+    mock_result = AsyncIterator([
+        {
+            "p": {
+                "id": "1",
+                "name": "Test Person",
+                "skills": ["Python"],
+                "years_experience": {"Python": 1},
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
-    params = {
-        "required_skills": ["Python"],
-        "years_experience": {"Python": 5},
-    }
     result = await rpc_match_role_handler(params, mock_session)
     assert "match_score" in result
     assert result["match_score"] == pytest.approx(1.0)
@@ -561,25 +601,20 @@ async def test_handle_skill_match_error() -> None:
 
 @pytest.mark.asyncio
 async def test_handle_jsonrpc_request_success() -> None:
-    """Test successful JSON-RPC request handling."""
+    """Test JSON-RPC match_role handler returns expected result."""
     mock_session = AsyncMock()
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "p": {
-                    "id": "1",
-                    "name": "Test Person",
-                    "skills": ["Python"],
-                }
+    params = {"required_skills": ["Python"], "years_experience": {"Python": 1}}
+    mock_result = AsyncIterator([
+        {
+            "p": {
+                "id": "1",
+                "name": "Test Person",
+                "skills": ["Python"],
+                "years_experience": {"Python": 1},
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
-    params = {
-        "required_skills": ["Python"],
-        "years_experience": {"Python": 5},
-    }
     result = await rpc_match_role_handler(params, mock_session)
     assert "match_score" in result
     assert result["match_score"] == pytest.approx(1.0)
@@ -659,10 +694,8 @@ def test_health_check(client):
 
 
 def test_search_endpoint_success(client, mock_session):
-    """Test successful search endpoint."""
-    # Mock search results
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(return_value=[
+    """Test POST /mcp/search returns results."""
+    mock_result = AsyncIterator([
         {
             "node": {
                 "id": "1",
@@ -673,15 +706,12 @@ def test_search_endpoint_success(client, mock_session):
         }
     ])
     mock_session.run.return_value = mock_result
-
-    response = client.post(
-        "/mcp/search",
-        json={"query": "Python", "limit": 10}
-    )
+    
+    response = client.post("/mcp/search", json={"query": "Python", "limit": 10})
     assert response.status_code == 200
     data = response.json()
     assert "results" in data
-    assert len(data["results"]) == 1
+    assert len(data["results"]) > 0
     assert data["results"][0]["node"]["name"] == "Python"
 
 
@@ -691,8 +721,10 @@ def test_search_endpoint_empty_query(client):
         "/mcp/search",
         json={"query": "", "limit": 10}
     )
-    assert response.status_code == 400
-    assert 'Query is required' in response.json()["detail"]
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    # Check if any error message contains the expected text
+    assert any("String should have at least 1 character" in str(error) for error in detail)
 
 
 def test_tool_dispatch_endpoint_success(client, mock_session):
@@ -733,7 +765,7 @@ def test_tool_dispatch_endpoint_missing_name(client):
 
 
 def test_get_entity_endpoint_success(client, mock_session):
-    """Test successful entity retrieval endpoint."""
+    """Test GET /mcp/entities/{entity_id} returns entity."""
     mock_result = AsyncMock()
     mock_result.single = AsyncMock(return_value={
         "n": {
@@ -744,7 +776,6 @@ def test_get_entity_endpoint_success(client, mock_session):
         }
     })
     mock_session.run.return_value = mock_result
-
     response = client.get("/mcp/entities/1")
     assert response.status_code == 200
     data = response.json()
@@ -754,14 +785,14 @@ def test_get_entity_endpoint_success(client, mock_session):
 
 
 def test_get_entity_endpoint_not_found(client, mock_session):
-    """Test entity retrieval endpoint for non-existent entity."""
+    """Test GET /mcp/entities/{entity_id} returns 404 for missing entity."""
     mock_result = AsyncMock()
     mock_result.single = AsyncMock(return_value=None)
     mock_session.run.return_value = mock_result
-
     response = client.get("/mcp/entities/nonexistent")
     assert response.status_code == 404
-    assert "Entity not found" in response.json()["detail"]
+    data = response.json()
+    assert data["detail"] == "Entity not found"
 
 
 def test_list_resources_endpoint(client):

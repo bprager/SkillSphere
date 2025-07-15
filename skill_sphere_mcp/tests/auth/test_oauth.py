@@ -1,7 +1,11 @@
 import os
 import sys
+
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
 
 from fastapi import HTTPException
 from fastapi.requests import Request
@@ -36,7 +40,7 @@ async def test_validate_access_token_raises_http_exception_if_token_missing_or_i
 
     # Case 1: token is None
     with pytest.raises(HTTPException) as exc_info:
-        await oauth_module.validate_access_token(mock_request, token=None)
+        await oauth_module.validate_access_token(mock_request, None)
     assert exc_info.value.status_code == 401
     assert "Invalid or missing OAuth2 access token" in exc_info.value.detail
 
@@ -44,7 +48,7 @@ async def test_validate_access_token_raises_http_exception_if_token_missing_or_i
     mock_token = MagicMock()
     mock_token.active = False
     with pytest.raises(HTTPException) as exc_info:
-        await oauth_module.validate_access_token(mock_request, token=mock_token)
+        await oauth_module.validate_access_token(mock_request, mock_token)
     assert exc_info.value.status_code == 401
     assert "Invalid or missing OAuth2 access token" in exc_info.value.detail
 
@@ -55,5 +59,5 @@ async def test_validate_access_token_returns_token_if_active():
     mock_token = MagicMock()
     mock_token.active = True
 
-    result = await oauth_module.validate_access_token(mock_request, token=mock_token)
+    result = await oauth_module.validate_access_token(mock_request, mock_token)
     assert result == mock_token

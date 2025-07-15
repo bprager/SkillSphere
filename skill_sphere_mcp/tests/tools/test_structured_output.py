@@ -1,12 +1,12 @@
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
-from skill_sphere_mcp.tools.handlers import (
-    ExplainMatchOutputModel,
-    GraphSearchOutputModel,
-    MatchRoleOutputModel,
-)
+from skill_sphere_mcp.tools.handlers import ExplainMatchOutputModel
+from skill_sphere_mcp.tools.handlers import GraphSearchOutputModel
+from skill_sphere_mcp.tools.handlers import MatchRoleOutputModel
+
 
 @pytest.mark.asyncio
 async def test_dispatch_tool_structured_output_match_role():

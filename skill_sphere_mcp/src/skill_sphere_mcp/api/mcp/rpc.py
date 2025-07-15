@@ -4,7 +4,7 @@ from typing import Any
 
 from neo4j import AsyncSession
 
-from ..jsonrpc import ERROR_INVALID_PARAMS
+from ..jsonrpc import ERROR_CODE_INVALID_PARAMS
 from ..jsonrpc import JSONRPCHandler
 from ..jsonrpc import JSONRPCRequest
 from ..jsonrpc import JSONRPCResponse
@@ -85,7 +85,7 @@ async def handle_rpc_request(
         return await rpc_handler.handle_request(request, session)
     except ValueError as e:
         return JSONRPCResponse.create_error(
-            ERROR_INVALID_PARAMS["code"],
+            ERROR_CODE_INVALID_PARAMS,
             str(e),
             request.id
         )

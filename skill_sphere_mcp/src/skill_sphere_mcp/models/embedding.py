@@ -2,8 +2,6 @@
 
 import logging
 
-from typing import Any
-
 from sentence_transformers import SentenceTransformer
 
 
@@ -17,7 +15,7 @@ except ImportError:
     logger.warning("sentence-transformers not installed, will use random embeddings")
 
 
-def get_embedding_model() -> Any:
+def get_embedding_model() -> SentenceTransformer | None:
     """Get the embedding model instance.
 
     Returns:

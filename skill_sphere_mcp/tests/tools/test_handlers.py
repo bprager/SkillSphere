@@ -2,6 +2,8 @@
 
 import logging
 
+from typing import Any
+from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -42,6 +44,24 @@ MOCK_EMBEDDING = np.random.default_rng(42).random(128)
 EXPECTED_RESULTS_COUNT = 2
 
 
+class AsyncIterator:
+    """Helper class to create async iterators for mocking."""
+    
+    def __init__(self, items: List[Any]):
+        self.items = items
+        self.index = 0
+    
+    def __aiter__(self):
+        return self
+    
+    async def __anext__(self):
+        if self.index >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.index]
+        self.index += 1
+        return item
+
+
 @pytest_asyncio.fixture
 async def mock_session() -> AsyncMock:
     """Create a mock Neo4j session."""
@@ -73,18 +93,16 @@ async def test_match_role_success(mock_session: AsyncMock) -> None:
     """Test successful skill matching."""
     # Setup mock session response
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "p": {
-                    "id": "1",
-                    "name": "Test Person",
-                    "skills": ["Python", "FastAPI"],
-                    "experience": {"Python": 5, "FastAPI": 3},
-                }
+    mock_result = AsyncIterator([
+        {
+            "p": {
+                "id": "1",
+                "name": "Test Person",
+                "skills": ["Python", "FastAPI"],
+                "experience": {"Python": 5, "FastAPI": 3},
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -176,12 +194,14 @@ async def test_explain_match_skill_not_found(mock_session: AsyncMock) -> None:
 async def test_generate_cv_success(mock_session: AsyncMock) -> None:
     """Test successful CV generation."""
     mock_record = {
-        "p": {"name": "John"},
+        "p": {"name": "John Doe"},
         "skills": [{"name": "Python"}],
         "companies": [],
         "education": [],
     }
-    mock_session.run.return_value.single.return_value = mock_record
+    mock_result = AsyncMock()
+    mock_result.single = AsyncMock(return_value=mock_record)
+    mock_session.run.return_value = mock_result
     result = await generate_cv(
         {"target_keywords": ["Python"], "format": "markdown"}, mock_session
     )
@@ -210,23 +230,21 @@ async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
 async def test_graph_search_success(mock_session: AsyncMock) -> None:
     """Test successful graph search."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "n": {
-                    "id": "1",
+    mock_result = AsyncIterator([
+        {
+            "n": {
+                "id": "1",
+                "name": "Python",
+                "type": "Skill",
+                "description": "Python programming language",
+                "labels": ["Skill"],
+                "properties": {
                     "name": "Python",
-                    "type": "Skill",
                     "description": "Python programming language",
-                    "labels": ["Skill"],
-                    "properties": {
-                        "name": "Python",
-                        "description": "Python programming language",
-                    },
-                }
+                },
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
 
     result = await graph_search(
@@ -329,7 +347,7 @@ async def test_match_role_partial_match(mock_session: AsyncMock) -> None:
     mock_result = AsyncMock()
     # The handler expects all required skills to be present in the profile for a match
     # So, if only one skill is present, match_score should be 0.0
-    mock_result.all = AsyncMock(return_value=[])  # No full matches
+    mock_result = AsyncIterator([])  # No full matches
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -414,7 +432,7 @@ async def test_explain_match_invalid_skill_id(mock_session: AsyncMock) -> None:
 async def test_graph_search_empty_results(mock_session: AsyncMock) -> None:
     """Test graph search with no matching results."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(return_value=[])
+    mock_result = AsyncIterator([])
     mock_session.run.return_value = mock_result
 
     result = await graph_search({"query": "nonexistent", "top_k": 5}, mock_session)
@@ -426,11 +444,9 @@ async def test_graph_search_empty_results(mock_session: AsyncMock) -> None:
 async def test_graph_search_special_characters(mock_session: AsyncMock) -> None:
     """Test graph search with special characters in query."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {"n": {"id": "1", "name": "C++", "description": "Programming language"}}
-        ]
-    )
+    mock_result = AsyncIterator([
+        {"n": {"id": "1", "name": "C++", "description": "Programming language"}}
+    ])
     mock_session.run.return_value = mock_result
 
     result = await graph_search({"query": "C++", "top_k": 5}, mock_session)
@@ -443,9 +459,7 @@ async def test_graph_search_special_characters(mock_session: AsyncMock) -> None:
 async def test_graph_search_large_top_k(mock_session: AsyncMock) -> None:
     """Test graph search with a large top_k value."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[{"n": {"id": str(i), "name": f"Node {i}"}} for i in range(100)]
-    )
+    mock_result = AsyncIterator([{"n": {"id": str(i), "name": f"Node {i}"}} for i in range(100)])
     mock_session.run.return_value = mock_result
 
     result = await graph_search({"query": "Node", "top_k": 100}, mock_session)
@@ -457,17 +471,15 @@ async def test_graph_search_large_top_k(mock_session: AsyncMock) -> None:
 async def test_match_role_empty_experience(mock_session: AsyncMock) -> None:
     """Test match role with empty years_experience."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "p": {
-                    "name": "Test Person",
-                    "skills": ["Python", "FastAPI"],
-                    "experience": {},
-                }
+    mock_result = AsyncIterator([
+        {
+            "p": {
+                "name": "Test Person",
+                "skills": ["Python", "FastAPI"],
+                "experience": {},
             }
-        ]
-    )
+        }
+    ])
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -487,7 +499,7 @@ async def test_match_role_empty_experience(mock_session: AsyncMock) -> None:
 async def test_match_role_nonexistent_skills(mock_session: AsyncMock) -> None:
     """Test match role with non-existent skills."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(return_value=[])
+    mock_result = AsyncIterator([])
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -506,24 +518,22 @@ async def test_match_role_nonexistent_skills(mock_session: AsyncMock) -> None:
 async def test_match_role_multiple_profiles(mock_session: AsyncMock) -> None:
     """Test match role with multiple matching profiles."""
     mock_result = AsyncMock()
-    mock_result.all = AsyncMock(
-        return_value=[
-            {
-                "p": {
-                    "name": "Person 1",
-                    "skills": ["Python"],
-                    "experience": {"Python": 5},
-                }
-            },
-            {
-                "p": {
-                    "name": "Person 2",
-                    "skills": ["Python"],
-                    "experience": {"Python": 3},
-                }
-            },
-        ]
-    )
+    mock_result = AsyncIterator([
+        {
+            "p": {
+                "name": "Person 1",
+                "skills": ["Python"],
+                "experience": {"Python": 5},
+            }
+        },
+        {
+            "p": {
+                "name": "Person 2",
+                "skills": ["Python"],
+                "experience": {"Python": 3},
+            }
+        },
+    ])
     mock_session.run.return_value = mock_result
 
     result = await match_role(

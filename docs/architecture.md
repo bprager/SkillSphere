@@ -417,4 +417,3 @@ edge together.
 ---
 <sup>© 2025 Bernd Prager — Apache 2.0. Clone it, fork it, improve it, and tell me
 what you build!</sup>
-

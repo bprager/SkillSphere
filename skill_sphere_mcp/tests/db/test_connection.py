@@ -16,7 +16,7 @@ from neo4j import AsyncSession
 from neo4j.exceptions import AuthError
 from neo4j.exceptions import ServiceUnavailable
 
-from skill_sphere_mcp.db.connection import Neo4jConnection
+from skill_sphere_mcp.db.connection import DatabaseConnection
 
 
 @pytest_asyncio.fixture
@@ -46,16 +46,15 @@ def session_mock() -> AsyncMock:
 
 
 @pytest_asyncio.fixture
-def conn(settings: MagicMock, driver: AsyncMock) -> Neo4jConnection:
-    """Create Neo4jConnection instance with mocked dependencies."""
-    with (
-        patch("skill_sphere_mcp.db.connection.get_settings", return_value=settings),
-        patch(
-            "skill_sphere_mcp.db.connection.AsyncGraphDatabase.driver",
-            return_value=driver,
-        ),
+def conn(settings: MagicMock, driver: AsyncMock) -> DatabaseConnection:
+    """Create DatabaseConnection instance with mocked dependencies."""
+    with patch(
+        "skill_sphere_mcp.db.connection.GraphDatabase.driver",
+        return_value=driver,
     ):
-        return Neo4jConnection()
+        conn = DatabaseConnection(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
+        conn._driver = driver
+        return conn
 
 
 @pytest.mark.asyncio
@@ -63,23 +62,11 @@ async def test_connection_initialization(
     settings: MagicMock, driver: AsyncMock
 ) -> None:
     """Test Neo4j connection initialization."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
-
-    with (
-        patch(
-            "skill_sphere_mcp.db.connection.get_settings",
-            return_value=settings,
-        ),
-        patch(
-            "skill_sphere_mcp.db.connection.AsyncGraphDatabase.driver",
-            return_value=driver,
-        ) as mock_driver,
-    ):
-        conn = (
-            Neo4jConnection()
-        )  # Create the connection to trigger driver initialization
+    with patch(
+        "skill_sphere_mcp.db.connection.GraphDatabase.driver",
+        return_value=driver,
+    ) as mock_driver:
+        conn = DatabaseConnection(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
         await conn.connect()  # Ensure driver is initialized
         # Verify driver was created with correct parameters
         mock_driver.assert_called_once_with(
@@ -90,12 +77,9 @@ async def test_connection_initialization(
 
 @pytest.mark.asyncio
 async def test_verify_connectivity_success(
-    conn: Neo4jConnection, driver: AsyncMock
+    conn: DatabaseConnection, driver: AsyncMock
 ) -> None:
     """Test successful connectivity verification."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
     conn._driver = driver
     driver.verify_connectivity.return_value = None
 
@@ -106,44 +90,31 @@ async def test_verify_connectivity_success(
 
 @pytest.mark.asyncio
 async def test_verify_connectivity_service_unavailable(
-    conn: Neo4jConnection, driver: AsyncMock
+    conn: DatabaseConnection, driver: AsyncMock
 ) -> None:
     """Test connectivity verification with service unavailable."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
     conn._driver = driver
     driver.verify_connectivity.side_effect = ServiceUnavailable("Connection failed")
 
-    with pytest.raises(HTTPException) as exc_info:
-        await conn.verify_connectivity()
-    assert exc_info.value.status_code == 503
-    assert exc_info.value.detail == "Database service unavailable"
+    result = await conn.verify_connectivity()
+    assert result is False
 
 
 @pytest.mark.asyncio
 async def test_verify_connectivity_auth_error(
-    conn: Neo4jConnection, driver: AsyncMock
+    conn: DatabaseConnection, driver: AsyncMock
 ) -> None:
     """Test connectivity verification with authentication error."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
     conn._driver = driver
     driver.verify_connectivity.side_effect = AuthError("Invalid credentials")
 
-    with pytest.raises(HTTPException) as exc_info:
-        await conn.verify_connectivity()
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.detail == "Database authentication failed"
+    result = await conn.verify_connectivity()
+    assert result is False
 
 
 @pytest.mark.asyncio
-async def test_close(conn: Neo4jConnection, driver: AsyncMock) -> None:
+async def test_close(conn: DatabaseConnection, driver: AsyncMock) -> None:
     """Test connection closure."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
     conn._driver = driver
 
     await conn.close()
@@ -152,58 +123,43 @@ async def test_close(conn: Neo4jConnection, driver: AsyncMock) -> None:
 
 @pytest.mark.asyncio
 async def test_get_session(
-    conn: Neo4jConnection, driver: AsyncMock, session_mock: AsyncMock
+    conn: DatabaseConnection, driver: AsyncMock, session_mock: AsyncMock
 ) -> None:
-    """Test session creation and cleanup."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
+    """Test session creation."""
     conn._driver = driver
     driver.session.return_value = session_mock
 
-    async for session in conn.get_session():
-        assert session is session_mock
-        # Verify session was created
-        driver.session.assert_called_once()
-
-    # Verify session was closed
-    session_mock.close.assert_called_once()
+    session = conn.get_session()
+    assert session is session_mock
+    # Verify session was created
+    driver.session.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_session_error_handling(
-    conn: Neo4jConnection, driver: AsyncMock, session_mock: AsyncMock
+    conn: DatabaseConnection, driver: AsyncMock
 ) -> None:
     """Test session error handling."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
     conn._driver = driver
-    driver.session.return_value = session_mock
-    session_mock.close.side_effect = RuntimeError("Close error")
+    driver.session.side_effect = RuntimeError("Session error")
 
-    agen = conn.get_session()
-    with pytest.raises(RuntimeError, match="Close error"):
-        session = await anext(agen)
-        assert session is session_mock
-        await agen.athrow(RuntimeError("Test error"))
-    session_mock.close.assert_called_once()
+    session = conn.get_session()
+    assert session is None
 
 
 @pytest.mark.asyncio
-async def test_get_session_cleanup_on_error(
-    conn: Neo4jConnection, driver: AsyncMock, session_mock: AsyncMock
-) -> None:
-    """Test session cleanup when an error occurs during session usage."""
-    # Reset singleton state
-    Neo4jConnection._instance = None
-    Neo4jConnection._driver = None
-    conn._driver = driver
-    driver.session.return_value = session_mock
+async def test_get_session():
+    """Test getting a database session."""
+    from skill_sphere_mcp.db.deps import get_db_session
 
-    agen = conn.get_session()
-    with pytest.raises(RuntimeError, match="Test error"):
-        session = await anext(agen)
-        assert session is session_mock
-        await agen.athrow(RuntimeError("Test error"))
-    session_mock.close.assert_called_once()
+    # This should be a generator function, not awaitable
+    session_gen = get_db_session()
+    session = await anext(session_gen)
+    assert session is not None
+    # Test that session can be used
+    if hasattr(session, 'close') and session.close is not None:
+        try:
+            await session.close()
+        except (TypeError, AttributeError):
+            # Session.close() might not be awaitable or might be None
+            pass

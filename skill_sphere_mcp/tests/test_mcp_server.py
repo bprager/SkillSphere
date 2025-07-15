@@ -74,6 +74,23 @@ def mock_db_session():
             return mock_result
 
         # For match_role (MATCH (p:Person))
+        elif "MATCH (p:Person)" in norm_query and "WHERE ALL(skill IN" in norm_query:
+            mock_result = AsyncMock()
+            mock_result.all = AsyncMock(
+                return_value=[
+                    {
+                        "p": {
+                            "id": "1",
+                            "name": "Test Person",
+                            "skills": ["Python", "FastAPI"],
+                            "experience": {"Python": 5, "FastAPI": 3},
+                        }
+                    }
+                ]
+            )
+            return mock_result
+
+        # For match_role (MATCH (p:Person)) - simpler version
         elif "MATCH (p:Person)" in norm_query:
             mock_result = AsyncMock()
             mock_result.all = AsyncMock(
@@ -116,37 +133,49 @@ def mock_db_session():
 
         # For graph_search (MATCH (n))
         elif "MATCH (n)" in norm_query:
-            mock_result = AsyncMock()
-            mock_result.all = AsyncMock(
-                return_value=[
-                    {
-                        "n": {
-                            "id": "1",
+            class AsyncIteratorMock:
+                def __init__(self, items):
+                    self.items = items
+                    self.index = 0
+                
+                def __aiter__(self):
+                    return self
+                
+                async def __anext__(self):
+                    if self.index >= len(self.items):
+                        raise StopAsyncIteration
+                    item = self.items[self.index]
+                    self.index += 1
+                    return item
+            
+            mock_result = AsyncIteratorMock([
+                {
+                    "n": {
+                        "id": "1",
+                        "name": "Python",
+                        "type": "Skill",
+                        "description": "Python programming language",
+                        "labels": ["Skill"],
+                        "properties": {
                             "name": "Python",
-                            "type": "Skill",
                             "description": "Python programming language",
-                            "labels": ["Skill"],
-                            "properties": {
-                                "name": "Python",
-                                "description": "Python programming language",
-                            },
-                        }
-                    },
-                    {
-                        "n": {
-                            "id": "2",
+                        },
+                    }
+                },
+                {
+                    "n": {
+                        "id": "2",
+                        "name": "FastAPI",
+                        "type": "Skill",
+                        "description": "FastAPI web framework",
+                        "labels": ["Skill"],
+                        "properties": {
                             "name": "FastAPI",
-                            "type": "Skill",
                             "description": "FastAPI web framework",
-                            "labels": ["Skill"],
-                            "properties": {
-                                "name": "FastAPI",
-                                "description": "FastAPI web framework",
-                            },
-                        }
-                    },
-                ]
-            )
+                        },
+                    }
+                },
+            ])
             return mock_result
 
         # Default case

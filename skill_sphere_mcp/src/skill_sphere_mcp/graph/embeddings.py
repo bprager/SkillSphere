@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 
 from neo4j import AsyncSession
-from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import]
+from sklearn.metrics.pairwise import cosine_similarity
 
 from .node2vec.model import Node2Vec
 

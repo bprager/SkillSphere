@@ -1,3 +1,5 @@
+"""MCP (Model Context Protocol) models for request and response handling."""
+
 from typing import Any
 from typing import Dict
 from typing import Optional

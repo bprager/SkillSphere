@@ -1,6 +1,6 @@
-"""MCP (Model Context Protocol) route definitions and handlers."""
+"""MCP routes module."""
 
-from .mcp import router
+from .mcp.routes import router
 
 
 __all__ = ["router"]

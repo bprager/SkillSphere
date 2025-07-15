@@ -1,6 +1,7 @@
-"""Database package initialization."""
+"""Database module."""
 
-from .connection import neo4j_conn
+from .connection import DatabaseConnection
+from .deps import get_db_session
 
 
-__all__ = ["neo4j_conn"]
+__all__ = ["DatabaseConnection", "get_db_session"]

@@ -1,5 +1,7 @@
 """Tests for MCP handlers."""
 
+from typing import Any
+from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
@@ -15,6 +17,24 @@ from skill_sphere_mcp.api.mcp.handlers import handle_search
 from skill_sphere_mcp.api.mcp.handlers import handle_tool_dispatch
 
 
+class AsyncIterator:
+    """Helper class to create async iterators for mocking."""
+    
+    def __init__(self, items: List[Any]):
+        self.items = items
+        self.index = 0
+    
+    def __aiter__(self):
+        return self
+    
+    async def __anext__(self):
+        if self.index >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.index]
+        self.index += 1
+        return item
+
+
 @pytest.fixture
 def mock_session():
     """Create a mock Neo4j session."""
@@ -27,8 +47,7 @@ def mock_session():
 async def test_handle_search_success(mock_session):
     """Test successful search handling."""
     # Mock search results
-    mock_result = AsyncMock()
-    mock_result.all = AsyncMock(return_value=[
+    mock_session.run.return_value = AsyncIterator([
         {
             "node": {
                 "id": "1",
@@ -38,7 +57,6 @@ async def test_handle_search_success(mock_session):
             }
         }
     ])
-    mock_session.run.return_value = mock_result
 
     result = await handle_search(
         session=mock_session,
@@ -139,12 +157,10 @@ async def test_handle_get_entity_not_found(mock_session):
 
 @pytest.mark.asyncio
 async def test_handle_list_resources():
-    """Test resource listing."""
-    result = await handle_list_resources()
-    assert isinstance(result, list)
-    assert "nodes" in result
-    assert "relationships" in result
-    assert "search" in result
+    """Test handle_list_resources function."""
+    mock_session = AsyncMock()
+    result = await handle_list_resources(mock_session)
+    assert result == ["nodes", "relationships", "search"]
 
 
 @pytest.mark.asyncio

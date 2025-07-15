@@ -5,12 +5,13 @@ import logging
 
 from typing import Annotated
 from typing import Any
-from typing import TypeVar
+from typing import Optional
 from typing import cast
 
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from neo4j import AsyncResult
 from neo4j import AsyncSession
 
 from ...db.deps import get_db_session
@@ -31,6 +32,8 @@ from ..mcp.models import SearchResponse
 from ..mcp.models import ToolDispatchRequest
 from ..mcp.models import ToolDispatchResponse
 from ..mcp.utils import get_initialize_response_dict
+from .schemas import get_resource_schema
+from .utils import create_successful_tool_response
 
 
 logger = logging.getLogger(__name__)
@@ -44,8 +47,6 @@ DEFAULT_TEST_TOP_K = 5
 DEFAULT_TEST_LIMIT = 2
 
 router = APIRouter()
-
-T = TypeVar("T")
 
 
 async def _maybe_await(obj: Any) -> Any:
@@ -100,7 +101,7 @@ async def query(
     """Execute a Cypher query."""
     try:
         result = await session.run(request.query, request.parameters or {})
-        records = await _fetch_all(result)
+        records = [record async for record in result]
         summary = await _maybe_await(result.consume())
         return {
             "results": [dict(record) for record in records],
@@ -148,7 +149,7 @@ async def match_role(request: dict, session: AsyncSession) -> dict:
         raise HTTPException(status_code=422, detail=f"MatchRoleRequest: Invalid parameters: {str(e)}") from e
 
     # Query the database to find matching profiles
-    result = await session.run(
+    result: AsyncResult = await session.run(
         """
         MATCH (p:Person)
         WHERE ALL(skill IN $required_skills WHERE (p)-[:HAS_SKILL]->(:Skill {name: skill}))
@@ -156,7 +157,7 @@ async def match_role(request: dict, session: AsyncSession) -> dict:
         """,
         required_skills=required_skills,
     )
-    records = await result.all()
+    records = [record async for record in result]
 
     matching_skills = []
     skill_gaps = []
@@ -198,7 +199,7 @@ async def explain_match(request: dict, session: AsyncSession) -> dict:
         ) from exc
 
     # Get skill data with evidence
-    result = await session.run(
+    result: AsyncResult = await session.run(
         """
         MATCH (s:Skill {id: $skill_id})
         OPTIONAL MATCH (s)-[:USED_IN]->(p:Project)
@@ -238,7 +239,7 @@ async def explain_match(request: dict, session: AsyncSession) -> dict:
     }
 
 
-async def graph_search(request: dict, session: AsyncSession = None) -> dict:
+async def graph_search(request: dict, session: Optional[AsyncSession] = None) -> dict:
     """Execute a graph search query.
 
     Args:
@@ -249,8 +250,11 @@ async def graph_search(request: dict, session: AsyncSession = None) -> dict:
         Dictionary with search results
 
     Raises:
+        ValueError: If session is not provided
         HTTPException: If query is invalid or search fails
     """
+    if session is None:
+        raise ValueError("Session must be provided")
     search_query = request.get("query")
     top_k = request.get("top_k", 10)
     if not search_query or not isinstance(search_query, str) or not search_query.strip():
@@ -259,7 +263,7 @@ async def graph_search(request: dict, session: AsyncSession = None) -> dict:
         raise HTTPException(status_code=422, detail="top_k must be a positive integer")
 
     # Query the database to find nodes matching the query
-    result = await session.run(
+    result: AsyncResult = await session.run(
         """
         MATCH (n)
         WHERE n.name CONTAINS $search_query OR n.description CONTAINS $search_query
@@ -268,7 +272,7 @@ async def graph_search(request: dict, session: AsyncSession = None) -> dict:
         """,
         search_query=search_query, top_k=top_k
     )
-    records = await result.all()
+    records = [record async for record in result]
 
     # Format results
     results = []
@@ -301,7 +305,7 @@ async def handle_search(session: Any, query: str, limit: int) -> dict:
 
     try:
         # Perform a simple text search
-        result = await session.run(
+        result: AsyncResult = await session.run(
             """
             MATCH (n)
             WHERE n.name CONTAINS $query OR n.description CONTAINS $query
@@ -310,7 +314,7 @@ async def handle_search(session: Any, query: str, limit: int) -> dict:
             """,
             query=query, limit=limit
         )
-        records = await result.all()
+        records = [record async for record in result]
         results = []
         for record in records:
             node = record["node"] if "node" in record else record["n"]
@@ -349,7 +353,7 @@ async def handle_get_entity(
             raise HTTPException(status_code=404, detail="Entity not found")
 
         node = record["n"]
-        
+
         # Handle both Neo4j node objects and dictionaries (from mocks)
         if hasattr(node, 'labels'):
             # Real Neo4j node
@@ -364,6 +368,7 @@ async def handle_get_entity(
             "id": node_dict.get("id", node_dict.get("name")),
             "name": node_dict.get("name"),
             "type": node_type,
+            "description": node_dict.get("description", ""),
             "properties": node_dict
         }
     except HTTPException:
@@ -373,45 +378,17 @@ async def handle_get_entity(
         raise HTTPException(status_code=500, detail="Database error") from e
 
 
-async def handle_list_resources() -> list[str]:
+async def handle_list_resources(_session: AsyncSession) -> list[str]:
     """List available resources."""
     return ["nodes", "relationships", "search"]
 
 
 async def get_resource(resource_type: str) -> dict:
     """Get a resource schema."""
-    if resource_type not in ["nodes", "relationships", "search"]:
-        raise HTTPException(status_code=400, detail=f"Invalid resource type: {resource_type}")
-
-    schemas = {
-        "nodes": {
-            "type": "object",
-            "description": "Collection of nodes",
-            "properties": {
-                "id": {"type": "string"},
-                "name": {"type": "string"},
-                "type": {"type": "string"},
-            },
-        },
-        "relationships": {
-            "type": "object",
-            "description": "Collection of relationships",
-            "properties": {
-                "type": {"type": "string"},
-                "start": {"type": "string"},
-                "end": {"type": "string"},
-            },
-        },
-        "search": {
-            "type": "object",
-            "description": "Search functionality",
-            "properties": {
-                "query": {"type": "string"},
-                "limit": {"type": "integer"},
-            },
-        },
-    }
-    return schemas[resource_type]
+    try:
+        return get_resource_schema(resource_type)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 async def handle_tool_dispatch(session: Any, tool_name: str, parameters: dict) -> dict:
@@ -430,7 +407,7 @@ async def handle_tool_dispatch(session: Any, tool_name: str, parameters: dict) -
 
 
 async def handle_entity_request(
-    entity_id: str, session: AsyncSession
+    session: AsyncSession, entity_id: str
 ) -> EntityResponse:
     """Handle entity request."""
     try:
@@ -484,10 +461,9 @@ async def handle_search_request(
             RETURN n
             LIMIT $limit
             """,
-            query=request.query, limit=request.limit
+            {"query": request.query, "limit": request.limit}
         )
-        records = await result.fetch_all()
-
+        records = [record async for record in result]
         entities = []
         for record in records:
             node = record["n"]
@@ -497,7 +473,6 @@ async def handle_search_request(
                 "type": list(node.labels)[0] if node.labels else "Unknown",
                 "properties": dict(node)
             })
-
         return SearchResponse(
             results=entities,
             total=len(entities)
@@ -564,9 +539,9 @@ async def handle_graph_search_request(
             RETURN start, end, r
             LIMIT $limit
             """,
-            query=request.query, limit=request.top_k
+            {"query": request.query, "limit": request.top_k}
         )
-        records = await result.fetch_all()
+        records = [record async for record in result]
 
         paths = []
         for record in records:
@@ -612,11 +587,7 @@ async def handle_tool_dispatch_request(
     """Handle tool dispatch request."""
     try:
         result = await dispatch_tool(request.tool_name, request.parameters, session)
-        return ToolDispatchResponse(
-            result="success",
-            data=result,
-            message="Tool executed successfully"
-        )
+        return create_successful_tool_response(result)
     except Exception as e:
         logger.error("Tool dispatch request error: %s", e)
         return ToolDispatchResponse(

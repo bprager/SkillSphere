@@ -4,10 +4,12 @@ from typing import Any
 
 from fastapi import HTTPException
 from neo4j import AsyncSession
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from pydantic import Field
 
 
 class ExplainMatchOutputModel(BaseModel):
+    """Output model for explain match operations."""
     explanation: str = Field(..., description="Explanation of the skill match")
     evidence: list[dict[str, Any]] = Field(..., description="List of evidence items")
 
@@ -73,6 +75,7 @@ async def explain_match(
 
 
 class GraphSearchOutputModel(BaseModel):
+    """Output model for graph search operations."""
     results: list[dict[str, Any]] = Field(..., description="List of search results")
     query: str = Field(..., description="Search query string")
     top_k: int = Field(..., description="Number of top results returned")
@@ -97,7 +100,7 @@ async def graph_search(
     LIMIT $top_k
     """
     result = await session.run(cypher_query, search_query=query, top_k=top_k)
-    records = await result.all()  # type: ignore[attr-defined]
+    records = [record async for record in result]
     results = [{"node": record["n"]} for record in records]
 
     # Add .links array with deep-links to nodes
@@ -120,6 +123,7 @@ async def graph_search(
 
 
 class MatchRoleOutputModel(BaseModel):
+    """Output model for match role operations."""
     match_score: float = Field(..., description="Match score between 0 and 1")
     skill_gaps: list[str] = Field(..., description="List of missing skills")
     matching_skills: list[dict[str, Any]] = Field(..., description="List of matching skills")
@@ -153,7 +157,7 @@ async def match_role(
     RETURN p
     """
     result = await session.run(query, required_skills=required_skills)
-    records = await result.all()  # type: ignore[attr-defined]
+    records = [record async for record in result]
 
     matching_skills = []
     skill_gaps = []
@@ -176,3 +180,15 @@ async def match_role(
         skill_gaps=skill_gaps,
         matching_skills=matching_skills,
     )
+
+
+class SomeHandler:
+    """Handler for some tool logic."""
+
+
+class AnotherHandler:
+    """Handler for another tool logic."""
+
+
+class YetAnotherHandler:
+    """Handler for yet another tool logic."""

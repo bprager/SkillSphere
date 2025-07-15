@@ -4,6 +4,7 @@ import logging
 import os
 
 from functools import lru_cache
+from typing import Any
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -78,6 +79,13 @@ class Settings(BaseSettings):
     # Feature flags
     enable_telemetry: bool = Field(default=True)
     enable_caching: bool = Field(default=True)
+    enable_oauth: bool = Field(default=False)
+
+    # Add otel_endpoint as a property for compatibility
+    @property
+    def otel_endpoint(self) -> str:
+        """Get the OpenTelemetry endpoint URL."""
+        return self.otel_exporter_otlp_endpoint
 
     model_config = SettingsConfigDict(
         env_prefix="SKILL_SPHERE_MCP_",
@@ -85,7 +93,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize Settings with the provided keyword arguments."""
         logger.debug("Initializing Settings with kwargs: %s", kwargs)
         super().__init__(**kwargs)
         logger.debug("Settings initialized: %s", self)

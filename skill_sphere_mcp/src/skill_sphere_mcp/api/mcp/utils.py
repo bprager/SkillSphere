@@ -12,6 +12,7 @@ from ...models.graph import GraphNode
 from ...models.graph import GraphRelationship
 from ...models.skill import Skill
 from ..models import InitializeResponse
+from .models import ToolDispatchResponse
 
 
 logger = logging.getLogger(__name__)
@@ -166,3 +167,12 @@ async def create_skill_in_db(skill: Skill, session: AsyncSession) -> Skill:
     except Exception as e:
         logger.error("Failed to create skill: %s", e)
         raise HTTPException(status_code=500, detail="Failed to create skill") from e
+
+
+def create_successful_tool_response(result: Any) -> ToolDispatchResponse:
+    """Create a successful ToolDispatchResponse with the given result."""
+    return ToolDispatchResponse(
+        result="success",
+        data=result,
+        message="Tool executed successfully"
+    )

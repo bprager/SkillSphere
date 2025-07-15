@@ -68,7 +68,7 @@ async def get_entity(
 
 
 @router.get("/metrics")
-async def metrics():
+async def metrics() -> Response:
     """Expose Prometheus metrics."""
     request_count.inc()  # Increment the counter
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

@@ -24,6 +24,6 @@ def validate_parameters(parameters: dict, model_class: type[T]) -> T:
         ValueError: If validation fails
     """
     try:
-        return cast(T, model_class(**parameters))
+        return model_class(**parameters)
     except ValidationError as e:
         raise ValueError(str(e)) from e

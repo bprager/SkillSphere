@@ -5,6 +5,8 @@
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest_asyncio
 
@@ -16,10 +18,11 @@ from neo4j import AsyncSession
 from starlette.status import HTTP_200_OK
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from skill_sphere_mcp.db.connection import neo4j_conn
+from skill_sphere_mcp.db.connection import DatabaseConnection
+from skill_sphere_mcp.db.deps import get_db_session
 
 
-get_db_session_dep = Depends(neo4j_conn.get_session)
+get_db_session_dep = Depends(get_db_session)
 
 
 @pytest_asyncio.fixture
@@ -55,7 +58,7 @@ async def test_get_db_session(app: FastAPI) -> None:
     async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
         yield mock_session
 
-    app.dependency_overrides[neo4j_conn.get_session] = override_get_session
+    app.dependency_overrides[get_db_session] = override_get_session
 
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/test")
@@ -72,7 +75,7 @@ async def test_get_db_session_error_handling(app: FastAPI) -> None:
     async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
         yield mock_session
 
-    app.dependency_overrides[neo4j_conn.get_session] = override_get_session
+    app.dependency_overrides[get_db_session] = override_get_session
 
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/test")

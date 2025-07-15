@@ -16,8 +16,11 @@ services:
     volumes:
       - matomo_data:/var/www/html
       - ./matomo.config.ini:/var/www/html/config/config.ini.php:ro
+      - /var/lib/GeoIP:/var/lib/GeoIP:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
 
   db:
     image: mysql:8.0
@@ -29,6 +32,11 @@ services:
       - MYSQL_PASSWORD=${MATOMO_PASSWORD}
     volumes:
       - matomo_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   matomo_data:

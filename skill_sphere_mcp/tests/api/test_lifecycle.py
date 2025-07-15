@@ -1,8 +1,10 @@
 import pytest
-from fastapi.testclient import TestClient
+
 from fastapi import status
+from fastapi.testclient import TestClient
 
 from skill_sphere_mcp.app import app
+
 
 @pytest.mark.asyncio
 async def test_initialize_and_shutdown_lifecycle():
