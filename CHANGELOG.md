@@ -1,30 +1,42 @@
 # Changelog
 
-## [2.3.1] - 2025-07-15
+## [2.3.1] - 2025-01-15
 
 ### Added
 
-- Added Matomo analytics integration with Docker Compose setup for web analytics tracking.
-- Added MatomoTrackingMiddleware for automatic request tracking and analytics.
-- Added Architecture Decision Records (ADRs) for API versioning, logging strategy, and security authentication.
-- Added REST API routes module for legacy endpoint compatibility.
-- Added MCP resource schema definitions for improved API documentation.
-- Added comprehensive test coverage for OAuth authentication features.
-- Added validation environment script for development setup.
+- **Matomo Analytics Integration**: Added comprehensive web analytics with GeoIP2 tracking
+  - Docker-based Matomo setup with dedicated MySQL database
+  - Nginx reverse proxy with geo-location headers
+  - Privacy-focused analytics with custom event tracking
+  - Persistent storage for analytics data
+  - Separate Docker network for isolation
+
+- **Certification Template System**: Created comprehensive template system for professional certifications
+  - `certification_template.md` with standardized YAML front matter structure
+  - `CERTIFICATION_TEMPLATE_GUIDE.md` with detailed usage instructions
+  - `certification_quick_reference.md` with common patterns and examples
+  - `CERTIFICATION_TEMPLATE_BENEFITS.md` documenting processing advantages
+  - Migration and verification scripts for template adoption
 
 ### Changed
 
-- Enhanced test infrastructure with improved test configuration and coverage.
-- Updated MCP elicitation endpoint with better structured response handling.
-- Improved OAuth authentication with refined token validation and error handling.
-- Enhanced protocol version middleware with better validation logic.
-- Updated structured output schemas for better API compliance.
+- **OAuth Configuration**: Updated redirect URI configuration for production deployment
+  - Fixed redirect URI in oauth.py to match production environment
+  - Improved error handling for OAuth callback flow
+  - Enhanced security for production OAuth flow
+
+- **Certification Data Structure**: Migrated from single monolithic file to individual certification files
+  - Split `certifications.md` into 8 individual files (6 professional + 2 in-progress)
+  - Enhanced YAML front matter with entity IDs, status tracking, and competency arrays
+  - Individual file processing dramatically improves hypergraph accuracy
+  - Structured metadata enables better LLM gleaning and search capabilities
 
 ### Fixed
 
-- Fixed authentication middleware integration with proper dependency injection.
-- Resolved test configuration issues and improved test reliability.
-- Fixed middleware ordering and request handling in FastAPI application.
+- **Geo-location Tracking**: Fixed GeoIP2 integration with proper database mounting
+  - Corrected MaxMind database path in Docker volume mounts
+  - Fixed Nginx geo-location header configuration
+  - Improved geo-location data accuracy in Matomo dashboard
 
 ### Infrastructure
 

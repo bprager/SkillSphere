@@ -1,7 +1,33 @@
 ---
 title: "SkillSphere Architecture"
 author: "Bernd Prager"
-date: 2025-05-29            # rendered automatically
+date: 2025-05-29            # rendered au### 3.1  Processing Steps
+
+1. **Change detection** – SHA‑256 hashes skip unchanged docs (SQLite registry).
+2. **Chunk & embed** – 1 500‑word windows, 200‑word overlap; vectors stored in
+   FAISS for hybrid search.
+3. **Gleaning loop** – up to 3 Gemma passes ask *only* for missing triples.
+4. **Graph update** – deterministic Cypher `MERGE` ensures alias‑safe nodes.
+5. **Node2Vec refresh** – post‑ingest GDS batch writes 128‑d embeddings.
+
+*First full build: ~3 × v1 runtime; incremental runs ≈ 45 s on 800 docs.*
+
+### 3.2  Data Structure Optimization
+
+**Individual File Processing**: The system processes each document independently for optimal hypergraph accuracy. This approach is particularly beneficial for structured data like certifications:
+
+- **Certification Files**: Individual certification files with YAML front matter enable precise entity extraction and relationship mapping
+- **Template System**: Standardized templates ensure consistent metadata structure across all certifications
+- **Enhanced Metadata**: Entity IDs, status tracking, and competency arrays in YAML front matter dramatically improve LLM gleaning accuracy
+- **Processing Benefits**: Individual files allow for granular change detection and reduce processing overhead compared to monolithic documents
+
+The certification template system provides:
+- Consistent YAML front matter structure with entity IDs
+- Standardized sections for verification URLs and competency mapping
+- Migration tools for converting legacy data structures
+- Documentation and guides for template adoption
+
+This structure enables the hypergraph to maintain precise relationships between certifications, skills, and competencies while minimizing processing time through SHA-256 change detection on individual files.y
 subtitle: "Revision v2.2"
 abstract: |
   **SkillSphere** converts plain-text career records into a Neo4j‑powered
@@ -98,6 +124,7 @@ hypergraph/
 │   └── llm/           # Gemma 3 triple extraction
 └── tests/             # pytest, 100 % coverage
 ```
+
 </details>
 
 ### 3.1  Processing Steps
@@ -194,10 +221,10 @@ trace.get_tracer_provider().add_span_processor(span_processor)
 
 The MCP server provides a clean, modern landing page that serves as the entry point for human users:
 
-- **Static HTML** – Served from the root path (`/`)
-- **Key Features** – Highlights the main capabilities of the system
-- **API Documentation** – Direct link to FastAPI's interactive OpenAPI documentation (always up-to-date and covers all endpoints, including error responses)
-- **Responsive Design** – Mobile-friendly layout with modern typography
+* **Static HTML** – Served from the root path (`/`)
+* **Key Features** – Highlights the main capabilities of the system
+* **API Documentation** – Direct link to FastAPI's interactive OpenAPI documentation (always up-to-date and covers all endpoints, including error responses)
+* **Responsive Design** – Mobile-friendly layout with modern typography
 
 The landing page is built with vanilla HTML and CSS, ensuring fast loading times and no external dependencies.
 
@@ -214,10 +241,10 @@ The MCP server's behavior and context are configurable through environment varia
 | `MCP_CLIENT_FEATURES` | Enabled features | See `settings.py` |
 
 The `MCP_INSTRUCTIONS` environment variable is particularly important as it:
-- Identifies the owner of the skills-graph
-- Provides context about the system's purpose
-- Guides LLM clients on how to use the available tools
-- Ensures proper attribution of all content
+* Identifies the owner of the skills-graph
+* Provides context about the system's purpose
+* Guides LLM clients on how to use the available tools
+* Ensures proper attribution of all content
 
 This configuration allows for easy maintenance and updates to the MCP server's behavior without code changes.
 
@@ -318,23 +345,23 @@ $ docker compose logs -f mcp | sed -e "s/\x1b\[[0-9;]*m//g" | lnav
 The system uses two complementary approaches for monitoring and analytics:
 
 1. **OpenTelemetry Stack** (Grafana + Tempo + Loki + Prometheus)
-   - End-to-end request tracing
-   - System metrics and performance monitoring
-   - Centralized logging with trace correlation
+   * End-to-end request tracing
+   * System metrics and performance monitoring
+   * Centralized logging with trace correlation
 
 2. **Matomo Analytics** (Web Analytics)
-   - Privacy-focused web analytics
-   - Geo-location tracking using GeoIP2
-   - Custom event tracking
-   - User behavior analysis
-   - A/B testing capabilities
+   * Privacy-focused web analytics
+   * Geo-location tracking using GeoIP2
+   * Custom event tracking
+   * User behavior analysis
+   * A/B testing capabilities
 
 The Matomo setup includes:
-- Dedicated MySQL database for analytics data
-- GeoIP2 integration for accurate location tracking
-- Nginx reverse proxy with geo-location headers
-- Separate Docker network for isolation
-- Persistent storage for analytics data
+* Dedicated MySQL database for analytics data
+* GeoIP2 integration for accurate location tracking
+* Nginx reverse proxy with geo-location headers
+* Separate Docker network for isolation
+* Persistent storage for analytics data
 
 To enable geo-location tracking in the main application, add the following JavaScript to your web pages:
 
