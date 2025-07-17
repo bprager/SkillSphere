@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  mcp:
+    build: ./skill_sphere_mcp
+    env_file: .env
+    environment:
+      - NEO4J_URI=${NEO4J_URI}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+    ports:
+      - "8000:8000"
+    networks:
+      - skillsphere
+
+  ingestion:
+    build: ./hypergraph
+    volumes:
+      - /var/lib/hypergraph/ingestion_docs:/app/ingestion_docs
+    environment:
+      - NEO4J_URI=${NEO4J_URI}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+    user: "1000:1000"  # Match hypergraph user ID
+    networks:
+      - skillsphere
+
+networks:
+  skillsphere:
+    name: skillsphere
