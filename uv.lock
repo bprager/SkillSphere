@@ -3379,6 +3379,7 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "isort" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
 ]
@@ -3491,6 +3492,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "isort", specifier = ">=6.0.1" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
 ]
