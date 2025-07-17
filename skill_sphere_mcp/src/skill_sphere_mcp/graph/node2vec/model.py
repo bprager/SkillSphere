@@ -1,28 +1,22 @@
 """Main Node2Vec implementation."""
 
 import logging
-
 from collections import defaultdict
 
 import numpy as np
-
 from neo4j import AsyncSession
 
-from .config import Node2VecConfig
-from .config import PreprocessConfig
-from .config import TransitionConfig
-from .sampling import alias_draw
-from .sampling import alias_setup
+from .config import Node2VecConfig, PreprocessConfig, TransitionConfig
+from .sampling import alias_draw, alias_setup
 from .state import Node2VecState
-from .training import NegativeSamplingConfig
-from .training import SamplingConfig
-from .training import process_negative_samples
-from .training import process_positive_samples
-from .training import update_embedding
-from .walks import WalkConfig
-from .walks import generate_walks
-from .walks import node2vec_walk
-
+from .training import (
+    NegativeSamplingConfig,
+    SamplingConfig,
+    process_negative_samples,
+    process_positive_samples,
+    update_embedding,
+)
+from .walks import WalkConfig, generate_walks, node2vec_walk
 
 logger = logging.getLogger(__name__)
 

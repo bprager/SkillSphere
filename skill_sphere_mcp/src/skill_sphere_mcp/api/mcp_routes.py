@@ -2,5 +2,4 @@
 
 from .mcp.routes import router
 
-
 __all__ = ["router"]

@@ -1,14 +1,11 @@
 """Protocol version middleware."""
 
-from typing import Callable
+from collections.abc import Callable
 from typing import cast
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
-from starlette.responses import Response
-from starlette.types import ASGIApp
-
+from starlette.responses import JSONResponse, Response
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
 

@@ -15,7 +15,7 @@ from hypergraph.llm.triples import clean_json
 from hypergraph.llm.triples import parse_triples
 
 
-def test_clean_json_removes_markdown_and_prose():
+def test_clean_json_removes_markdown_and_prose() -> None:
     """Test that clean_json removes markdown fences and leading prose."""
     # Markdown fenced JSON
     raw = """```json\n[{'subject': 'A', 'relation': 'B', 'object': 'C'}]\n```"""
@@ -31,7 +31,7 @@ def test_clean_json_removes_markdown_and_prose():
     assert cleaned3 == "No JSON here!"
 
 
-def test_parse_triples_json_and_yaml():
+def test_parse_triples_json_and_yaml() -> None:
     """Test that parse_triples correctly parses JSON and YAML inputs."""
     # Valid JSON
     json_text = '[{"subject": "A", "relation": "B", "object": "C"}]'
@@ -48,7 +48,7 @@ def test_parse_triples_json_and_yaml():
     assert bad == []
 
 
-def test_triple_extractor_extract():
+def test_triple_extractor_extract() -> None:
     """Test that TripleExtractor.extract correctly extracts triples from text using a mocked LLM."""
     # Patch ChatOllama to return a mock response
     with patch("hypergraph.llm.triples.ChatOllama") as mock_llm_class:

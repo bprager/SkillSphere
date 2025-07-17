@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-def backup_original():
+def backup_original() -> bool:
     """Create a backup of the original certifications.md file."""
     original_file = Path("certifications.md")
     backup_file = Path(
@@ -31,7 +31,7 @@ def backup_original():
         return False
 
 
-def verify_new_structure():
+def verify_new_structure() -> bool:
     """Verify that all individual certification files exist."""
     expected_files = [
         "aws-solutions-architect-associate.md",
@@ -58,24 +58,24 @@ def verify_new_structure():
         return True
 
 
-def update_gitignore():
+def update_gitignore() -> None:
     """Update .gitignore to include backup files."""
     gitignore_path = Path("../../.gitignore")
     backup_pattern = "certifications_backup_*.md"
 
     if gitignore_path.exists():
-        with open(gitignore_path, "r") as f:
+        with open(gitignore_path, encoding="utf-8") as f:
             content = f.read()
 
         if backup_pattern not in content:
-            with open(gitignore_path, "a") as f:
-                f.write(f"\n# Certification backup files\n{backup_pattern}\n")
-            print(f"✅ Added backup pattern to .gitignore")
+            with open(gitignore_path, "a", encoding="utf-8") as f:
+                f.write("\n# Certification backup files\ncertifications_backup_*.md\n")
+            print("✅ Added backup pattern to .gitignore")
     else:
         print("⚠️  .gitignore not found, skipping update")
 
 
-def generate_migration_summary():
+def generate_migration_summary() -> None:
     """Generate a summary of the migration."""
     summary = """
 # Certification Migration Summary
@@ -143,7 +143,7 @@ python -m hypergraph.cli.ingest --dry-run
     print("✅ Generated migration summary: MIGRATION_SUMMARY.md")
 
 
-def main():
+def main() -> None:
     """Main migration function."""
     print("🔄 Starting certification migration...")
 

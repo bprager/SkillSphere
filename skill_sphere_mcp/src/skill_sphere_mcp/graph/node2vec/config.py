@@ -1,7 +1,6 @@
 """Configuration classes for Node2Vec."""
 
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses import dataclass, field
 
 
 @dataclass

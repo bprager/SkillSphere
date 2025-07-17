@@ -116,6 +116,8 @@ dependencies = [
     "fastapi-oauth2>=1.3.0",
     "pytest-asyncio>=1.0.0",
     "pytest-trio>=0.8.0",
+    "faiss-cpu>=1.11.0.post1",
+    "langchain>=0.3.26",
 ]
 
 [project.optional-dependencies]
@@ -161,19 +163,12 @@ ignore_missing_imports = true
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
 ignore = ["E501", "B008"]
 
-[tool.isort]
-known-first-party = ["skill_sphere_mcp"]
-force-wrap-aliases = true
-force-single-line = true
-lines-after-imports = 2
-lines-between-types = 1
-section-default = "THIRDPARTY"
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "S101"]
 "**/__init__.py" = ["F401"]
 
@@ -207,4 +202,5 @@ dev = [
     "isort>=6.0.1",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.1.1",
+    "ruff>=0.11.11",
 ]

@@ -1,13 +1,10 @@
 """LLM-based triple extraction from text."""
 
 import json
-
 from typing import List
 
 import yaml
-
 from langchain_ollama import ChatOllama
-
 
 MARKDOWN_FENCE_COUNT = 2
 MIN_PARTS_COUNT = 2
@@ -17,7 +14,9 @@ MIN_PARTS_COUNT = 2
 class TripleExtractorConfig:
     """Configuration for TripleExtractor."""
 
-    def __init__(self, rel_hints, known_skills, known_tools, alias_map):
+    def __init__(
+        self, rel_hints: list, known_skills: list, known_tools: list, alias_map: dict
+    ) -> None:
         self.rel_hints = rel_hints
         self.known_skills = known_skills
         self.known_tools = known_tools
@@ -40,7 +39,8 @@ def clean_json(raw: str) -> str:
 def parse_triples(text: str) -> List[dict]:
     """Try JSON then YAML parsing of triples. Always return a list."""
     try:
-        return json.loads(text)
+        result = json.loads(text)
+        return result if isinstance(result, list) else []
     except json.JSONDecodeError:
         try:
             result = yaml.safe_load(text)
@@ -70,7 +70,7 @@ class TripleExtractor:
         """Multi-turn gleaning loop until no new triples or max rounds reached."""
         collected: List[dict] = []
         prompt_template = (
-            "You are an information‑extraction assistant. Output **ONLY** valid JSON — "
+            "You are an information-extraction assistant. Output **ONLY** valid JSON — "
             "a list of triples with keys 'subject', 'relation', 'object'.\n"
             "Use relation names from: {rels}. "
             "Prefer skill names from: {skills}. "

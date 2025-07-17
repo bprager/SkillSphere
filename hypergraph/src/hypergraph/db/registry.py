@@ -1,12 +1,9 @@
 """SQLite registry for tracking document ingestion status."""
 
 import sqlite3
-
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
-
 
 CREATE_SQL = """
 CREATE TABLE IF NOT EXISTS doc_registry (
@@ -18,7 +15,7 @@ CREATE TABLE IF NOT EXISTS doc_registry (
 
 
 class Registry:
-    """Tracks SHA‑256 of every document to allow incremental updates."""
+    """Tracks SHA-256 of every document to allow incremental updates."""
 
     def __init__(self, path: Path):
         """Initialize registry with SQLite database path."""
@@ -33,7 +30,7 @@ class Registry:
         ).fetchone()
         return row[0] if row else None
 
-    def upsert(self, doc_id: str, sha: str):
+    def upsert(self, doc_id: str, sha: str) -> None:
         """Update or insert a document's hash and ingestion timestamp."""
         ts = datetime.now(timezone.utc).isoformat()
         self.conn.execute(

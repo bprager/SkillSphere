@@ -1,6 +1,6 @@
 """Database dependency injection."""
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from neo4j import AsyncSession
 

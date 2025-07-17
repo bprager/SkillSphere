@@ -4,7 +4,6 @@ import logging
 
 from sentence_transformers import SentenceTransformer
 
-
 logger = logging.getLogger(__name__)
 
 # Initialize the model at module level

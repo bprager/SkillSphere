@@ -1,14 +1,9 @@
 """MCP elicitation module for handling feature requests and prompts."""
 
 from typing import Any
-from typing import Dict
-from typing import Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
-
+from pydantic import BaseModel, ConfigDict, Field
 
 router = APIRouter()
 
@@ -18,7 +13,7 @@ class ElicitationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(..., description="Elicitation prompt")
-    context: Optional[Dict[str, Any]] = Field(default=None, description="Context information")
+    context: dict[str, Any] | None = Field(default=None, description="Context information")
 
 
 class ElicitationResponse(BaseModel):
@@ -27,7 +22,7 @@ class ElicitationResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     response: str = Field(..., description="Elicitation response")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Response metadata")
+    metadata: dict[str, Any] | None = Field(default=None, description="Response metadata")
 
 
 @router.post("/elicitation/request", response_model=ElicitationResponse)

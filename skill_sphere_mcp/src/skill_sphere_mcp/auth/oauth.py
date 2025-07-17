@@ -1,14 +1,9 @@
 """OAuth authentication utilities for FastAPI."""
 
 import os
-
 from typing import Any
-from typing import Optional
 
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import Request
-from fastapi import status
+from fastapi import Depends, HTTPException, Request, status
 
 
 # Mock classes for OAuth2 functionality (placeholder implementation)
@@ -19,7 +14,7 @@ class IntrospectionTokenValidator:
 
 class OAuth2ResourceProtector:
     """Mock OAuth2 resource protector for testing."""
-    def __init__(self, token_validator: Optional[IntrospectionTokenValidator] = None) -> None:
+    def __init__(self, token_validator: IntrospectionTokenValidator | None = None) -> None:
         self.token_validator = token_validator
 
     def __call__(self, request: Request) -> Any:

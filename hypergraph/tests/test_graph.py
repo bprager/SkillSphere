@@ -4,6 +4,7 @@
 import sys
 
 from pathlib import Path
+from typing import Any
 
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -16,28 +17,26 @@ from hypergraph.db.graph import GraphWriter
 
 
 @pytest_asyncio.fixture
-def mock_driver():
-    """Create a mock Neo4j driver."""
-    with patch("neo4j.GraphDatabase.driver") as mock:
-        driver = MagicMock()
-        mock.return_value = driver
-        yield mock  # Return the mock itself, not the driver
+def mock_driver() -> Any:
+    """Mock the Neo4j driver."""
+    with patch("hypergraph.db.graph.GraphDatabase.driver") as mock:
+        yield mock
 
 
 @pytest_asyncio.fixture
-def graph_writer(mock_driver):
+def graph_writer(mock_driver: Any) -> Any:
     """Create a GraphWriter instance with mocked driver."""
     return GraphWriter("bolt://localhost:7687", "neo4j", "password")
 
 
-def test_graph_writer_init(mock_driver):
+def test_graph_writer_init(mock_driver: Any) -> None:
     """Test GraphWriter initialization."""
     writer = GraphWriter("bolt://localhost:7687", "neo4j", "password")
     mock_driver.assert_called_once_with("bolt://localhost:7687", auth=("neo4j", "password"))
     assert writer._drv == mock_driver.return_value
 
 
-def test_merge_triple(graph_writer):
+def test_merge_triple(graph_writer: Any) -> None:
     """Test merging a triple into the graph."""
     mock_tx = MagicMock()
     graph_writer._merge(mock_tx, "Python", "USES", "pytest")
@@ -48,7 +47,7 @@ def test_merge_triple(graph_writer):
     assert "MERGE (a)-[:`USES`]->(b)" in call_args
 
 
-def test_write_triples(graph_writer):
+def test_write_triples(graph_writer: Any) -> None:
     """Test writing multiple triples to the graph."""
     mock_session = MagicMock()
     graph_writer._drv.session.return_value.__enter__.return_value = mock_session
@@ -62,7 +61,7 @@ def test_write_triples(graph_writer):
     assert mock_session.execute_write.call_count == 2
 
 
-def test_write_invalid_triple(graph_writer):
+def test_write_invalid_triple(graph_writer: Any) -> None:
     """Test writing an invalid triple (missing required fields)."""
     mock_session = MagicMock()
     graph_writer._drv.session.return_value.__enter__.return_value = mock_session
@@ -76,7 +75,7 @@ def test_write_invalid_triple(graph_writer):
     assert mock_session.execute_write.call_count == 0
 
 
-def test_run_node2vec(graph_writer):
+def test_run_node2vec(graph_writer: Any) -> None:
     """Test running Node2Vec embedding computation."""
     mock_session = MagicMock()
     graph_writer._drv.session.return_value.__enter__.return_value = mock_session
@@ -93,16 +92,16 @@ def test_run_node2vec(graph_writer):
     # Check Node2Vec computation
     node2vec_call = mock_session.run.call_args_list[1][0][0]
     assert "CALL gds.node2vec.write" in node2vec_call
-    assert "embeddingDimension: 128" in node2vec_call
-    assert "walkLength:80" in node2vec_call.replace(" ", "")
-    assert "walksPerNode:10" in node2vec_call.replace(" ", "")
+    assert "embeddingDimension: $dim" in node2vec_call
+    assert "walkLength:$walk_length" in node2vec_call.replace(" ", "")
+    assert "walksPerNode:$walks" in node2vec_call.replace(" ", "")
 
     # Check graph cleanup
     drop_call = mock_session.run.call_args_list[2][0][0]
     assert "CALL gds.graph.drop" in drop_call
 
 
-def test_close(graph_writer):
+def test_close(graph_writer: Any) -> None:
     """Test closing the Neo4j connection."""
     graph_writer.close()
     graph_writer._drv.close.assert_called_once()

@@ -14,7 +14,7 @@ class FaissManager:
     _index = None
 
     @classmethod
-    def add_vectors(cls, vectors: List[List[float]], index_path: str):
+    def add_vectors(cls, vectors: List[List[float]], index_path: str) -> None:
         """Add vector embeddings to the FAISS index and persist to disk."""
         if not faiss:
             return

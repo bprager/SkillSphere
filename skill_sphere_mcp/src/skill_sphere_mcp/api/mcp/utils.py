@@ -1,19 +1,16 @@
 """MCP API utilities."""
 
 import logging
-
 from typing import Any
 
 from fastapi import HTTPException
 from neo4j import AsyncSession
 
 from ...config.settings import get_settings
-from ...models.graph import GraphNode
-from ...models.graph import GraphRelationship
+from ...models.graph import GraphNode, GraphRelationship
 from ...models.skill import Skill
 from ..models import InitializeResponse
 from .models import ToolDispatchResponse
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,23 +1,17 @@
 """API route definitions and handlers."""
 
 import logging
-
 from typing import Annotated
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from neo4j import AsyncSession
-from prometheus_client import CONTENT_TYPE_LATEST
-from prometheus_client import Counter
-from prometheus_client import generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 from ..db.deps import get_db_session
 from ..db.utils import get_entity_by_id
 from ..models.skill import Skill
 from .mcp.utils import create_skill_in_db
-
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

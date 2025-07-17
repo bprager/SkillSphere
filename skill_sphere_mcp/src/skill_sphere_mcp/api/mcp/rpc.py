@@ -4,16 +4,14 @@ from typing import Any
 
 from neo4j import AsyncSession
 
-from ..jsonrpc import ERROR_CODE_INVALID_PARAMS
-from ..jsonrpc import JSONRPCHandler
-from ..jsonrpc import JSONRPCRequest
-from ..jsonrpc import JSONRPCResponse
-from .handlers import explain_match
-from .handlers import graph_search
-from .handlers import match_role
-from .utils import get_initialize_response_dict
-from .utils import get_resource
-
+from ..jsonrpc import (
+    ERROR_CODE_INVALID_PARAMS,
+    JSONRPCHandler,
+    JSONRPCRequest,
+    JSONRPCResponse,
+)
+from .handlers import explain_match, graph_search, match_role
+from .utils import get_initialize_response_dict, get_resource
 
 rpc_handler = JSONRPCHandler()
 

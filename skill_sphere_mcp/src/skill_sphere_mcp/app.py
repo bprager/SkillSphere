@@ -2,15 +2,12 @@
 
 import logging
 import os
-
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
 import uvicorn
-
-from fastapi import Depends
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,19 +20,19 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from .api.mcp import router as elicitation_router
-from .api.mcp.routes import explain_match_endpoint
-from .api.mcp.routes import graph_search_endpoint
-from .api.mcp.routes import match_role_direct_endpoint
+from .api.mcp.routes import (
+    explain_match_endpoint,
+    graph_search_endpoint,
+    match_role_direct_endpoint,
+)
 from .api.mcp.routes import router as mcp_router
 from .api.rest import router as rest_router
 from .api.routes import router as metrics_router
-from .auth.oauth import OAUTH_AVAILABLE
-from .auth.oauth import validate_access_token
+from .auth.oauth import OAUTH_AVAILABLE, validate_access_token
 from .config.settings import get_settings
 from .db.deps import get_db_session
 from .middleware.matomo_tracking import MatomoTrackingMiddleware
 from .routes import router as api_router
-
 
 # Configure logging
 logging.basicConfig(

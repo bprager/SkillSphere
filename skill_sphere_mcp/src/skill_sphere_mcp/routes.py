@@ -2,14 +2,11 @@
 
 import logging
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from neo4j import AsyncSession
 
 from .api.routes import router as api_router
 from .db.deps import get_db_session
-
 
 logger = logging.getLogger(__name__)
 

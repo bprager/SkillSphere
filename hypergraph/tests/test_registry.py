@@ -4,13 +4,14 @@
 import sys
 
 from pathlib import Path
+from typing import Any
 
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from hypergraph.db.registry import Registry
 
 
-def test_registry_upsert_get(settings):
+def test_registry_upsert_get(settings: Any) -> None:
     """Test registry upsert and get operations."""
     # Create registry
     reg = Registry(Path(settings.registry_path))

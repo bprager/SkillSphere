@@ -17,6 +17,7 @@ dependencies = [
     "pydantic-settings>=2.1.0",
     "faiss-cpu>=1.7.4",
     "pyyaml>=6.0.1",
+    "owlready2>=0.48",
 ]
 
 [project.optional-dependencies]
@@ -40,12 +41,22 @@ filterwarnings = [
 [tool.ruff]
 line-length = 100
 target-version = "py38"
+
+[tool.ruff.lint]
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
 ignore = ["E501"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["hypergraph"]
 
 [tool.black]
 line-length = 100
 target-version = ["py38"]
+
+[tool.mypy]
+exclude = ["skills_hypergraph_ontology.py"]
+
+[dependency-groups]
+dev = [
+    "pylance>=0.31.1",
+]

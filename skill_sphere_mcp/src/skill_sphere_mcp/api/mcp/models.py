@@ -1,11 +1,8 @@
 """MCP (Model Context Protocol) models for request and response handling."""
 
 from typing import Any
-from typing import Dict
-from typing import Optional
 
-from pydantic import Field
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from skill_sphere_mcp.models.extended_fields import ExtendedFields
 
@@ -49,13 +46,13 @@ class SearchRequest(ExtendedFields):
         ...,
         min_length=1,
         description="Search query string",
-        json_schema_extra={"error_messages": {"min_length": "Query cannot be empty"}}
+        json_schema_extra={"error_messages": {"min_length": "Query cannot be empty"}},
     )
     limit: int = Field(
         default=20,
         gt=0,
         description="Maximum number of results",
-        json_schema_extra={"error_messages": {"gt": "Limit must be greater than 0"}}
+        json_schema_extra={"error_messages": {"gt": "Limit must be greater than 0"}},
     )
 
     @field_validator("query")
@@ -78,7 +75,7 @@ class MatchRoleRequest(ExtendedFields):
     """Match role request model."""
 
     required_skills: list[str]
-    years_experience: dict[str, int] = {}
+    years_experience: dict[str, int] = Field(default_factory=dict)
 
 
 class MatchRoleResponse(ExtendedFields):
@@ -131,16 +128,17 @@ class ToolDispatchRequest(ExtendedFields):
         ...,
         min_length=1,
         description="Name of the tool to dispatch",
-        json_schema_extra={"error_messages": {"min_length": "Tool name is required"}}
+        json_schema_extra={"error_messages": {"min_length": "Tool name is required"}},
     )
-    parameters: Dict[str, Any] = Field(
+    parameters: dict[str, Any] = Field(
         default_factory=dict,
         description="Tool parameters",
-        json_schema_extra={"error_messages": {"type": "Parameters must be a dictionary"}}
+        json_schema_extra={
+            "error_messages": {"type": "Parameters must be a dictionary"}
+        },
     )
-    context: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Additional context"
+    context: dict[str, Any] | None = Field(
+        default=None, description="Additional context"
     )
 
     @field_validator("tool_name")

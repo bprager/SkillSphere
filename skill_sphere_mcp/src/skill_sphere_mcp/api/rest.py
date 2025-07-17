@@ -1,15 +1,11 @@
 """Legacy REST API routes."""
 
-from typing import List
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from neo4j import AsyncSession
 
 from ..db.deps import get_db_session
 from ..db.utils import get_entity_by_id
-
 
 router = APIRouter()
 
@@ -41,7 +37,7 @@ async def get_entity_legacy(
 async def search_semantic(
     request: dict,
     session: AsyncSession = Depends(get_db_session),
-) -> List[dict]:
+) -> list[dict]:
     """Semantic search endpoint (legacy)."""
     try:
         query = request.get("query", "")

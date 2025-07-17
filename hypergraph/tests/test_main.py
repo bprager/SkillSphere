@@ -3,6 +3,7 @@
 import sys
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -18,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 @pytest.fixture
-def mock_schema():
+def mock_schema() -> Any:
     """Create mock schema."""
     return {
         "relationships": [
@@ -34,7 +35,7 @@ def mock_schema():
 
 
 @pytest.fixture
-def mock_md_file(tmp_path):
+def mock_md_file(tmp_path: Any) -> Any:
     """Create a temporary markdown file for testing."""
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
@@ -44,11 +45,11 @@ def mock_md_file(tmp_path):
 
 
 def test_main_flow(
-    settings,
-    mock_schema,
-    mock_md_file,
-    monkeypatch,
-):
+    settings: Any,
+    mock_schema: Any,
+    mock_md_file: Any,
+    monkeypatch: Any,
+) -> None:
     """Test the main ingestion flow."""
     # Patch langchain to prevent version metadata access
     with patch("langchain.__init__", new=MagicMock()):
@@ -60,10 +61,10 @@ def test_main_flow(
         from hypergraph.llm.triples import TripleExtractor
 
         # Mock file operations
-        def mock_read_text(*_args, **_kwargs):
+        def mock_read_text(*_args: Any, **_kwargs: Any) -> str:
             return "# Test Document\n\nThis is a test document about Python and pytest."
 
-        def mock_rglob(*_args, **_kwargs):
+        def mock_rglob(*_args: Any, **_kwargs: Any) -> Any:
             return [mock_md_file]
 
         # Mock embeddings
@@ -126,11 +127,11 @@ def test_main_flow(
 
 
 def test_skip_unchanged_file(
-    settings,
-    mock_schema,
-    mock_md_file,
-    monkeypatch,
-):
+    settings: Any,
+    mock_schema: Any,
+    mock_md_file: Any,
+    monkeypatch: Any,
+) -> None:
     """Test that unchanged files are skipped."""
     # Patch langchain to prevent version metadata access
     with patch("langchain.__init__", new=MagicMock()):
@@ -143,7 +144,7 @@ def test_skip_unchanged_file(
         mock_registry.get.return_value = "test_hash"  # Simulate unchanged file
 
         # Mock file operations
-        def mock_rglob(*_args, **_kwargs):
+        def mock_rglob(*_args: Any, **_kwargs: Any) -> Any:
             return [mock_md_file]
 
         # Mock graph writer
@@ -174,11 +175,11 @@ def test_skip_unchanged_file(
 
 
 def test_error_handling(
-    settings,
-    mock_schema,
-    mock_md_file,
-    monkeypatch,
-):
+    settings: Any,
+    mock_schema: Any,
+    mock_md_file: Any,
+    monkeypatch: Any,
+) -> None:
     """Test error handling in the main flow."""
     # Patch langchain to prevent version metadata access
     with patch("langchain.__init__", new=MagicMock()):
@@ -190,7 +191,7 @@ def test_error_handling(
         mock_registry.get.side_effect = Exception("Test error")
 
         # Mock file operations
-        def mock_rglob(*_args, **_kwargs):
+        def mock_rglob(*_args: Any, **_kwargs: Any) -> Any:
             return [mock_md_file]
 
         # Apply mocks
@@ -212,3 +213,65 @@ def test_error_handling(
 
             # Verify schema was loaded before the error occurred
             mock_schema_load.assert_called_once()
+
+
+def test_readme_files_are_skipped(
+    tmp_path: Any, settings: Any, mock_schema: Any, monkeypatch: Any
+) -> None:
+    """Test that README files are skipped during processing."""
+    # Create test files including README files
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+
+    # Create content files that should be processed
+    content_file = docs_dir / "content.md"
+    content_file.write_text("# Content Document\n\nThis is regular content.")
+
+    # Create README files that should be skipped
+    readme_file = docs_dir / "README.md"
+    readme_file.write_text("# README\n\nThis is a README file.")
+
+    subdir = docs_dir / "subdir"
+    subdir.mkdir()
+    subdir_readme = subdir / "README.md"
+    subdir_readme.write_text("# Sub README\n\nThis is a subdirectory README.")
+
+    # Mock the settings to use our test directory
+    settings.doc_root = str(docs_dir)
+
+    # Track which files are processed
+    processed_files = []
+
+    def mock_process_file(md_file: Any, ctx: Any) -> None:
+        processed_files.append(md_file.name)
+
+    # Patch langchain to prevent version metadata access
+    with patch("langchain.__init__", new=MagicMock()):
+        from hypergraph.db.graph import GraphWriter
+        from hypergraph.db.registry import Registry
+        from hypergraph.llm.triples import TripleExtractor
+        from langchain_ollama import OllamaEmbeddings
+
+        # Mock all dependencies
+        mock_registry = MagicMock(spec=Registry)
+        mock_graph_writer = MagicMock(spec=GraphWriter)
+        mock_embeddings = MagicMock(spec=OllamaEmbeddings)
+        mock_extractor = MagicMock(spec=TripleExtractor)
+
+        with patch.multiple(
+            "hypergraph.__main__",
+            Settings=lambda: settings,
+            OllamaEmbeddings=lambda **kwargs: mock_embeddings,
+            TripleExtractor=lambda **kwargs: mock_extractor,
+            Registry=lambda path: mock_registry,
+            GraphWriter=lambda *args, **kwargs: mock_graph_writer,
+            process_file=mock_process_file,
+        ), patch("yaml.safe_load", return_value=mock_schema), patch(
+            "pathlib.Path.read_text", return_value=""
+        ):
+            main()
+
+    # Verify that only content files were processed, not README files
+    assert "content.md" in processed_files
+    assert "README.md" not in processed_files
+    assert len(processed_files) == 1

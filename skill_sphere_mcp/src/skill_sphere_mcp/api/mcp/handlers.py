@@ -2,39 +2,35 @@
 
 import inspect
 import logging
+from typing import Annotated, Any, cast
 
-from typing import Annotated
-from typing import Any
-from typing import Optional
-from typing import cast
-
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from neo4j import AsyncResult
-from neo4j import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException
+from neo4j import AsyncResult, AsyncSession
 
 from ...db.deps import get_db_session
 from ...models.embedding import get_embedding_model
-from ...models.mcp import InitializeRequest
-from ...models.mcp import InitializeResponse
-from ...models.mcp import QueryRequest
-from ...models.mcp import QueryResponse
+from ...models.mcp import (
+    InitializeRequest,
+    InitializeResponse,
+    QueryRequest,
+    QueryResponse,
+)
 from ...tools.dispatcher import dispatch_tool
-from ..mcp.models import EntityResponse
-from ..mcp.models import ExplainMatchRequest
-from ..mcp.models import ExplainMatchResponse
-from ..mcp.models import GraphSearchRequest
-from ..mcp.models import MatchRoleRequest
-from ..mcp.models import MatchRoleResponse
-from ..mcp.models import SearchRequest
-from ..mcp.models import SearchResponse
-from ..mcp.models import ToolDispatchRequest
-from ..mcp.models import ToolDispatchResponse
+from ..mcp.models import (
+    EntityResponse,
+    ExplainMatchRequest,
+    ExplainMatchResponse,
+    GraphSearchRequest,
+    MatchRoleRequest,
+    MatchRoleResponse,
+    SearchRequest,
+    SearchResponse,
+    ToolDispatchRequest,
+    ToolDispatchResponse,
+)
 from ..mcp.utils import get_initialize_response_dict
 from .schemas import get_resource_schema
 from .utils import create_successful_tool_response
-
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +142,9 @@ async def match_role(request: dict, session: AsyncSession) -> dict:
                     detail=f"MatchRoleRequest: Invalid parameters: years_experience for {skill} must be positive",
                 )
     except (ValueError, TypeError) as e:
-        raise HTTPException(status_code=422, detail=f"MatchRoleRequest: Invalid parameters: {str(e)}") from e
+        raise HTTPException(
+            status_code=422, detail=f"MatchRoleRequest: Invalid parameters: {e!s}"
+        ) from e
 
     # Query the database to find matching profiles
     result: AsyncResult = await session.run(
@@ -239,7 +237,7 @@ async def explain_match(request: dict, session: AsyncSession) -> dict:
     }
 
 
-async def graph_search(request: dict, session: Optional[AsyncSession] = None) -> dict:
+async def graph_search(request: dict, session: AsyncSession | None = None) -> dict:
     """Execute a graph search query.
 
     Args:
@@ -257,7 +255,11 @@ async def graph_search(request: dict, session: Optional[AsyncSession] = None) ->
         raise ValueError("Session must be provided")
     search_query = request.get("query")
     top_k = request.get("top_k", 10)
-    if not search_query or not isinstance(search_query, str) or not search_query.strip():
+    if (
+        not search_query
+        or not isinstance(search_query, str)
+        or not search_query.strip()
+    ):
         raise HTTPException(status_code=422, detail="Missing query parameter")
     if not isinstance(top_k, int) or top_k <= 0:
         raise HTTPException(status_code=422, detail="top_k must be a positive integer")
@@ -270,7 +272,8 @@ async def graph_search(request: dict, session: Optional[AsyncSession] = None) ->
         RETURN n
         LIMIT $top_k
         """,
-        search_query=search_query, top_k=top_k
+        search_query=search_query,
+        top_k=top_k,
     )
     records = [record async for record in result]
 
@@ -312,40 +315,38 @@ async def handle_search(session: Any, query: str, limit: int) -> dict:
             RETURN n
             LIMIT $limit
             """,
-            query=query, limit=limit
+            query=query,
+            limit=limit,
         )
         records = [record async for record in result]
         results = []
         for record in records:
             node = record["node"] if "node" in record else record["n"]
-            results.append({
-                "node": {
-                    "id": node.get("id"),
-                    "name": node.get("name"),
-                    "type": node.get("type"),
-                    "description": node.get("description"),
-                    "labels": node.get("labels", []),
-                    "properties": node.get("properties", {})
+            results.append(
+                {
+                    "node": {
+                        "id": node.get("id"),
+                        "name": node.get("name"),
+                        "type": node.get("type"),
+                        "description": node.get("description"),
+                        "labels": node.get("labels", []),
+                        "properties": node.get("properties", {}),
+                    }
                 }
-            })
-        return {
-            "results": results,
-            "total": len(results)
-        }
+            )
+        return {"results": results, "total": len(results)}
     except Exception as e:
         logger.error("Search error: %s", e)
         raise HTTPException(status_code=500, detail="Database error") from e
 
 
-async def handle_get_entity(
-    session: AsyncSession, entity_id: str
-) -> dict[str, Any]:
+async def handle_get_entity(session: AsyncSession, entity_id: str) -> dict[str, Any]:
     """Handle get entity request."""
     try:
         # Query the database for the entity
         result = await session.run(
             "MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1",
-            entity_id=entity_id
+            entity_id=entity_id,
         )
         record = await result.single()
 
@@ -355,9 +356,9 @@ async def handle_get_entity(
         node = record["n"]
 
         # Handle both Neo4j node objects and dictionaries (from mocks)
-        if hasattr(node, 'labels'):
+        if hasattr(node, "labels"):
             # Real Neo4j node
-            node_type = list(node.labels)[0] if node.labels else "Unknown"
+            node_type = next(iter(node.labels)) if node.labels else "Unknown"
             node_dict = dict(node)
         else:
             # Mock dictionary
@@ -369,7 +370,7 @@ async def handle_get_entity(
             "name": node_dict.get("name"),
             "type": node_type,
             "description": node_dict.get("description", ""),
-            "properties": node_dict
+            "properties": node_dict,
         }
     except HTTPException:
         raise
@@ -395,10 +396,7 @@ async def handle_tool_dispatch(session: Any, tool_name: str, parameters: dict) -
     """Handle tool dispatch."""
     try:
         data = await dispatch_tool(tool_name, parameters, session)
-        return {
-            "result": "success",
-            "data": data
-        }
+        return {"result": "success", "data": data}
     except HTTPException:
         raise
     except Exception as e:
@@ -413,7 +411,7 @@ async def handle_entity_request(
     try:
         result = await session.run(
             "MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1",
-            entity_id=entity_id
+            entity_id=entity_id,
         )
         record = await result.single()
 
@@ -431,7 +429,7 @@ async def handle_entity_request(
         return EntityResponse(
             id=node.get("id", node.get("name")),
             name=node.get("name", ""),
-            type=list(node.labels)[0] if node.labels else "Unknown",
+            type=next(iter(node.labels)) if node.labels else "Unknown",
             description=node.get("description", ""),
             properties=dict(node),
             relationships=[],
@@ -461,28 +459,24 @@ async def handle_search_request(
             RETURN n
             LIMIT $limit
             """,
-            {"query": request.query, "limit": request.limit}
+            {"query": request.query, "limit": request.limit},
         )
         records = [record async for record in result]
         entities = []
         for record in records:
             node = record["n"]
-            entities.append({
-                "id": node.get("id", node.get("name")),
-                "name": node.get("name"),
-                "type": list(node.labels)[0] if node.labels else "Unknown",
-                "properties": dict(node)
-            })
-        return SearchResponse(
-            results=entities,
-            total=len(entities)
-        )
+            entities.append(
+                {
+                    "id": node.get("id", node.get("name")),
+                    "name": node.get("name"),
+                    "type": next(iter(node.labels)) if node.labels else "Unknown",
+                    "properties": dict(node),
+                }
+            )
+        return SearchResponse(results=entities, total=len(entities))
     except Exception as e:
         logger.error("Search request error: %s", e)
-        return SearchResponse(
-            results=[],
-            total=0
-        )
+        return SearchResponse(results=[], total=0)
 
 
 async def handle_match_request(
@@ -494,15 +488,11 @@ async def handle_match_request(
         return MatchRoleResponse(
             match_score=0.85,
             skill_gaps=["Docker"],
-            matching_skills=[{"name": "Python"}, {"name": "FastAPI"}]
+            matching_skills=[{"name": "Python"}, {"name": "FastAPI"}],
         )
     except Exception as e:
         logger.error("Match request error: %s", e)
-        return MatchRoleResponse(
-            match_score=0.0,
-            skill_gaps=[],
-            matching_skills=[]
-        )
+        return MatchRoleResponse(match_score=0.0, skill_gaps=[], matching_skills=[])
 
 
 async def handle_explain_request(
@@ -515,15 +505,12 @@ async def handle_explain_request(
             explanation="Skills match based on semantic similarity and experience level",
             evidence=[
                 {"skill": "Python", "relevance": 0.9, "experience": "3 years"},
-                {"skill": "FastAPI", "relevance": 0.8, "experience": "2 years"}
-            ]
+                {"skill": "FastAPI", "relevance": 0.8, "experience": "2 years"},
+            ],
         )
     except Exception as e:
         logger.error("Explain request error: %s", e)
-        return ExplainMatchResponse(
-            explanation="",
-            evidence=[]
-        )
+        return ExplainMatchResponse(explanation="", evidence=[])
 
 
 async def handle_graph_search_request(
@@ -539,7 +526,7 @@ async def handle_graph_search_request(
             RETURN start, end, r
             LIMIT $limit
             """,
-            {"query": request.query, "limit": request.top_k}
+            {"query": request.query, "limit": request.top_k},
         )
         records = [record async for record in result]
 
@@ -553,32 +540,29 @@ async def handle_graph_search_request(
                 "start": {
                     "id": start_node.get("id", start_node.get("name")),
                     "name": start_node.get("name"),
-                    "type": list(start_node.labels)[0] if start_node.labels else "Unknown"
+                    "type": (
+                        next(iter(start_node.labels))
+                        if start_node.labels
+                        else "Unknown"
+                    ),
                 },
                 "end": {
                     "id": end_node.get("id", end_node.get("name")),
                     "name": end_node.get("name"),
-                    "type": list(end_node.labels)[0] if end_node.labels else "Unknown"
+                    "type": (
+                        next(iter(end_node.labels)) if end_node.labels else "Unknown"
+                    ),
                 },
                 "relationships": [
-                    {
-                        "type": rel.type,
-                        "properties": dict(rel)
-                    } for rel in relationships
-                ]
+                    {"type": rel.type, "properties": dict(rel)} for rel in relationships
+                ],
             }
             paths.append(path)
 
-        return {
-            "paths": paths,
-            "count": len(paths)
-        }
+        return {"paths": paths, "count": len(paths)}
     except Exception as e:
         logger.error("Graph search request error: %s", e)
-        return {
-            "paths": [],
-            "count": 0
-        }
+        return {"paths": [], "count": 0}
 
 
 async def handle_tool_dispatch_request(
@@ -590,8 +574,4 @@ async def handle_tool_dispatch_request(
         return create_successful_tool_response(result)
     except Exception as e:
         logger.error("Tool dispatch request error: %s", e)
-        return ToolDispatchResponse(
-            result="error",
-            data={},
-            message=str(e)
-        )
+        return ToolDispatchResponse(result="error", data={}, message=str(e))

@@ -1,7 +1,6 @@
 """Utility functions for the hypergraph pipeline."""
 
 import hashlib
-
 from pathlib import Path
 from typing import List
 

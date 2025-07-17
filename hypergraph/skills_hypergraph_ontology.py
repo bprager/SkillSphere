@@ -4,9 +4,11 @@ This module defines the core ontology for the Skills Hypergraph, which represent
 professional skills, experiences, and relationships in a semantic graph structure.
 """
 
+# type: ignore
+
 # pylint: disable=no-member,import-error,too-few-public-methods
-from owlready2 import Thing
-from owlready2 import get_ontology
+from owlready2 import Thing  # type: ignore
+from owlready2 import get_ontology  # type: ignore
 
 
 # Create a new ontology
@@ -45,37 +47,37 @@ with onto:
         """Represents the type of experience (e.g., full-time, contract)."""
 
     # === Object Properties ===
-    class HasExperience(Person >> Job):
+    class HasExperience(Person >> Job):  # type: ignore
         """Links a person to their job experiences."""
 
-    class WorkedFor(Job >> Organization):
+    class WorkedFor(Job >> Organization):  # type: ignore
         """Links a job to the organization where it was performed."""
 
-    class HeldRole(Person >> Project):
+    class HeldRole(Person >> Project):  # type: ignore
         """Links a person to projects they worked on."""
 
-    class UsedSkill(Job >> Skill):
+    class UsedSkill(Job >> Skill):  # type: ignore
         """Links a job to the skills used in that role."""
 
-    class UsedTechnology(Job >> Technology):
+    class UsedTechnology(Job >> Technology):  # type: ignore
         """Links a job to the technologies used in that role."""
 
-    class LocatedIn(Job >> Location):
+    class LocatedIn(Job >> Location):  # type: ignore
         """Links a job to its geographical location."""
 
-    class During(Job >> TimeRange):
+    class During(Job >> TimeRange):  # type: ignore
         """Links a job to its time period."""
 
-    class AchievedCertification(Person >> Certification):
+    class AchievedCertification(Person >> Certification):  # type: ignore
         """Links a person to their certifications."""
 
-    class IssuedBy(Certification >> Organization):
+    class IssuedBy(Certification >> Organization):  # type: ignore
         """Links a certification to its issuing organization."""
 
-    class HasExperienceType(Job >> ExperienceType):
+    class HasExperienceType(Job >> ExperienceType):  # type: ignore
         """Links a job to its type of experience."""
 
-    class RelatedTo(Job >> Skill):
+    class RelatedTo(Job >> Skill):  # type: ignore
         """General purpose link between jobs and skills."""
 
 

@@ -1,7 +1,6 @@
 """Configuration settings for the hypergraph ingestion pipeline."""
 
-from pydantic_settings import BaseSettings
-from pydantic_settings import SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -15,7 +14,7 @@ class Settings(BaseSettings):
 
     # Paths
     graph_schema_yaml: str = "./graph_schema.yaml"
-    doc_root: str = "./docs"
+    doc_root: str = "../ingestion_docs"
     registry_path: str = "./doc_registry.sqlite3"
     faiss_index_path: str = "./faiss.index"
 

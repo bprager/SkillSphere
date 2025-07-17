@@ -1,42 +1,38 @@
 """MCP routes for handling various API endpoints."""
 
 import logging
-
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from neo4j import AsyncSession
 
 from ...db.deps import get_db_session
 from ...tools.dispatcher import dispatch_tool
 from ..jsonrpc import JSONRPCRequest
-from .handlers import handle_get_entity
-from .handlers import handle_list_resources
-from .handlers import handle_search
-from .handlers import handle_tool_dispatch
-from .models import EntityResponse
-from .models import ResourceResponse
-from .models import SearchRequest
-from .models import SearchResponse
-from .models import ToolDispatchRequest
-from .models import ToolDispatchResponse
+from .handlers import (
+    handle_get_entity,
+    handle_list_resources,
+    handle_search,
+    handle_tool_dispatch,
+)
+from .models import (
+    EntityResponse,
+    ResourceResponse,
+    SearchRequest,
+    SearchResponse,
+    ToolDispatchRequest,
+    ToolDispatchResponse,
+)
 from .rpc import handle_rpc_request
 from .schemas import get_resource_schema_with_type
 from .utils import create_successful_tool_response
-
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/health", response_model=Dict[str, str])
-async def health_check() -> Dict[str, str]:
+@router.get("/health", response_model=dict[str, str])
+async def health_check() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "ok"}
 
@@ -73,8 +69,8 @@ async def tool_dispatch_endpoint(
 # Add the /rpc/tools/dispatch route that tests expect
 @router.post("/rpc/tools/dispatch")
 async def rpc_tool_dispatch_endpoint(
-    request: Dict[str, Any], session: AsyncSession = Depends(get_db_session)
-) -> Dict[str, Any]:
+    request: dict[str, Any], session: AsyncSession = Depends(get_db_session)
+) -> dict[str, Any]:
     """RPC tool dispatch endpoint for executing tools."""
     try:
         tool_name = request.get("tool_name")
@@ -128,10 +124,10 @@ async def get_entity_endpoint(
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
-@router.get("/resources", response_model=List[ResourceResponse])
+@router.get("/resources", response_model=list[ResourceResponse])
 async def list_resources_endpoint(
     session: AsyncSession = Depends(get_db_session)
-) -> List[ResourceResponse]:
+) -> list[ResourceResponse]:
     """List resources endpoint."""
     try:
         resources = await handle_list_resources(session)
@@ -151,14 +147,14 @@ async def list_resources_endpoint(
 
 # Add the /resources/list route that tests expect
 @router.get("/resources/list")
-async def list_resources_direct_endpoint() -> List[str]:
+async def list_resources_direct_endpoint() -> list[str]:
     """List resources endpoint (direct)."""
     return ["nodes", "relationships", "search"]
 
 
 # Add the /resources/get/{resource_name} route that tests expect
 @router.get("/resources/get/{resource_name}")
-async def get_resource_direct_endpoint(resource_name: str) -> Dict[str, Any]:
+async def get_resource_direct_endpoint(resource_name: str) -> dict[str, Any]:
     """Get resource by name endpoint (direct)."""
     try:
         return get_resource_schema_with_type(resource_name)
@@ -201,8 +197,8 @@ async def get_resource_endpoint(
 # JSON-RPC endpoint
 @router.post("/rpc")
 async def rpc_endpoint(
-    request: Dict[str, Any], session: AsyncSession = Depends(get_db_session)
-) -> Dict[str, Any]:
+    request: dict[str, Any], session: AsyncSession = Depends(get_db_session)
+) -> dict[str, Any]:
     """JSON-RPC endpoint for MCP operations."""
     try:
         jsonrpc_request = JSONRPCRequest(**request)
@@ -220,10 +216,10 @@ async def rpc_endpoint(
 # Tool-specific endpoints
 @router.post("/tools/match-role")
 async def match_role_endpoint(
-    skills: List[str] = Query(..., description="Required skills"),
-    experience: Optional[str] = Query(None, description="Experience level"),
+    skills: list[str] = Query(..., description="Required skills"),
+    experience: str | None = Query(None, description="Experience level"),
     session: AsyncSession = Depends(get_db_session),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Match role endpoint for finding matching roles."""
     try:
         result = await dispatch_tool(
@@ -243,8 +239,8 @@ async def match_role_endpoint(
 # Additional tool endpoints for testing
 @router.post("/match_role")
 async def match_role_direct_endpoint(
-    request: Dict[str, Any], session: AsyncSession = Depends(get_db_session)
-) -> Dict[str, Any]:
+    request: dict[str, Any], session: AsyncSession = Depends(get_db_session)
+) -> dict[str, Any]:
     """Direct match role endpoint."""
     try:
         result = await dispatch_tool(
@@ -261,8 +257,8 @@ async def match_role_direct_endpoint(
 
 @router.post("/explain_match")
 async def explain_match_endpoint(
-    request: Dict[str, Any], session: AsyncSession = Depends(get_db_session)
-) -> Dict[str, Any]:
+    request: dict[str, Any], session: AsyncSession = Depends(get_db_session)
+) -> dict[str, Any]:
     """Explain match endpoint."""
     try:
         result = await dispatch_tool(
@@ -279,8 +275,8 @@ async def explain_match_endpoint(
 
 @router.post("/graph_search")
 async def graph_search_endpoint(
-    request: Dict[str, Any], session: AsyncSession = Depends(get_db_session)
-) -> Dict[str, Any]:
+    request: dict[str, Any], session: AsyncSession = Depends(get_db_session)
+) -> dict[str, Any]:
     """Graph search endpoint."""
     try:
         result = await dispatch_tool(

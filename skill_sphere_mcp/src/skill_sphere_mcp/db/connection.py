@@ -1,16 +1,10 @@
 """Database connection management."""
 
 import logging
-
-from typing import Optional
 from typing import cast
 
-from neo4j import AsyncDriver
-from neo4j import AsyncSession
-from neo4j import GraphDatabase
-from neo4j.exceptions import AuthError
-from neo4j.exceptions import ServiceUnavailable
-
+from neo4j import AsyncDriver, AsyncSession, GraphDatabase
+from neo4j.exceptions import AuthError, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +17,7 @@ class DatabaseConnection:
         self.uri = uri
         self.user = user
         self.password = password
-        self._driver: Optional[AsyncDriver] = None
+        self._driver: AsyncDriver | None = None
 
     async def connect(self) -> None:
         """Establish database connection."""
@@ -67,7 +61,7 @@ class DatabaseConnection:
                 self._driver = None
                 logger.info("Database connection closed")
 
-    def get_session(self) -> Optional[AsyncSession]:
+    def get_session(self) -> AsyncSession | None:
         """Get database session."""
         if not self._driver:
             logger.error("No database driver available")

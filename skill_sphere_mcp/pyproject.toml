@@ -61,10 +61,12 @@ packages = ["src/skill_sphere_mcp"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
-select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
-ignore = ["E501", "B002"]
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
+ignore = ["E501", "B002", "B008"]
+
+[tool.ruff.lint.isort]
 known-first-party = ["skill_sphere_mcp", "hypergraph"]
 
 [tool.pytest.ini_options]

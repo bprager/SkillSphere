@@ -4,7 +4,6 @@ import sys
 
 import yaml
 
-
 # Define the expected schema
 EXPECTED_SCHEMA = {
     "name": str,
@@ -19,19 +18,30 @@ EXPECTED_SCHEMA = {
     "experience": list,
     "projects": list,
     "education": list,
-    "certifications": list
+    "certifications": list,
 }
 
-REQUIRED_FIELDS = ["name", "title", "email", "phone", "location", "skills", "experience", "education"]
+REQUIRED_FIELDS = [
+    "name",
+    "title",
+    "email",
+    "phone",
+    "location",
+    "skills",
+    "experience",
+    "education",
+]
 
-def extract_yaml_front_matter(markdown_text):
+
+def extract_yaml_front_matter(markdown_text: str) -> str | None:
     """Extracts the YAML front matter from a Markdown file."""
     match = re.match(r"^---\n(.*?)\n---\n", markdown_text, re.DOTALL)
     if match:
         return match.group(1)
     return None
 
-def validate_resume(yaml_text):
+
+def validate_resume(yaml_text: str) -> dict | None:
     """Validates the resume's YAML content against the expected schema."""
     try:
         data = yaml.safe_load(yaml_text)
@@ -46,7 +56,9 @@ def validate_resume(yaml_text):
         # Check field types
         for field, expected_type in EXPECTED_SCHEMA.items():
             if field in data and not isinstance(data[field], expected_type):
-                raise ValueError(f"Invalid type for '{field}': Expected {expected_type.__name__}, got {type(data[field]).__name__}")
+                raise ValueError(
+                    f"Invalid type for '{field}': Expected {expected_type.__name__}, got {type(data[field]).__name__}"
+                )
 
         print("✅ YAML resume is valid!")
         return data
@@ -58,21 +70,25 @@ def validate_resume(yaml_text):
         print(f"❌ Validation Error: {e}")
         sys.exit(1)
 
-def main():
+
+def main() -> None:
     """Main function to validate a resume markdown file."""
-    if len(sys.argv) != 2:
+    expected_argc = 2
+    if len(sys.argv) != expected_argc:
         print("Usage: python validate_resume.py resume.md")
         sys.exit(1)
 
     filename = sys.argv[1]
 
     try:
-        with open(filename, "r") as file:
+        with open(filename, encoding="utf-8") as file:
             content = file.read()
             yaml_part = extract_yaml_front_matter(content)
 
             if not yaml_part:
-                raise ValueError("YAML front matter not found. Ensure it starts with `---` and ends with `---`.")
+                raise ValueError(
+                    "YAML front matter not found. Ensure it starts with `---` and ends with `---`."
+                )
 
             validate_resume(yaml_part)
 
@@ -83,6 +99,6 @@ def main():
         print(f"❌ Error: {e}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-

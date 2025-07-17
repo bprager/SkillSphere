@@ -1,18 +1,15 @@
 """Skill matching service implementation."""
 
 import logging
-
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-
 from neo4j import AsyncSession
 from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import-untyped]
 
 from .embeddings import embeddings
 from .node2vec.model import Node2Vec
-
 
 logger = logging.getLogger(__name__)
 

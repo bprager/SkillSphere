@@ -1,5 +1,7 @@
 """Neo4j graph writer and Node2Vec embedding computation."""
 
+from typing import Any
+
 from neo4j import GraphDatabase
 
 
@@ -11,7 +13,7 @@ class GraphWriter:
         self._drv = GraphDatabase.driver(uri, auth=(user, password))
 
     @staticmethod
-    def _merge(tx, s: str, r: str, o: str):
+    def _merge(tx: Any, s: str, r: str, o: str) -> None:
         """Merge a subject-relation-object triple into the graph."""
         tx.run(
             "MERGE (a:Entity {name:$s})\n"
@@ -21,14 +23,12 @@ class GraphWriter:
             o=o,
         )
 
-    def write(self, triples: list[dict]):
+    def write(self, triples: list[dict]) -> None:
         """Write a list of subject-relation-object triples to Neo4j."""
         with self._drv.session() as ses:
             for t in triples:
                 if {"subject", "relation", "object"}.issubset(t):
-                    ses.execute_write(
-                        self._merge, t["subject"], t["relation"], t["object"]
-                    )
+                    ses.execute_write(self._merge, t["subject"], t["relation"], t["object"])
 
     def run_node2vec(self, dim: int, walks: int, walk_length: int) -> None:
         """Project the graph into GDS and compute Node2Vec embeddings."""
@@ -40,20 +40,26 @@ class GraphWriter:
 
             # 2️⃣  Write Node2Vec embeddings to a node property
             ses.run(
-                f"""
-          CALL gds.node2vec.write('{gname}', {{
-            embeddingDimension: {dim},
-            walkLength:        {walk_length},
+                """
+          CALL gds.node2vec.write($gname, {
+            embeddingDimension: $dim,
+            walkLength:        $walk_length,
             iterations:        1,
-            walksPerNode:      {walks},
+            walksPerNode:      $walks,
             writeProperty:     'embedding'
-            }})
-        """
+            })
+        """,
+                parameters={
+                    "gname": gname,
+                    "dim": dim,
+                    "walk_length": walk_length,
+                    "walks": walks,
+                },
             )
 
             # 3️⃣  Drop the temporary in-memory graph
             ses.run(f"CALL gds.graph.drop('{gname}')")
 
-    def close(self):
+    def close(self) -> None:
         """Close the Neo4j database connection."""
         self._drv.close()
