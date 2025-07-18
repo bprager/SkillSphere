@@ -438,19 +438,21 @@ async def test_get_skill_embedding_not_found(
 @pytest.mark.asyncio
 async def test_gather_evidence(
     skill_matcher: SkillMatchingService, mock_session: AsyncMock
-) -> None:
+) -> None:  # noqa: PLR0913
     """Test gathering evidence for skill match."""
     # Mock a path with nodes and relationships
     mock_node = mock.MagicMock()
     mock_node.labels = ["Skill"]
-    mock_node.get.side_effect = lambda k, default=None: {
-        "name": "Python",
-        "type": "Programming Language",
-    }.get(k, default)
-    mock_node.items.return_value = [
-        ("name", "Python"),
-        ("type", "Programming Language"),
-    ]
+    node_properties = {"name": "Python", "type": "Programming Language"}
+    mock_node.get.side_effect = lambda k, default=None: node_properties.get(k, default)
+    mock_node.items.return_value = list(node_properties.items())
+    # Make dict(mock_node) return node_properties
+    mock_node.__iter__.side_effect = lambda: iter(node_properties)
+    mock_node.__getitem__.side_effect = node_properties.__getitem__
+    mock_node.__len__.side_effect = lambda: len(node_properties)
+    mock_node.keys.return_value = node_properties.keys()
+    mock_node.values.return_value = node_properties.values()
+    mock_node.items.return_value = node_properties.items()
 
     mock_path = mock.MagicMock()
     mock_path.nodes = [mock_node]

@@ -30,16 +30,13 @@ class TestSetupTelemetrySimple:
     @mock.patch("skill_sphere_mcp.telemetry.otel.trace")
     def test_setup_telemetry_success(
         self,
-        mocks,
+        mock_trace,
+        mock_batch_processor,
+        mock_exporter,
+        mock_provider,
+        mock_resource,
+        mock_get_settings,
     ) -> None:
-        (
-            mock_trace,
-            mock_batch_processor,
-            mock_exporter,
-            mock_provider,
-            mock_resource,
-            mock_get_settings,
-        ) = mocks
         """Test successful telemetry setup."""
         # Mock settings
         mock_settings = mock.MagicMock()
