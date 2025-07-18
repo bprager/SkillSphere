@@ -2,16 +2,13 @@
 
 from unittest.mock import AsyncMock
 
-import numpy as np
 import pytest
-
 from fastapi import status
 from fastapi.testclient import TestClient
-from tests.constants import AsyncIterator
 
 from skill_sphere_mcp.app import app
 from skill_sphere_mcp.db.deps import get_db_session
-
+from tests.constants import AsyncIterator
 
 client = TestClient(app)
 

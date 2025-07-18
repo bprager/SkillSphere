@@ -200,7 +200,9 @@ packages = ["skill_sphere_mcp"]
 [dependency-groups]
 dev = [
     "isort>=6.0.1",
+    "pyright>=1.1.403",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.1.1",
     "ruff>=0.11.11",
+    "types-pyyaml>=6.0.12.20250516",
 ]

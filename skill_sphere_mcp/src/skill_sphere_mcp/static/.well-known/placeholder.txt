@@ -1,0 +1,1 @@
+This is a placeholder for the .well-known directory required by the FastAPI app.

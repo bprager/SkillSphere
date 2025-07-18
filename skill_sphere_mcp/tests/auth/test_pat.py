@@ -2,24 +2,19 @@
 
 """Tests for Personal Access Token (PAT) authentication."""
 
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
-from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
 
 import pytest
-import pytest_asyncio
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 
-from skill_sphere_mcp.auth.pat import PAT
-from skill_sphere_mcp.auth.pat import PATAuth
-from skill_sphere_mcp.auth.pat import get_current_token
-from skill_sphere_mcp.auth.pat import pat_auth
-from skill_sphere_mcp.auth.pat import security
-from skill_sphere_mcp.auth.pat import verify_pat
-
+from skill_sphere_mcp.auth.pat import (
+    PAT,
+    PATAuth,
+    get_current_token,
+    pat_auth,
+    verify_pat,
+)
 
 HTTP_UNAUTHORIZED = 401
 
@@ -40,13 +35,13 @@ def test_create_token(auth_manager):
     """Test token creation."""
     # Create a token
     pat = auth_manager.create_token("Test token")
-    
+
     # Verify token structure
     assert pat.token.startswith("pat_")
     assert pat.description == "Test token"
     assert isinstance(pat.expires_at, datetime)
     assert pat.expires_at > datetime.now(timezone.utc)
-    
+
     # Verify token is stored
     assert pat.token in auth_manager._tokens
     assert auth_manager._tokens[pat.token] == pat
@@ -56,7 +51,7 @@ def test_create_token_custom_expiry(auth_manager):
     """Test token creation with custom expiry."""
     # Create a token with 7 days expiry
     pat = auth_manager.create_token("Test token", expires_in_days=7)
-    
+
     # Verify expiry
     expected_expiry = datetime.now(timezone.utc) + timedelta(days=7)
     assert abs((pat.expires_at - expected_expiry).total_seconds()) < 1
@@ -75,7 +70,7 @@ def test_validate_token_valid(auth_manager):
     """Test validation of valid token."""
     # Create a token
     pat = auth_manager.create_token("Test token")
-    
+
     # Verify token is valid
     assert auth_manager.validate_token(pat.token) is True
 
@@ -92,7 +87,7 @@ def test_validate_token_expired(auth_manager):
     pat = auth_manager.create_token("Test token", expires_in_days=0)
     pat.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
     auth_manager._tokens[pat.token] = pat
-    
+
     # Verify expired token is invalid
     assert auth_manager.validate_token(pat.token) is False
     # Verify expired token is removed
@@ -103,10 +98,10 @@ def test_revoke_token(auth_manager):
     """Test token revocation."""
     # Create a token
     pat = auth_manager.create_token("Test token")
-    
+
     # Revoke token
     auth_manager.revoke_token(pat.token)
-    
+
     # Verify token is removed
     assert pat.token not in auth_manager._tokens
     assert auth_manager.validate_token(pat.token) is False
@@ -139,10 +134,10 @@ async def test_get_current_token_valid(mock_credentials):
     # Create a valid token using the global pat_auth
     pat = pat_auth.create_token("Test token")
     mock_credentials.credentials = pat.token
-    
+
     # Get current token
     token = await get_current_token(mock_credentials)
-    
+
     # Verify token
     assert token == pat.token
 
@@ -152,14 +147,16 @@ async def test_get_current_token_invalid(mock_credentials):
     """Test getting current token with invalid credentials."""
     # Set invalid token
     mock_credentials.credentials = "invalid_token"
-    
+
     # Verify exception is raised
     with pytest.raises(HTTPException) as exc_info:
         await get_current_token(mock_credentials)
-    
-    assert exc_info.value.status_code == 401
+
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert exc_info.value.detail == "Invalid or expired token"
-    assert exc_info.value.headers["WWW-Authenticate"] == "Bearer"
+    # Only check headers if present (pyright: Object of type None is not subscriptable)
+    if exc_info.value.headers is not None:
+        assert exc_info.value.headers.get("WWW-Authenticate") == "Bearer"
 
 
 @pytest.mark.asyncio
@@ -170,12 +167,12 @@ async def test_get_current_token_expired(mock_credentials):
     pat.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
     pat_auth._tokens[pat.token] = pat
     mock_credentials.credentials = pat.token
-    
+
     # Verify exception is raised
     with pytest.raises(HTTPException) as exc_info:
         await get_current_token(mock_credentials)
-    
-    assert exc_info.value.status_code == 401
+
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert exc_info.value.detail == "Invalid or expired token"
 
 
@@ -185,10 +182,10 @@ async def test_verify_pat_valid(mock_credentials):
     # Create a valid token using the global pat_auth
     pat = pat_auth.create_token("Test token")
     mock_credentials.credentials = pat.token
-    
+
     # Verify PAT
     token = await verify_pat(mock_credentials)
-    
+
     # Verify token
     assert token == pat.token
 
@@ -198,12 +195,12 @@ async def test_verify_pat_invalid(mock_credentials):
     """Test PAT verification with invalid token."""
     # Set invalid token
     mock_credentials.credentials = "invalid_token"
-    
+
     # Verify exception is raised
     with pytest.raises(HTTPException) as exc_info:
         await verify_pat(mock_credentials)
-    
-    assert exc_info.value.status_code == 401
+
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert exc_info.value.detail == "Invalid or expired token"
 
 
@@ -213,11 +210,11 @@ def test_pat_model_validation():
     pat = PAT(
         token="pat_123",
         description="Test token",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30)
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
     )
     assert pat.token == "pat_123"
     assert pat.description == "Test token"
-    
+
     # Invalid PAT (missing required fields)
     with pytest.raises(ValueError):
         PAT(token="pat_123")  # Missing description and expires_at

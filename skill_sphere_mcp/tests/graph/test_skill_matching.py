@@ -3,32 +3,27 @@
 # pylint: disable=redefined-outer-name, protected-access
 
 import os
-
-from collections import UserDict
 from unittest import mock
-from unittest.mock import AsyncMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import numpy as np
 import pytest
 import pytest_asyncio
 
-
 # Clear environment variables before importing settings
-os.environ.pop('SKILL_SPHERE_MCP_CLIENT_NAME', None)
-os.environ.pop('SKILL_SPHERE_MCP_CLIENT_VERSION', None)
-os.environ.pop('SKILL_SPHERE_MCP_CLIENT_ENVIRONMENT', None)
-os.environ.pop('SKILL_SPHERE_MCP_CLIENT_FEATURES', None)
-os.environ.pop('SKILL_SPHERE_MCP_CLIENT_MCP_INSTRUCTIONS', None)
+os.environ.pop("SKILL_SPHERE_MCP_CLIENT_NAME", None)
+os.environ.pop("SKILL_SPHERE_MCP_CLIENT_VERSION", None)
+os.environ.pop("SKILL_SPHERE_MCP_CLIENT_ENVIRONMENT", None)
+os.environ.pop("SKILL_SPHERE_MCP_CLIENT_FEATURES", None)
+os.environ.pop("SKILL_SPHERE_MCP_CLIENT_MCP_INSTRUCTIONS", None)
 
 # Now import the settings
-from skill_sphere_mcp.config.settings import ClientInfo
-from skill_sphere_mcp.config.settings import Settings
-from skill_sphere_mcp.config.settings import get_settings
-from skill_sphere_mcp.graph.skill_matching import MatchResult
-from skill_sphere_mcp.graph.skill_matching import SkillMatch
-from skill_sphere_mcp.graph.skill_matching import SkillMatchingService
-
+from skill_sphere_mcp.config.settings import ClientInfo, Settings, get_settings
+from skill_sphere_mcp.graph.skill_matching import (
+    MatchResult,
+    SkillMatch,
+    SkillMatchingService,
+)
 
 # Set test environment
 os.environ["PYTEST_CURRENT_TEST"] = "test_skill_matching"
@@ -87,14 +82,14 @@ async def mock_session() -> AsyncMock:
 
 @pytest.fixture
 def mock_settings():
-    with patch('skill_sphere_mcp.config.settings.Settings') as mock_settings:
+    with patch("skill_sphere_mcp.config.settings.Settings") as mock_settings:
         mock_settings.return_value = Settings(
             client_info=ClientInfo(
                 name="TestClient",
                 version="1.0.0",
                 environment="test",
                 features=["cv", "search", "matching", "graph"],
-                mcp_instructions="Test instructions"
+                mcp_instructions="Test instructions",
             )
         )
         yield mock_settings
@@ -152,27 +147,34 @@ async def test_match_role_success(
     ) as mock_embeddings:
         mock_embeddings.model = object()
         mock_embeddings.get_embedding.return_value = np.ones((1, 128))
-        
+
         # Mock a path with nodes and relationships
         mock_node = mock.MagicMock()
         mock_node.labels = ["Skill"]
         mock_node.items.return_value = [("name", "Python")]
-        mock_node.get.return_value = "Python"  # Ensure the node can be accessed like a dict
-        
+        mock_node.get.return_value = (
+            "Python"  # Ensure the node can be accessed like a dict
+        )
+
         mock_path = mock.MagicMock()
         mock_path.nodes = [mock_node]
         mock_path.relationships = []
-        
-        mock_session.run.return_value.single.return_value = {"path": mock_path, "node_id": 1}
-        
+
+        mock_session.run.return_value.single.return_value = {
+            "path": mock_path,
+            "node_id": 1,
+        }
+
         result = await skill_matcher.match_role(
             mock_session,
             MOCK_REQUIRED_SKILLS,
             MOCK_CANDIDATE_SKILLS,
         )
         assert result.overall_score > 0
-        assert len(result.matching_skills) == 2
-        assert len(result.skill_gaps) == 0
+        expected_matching_skills = 2
+        assert len(result.matching_skills) == expected_matching_skills
+        expected_skill_gaps = 0
+        assert len(result.skill_gaps) == expected_skill_gaps
 
 
 @pytest.mark.asyncio
@@ -216,8 +218,16 @@ async def test_match_role_partial_match(
         mock_embeddings.model = object()
         mock_embeddings.get_embedding.return_value = np.ones((1, 128))
         # Only return a path for the matching skill
-        mock_node = UserDict({"name": "Python", "type": "Programming Language"})
+        mock_node = mock.MagicMock()
         mock_node.labels = ["Skill"]
+        mock_node.get.side_effect = lambda k, default=None: {
+            "name": "Python",
+            "type": "Programming Language",
+        }.get(k, default)
+        mock_node.items.return_value = [
+            ("name", "Python"),
+            ("type", "Programming Language"),
+        ]
         mock_path = mock.MagicMock()
         mock_path.nodes = [mock_node]
         mock_path.relationships = []
@@ -251,19 +261,24 @@ async def test_match_role_experience_scoring(
     ) as mock_embeddings:
         mock_embeddings.model = object()
         mock_embeddings.get_embedding.return_value = np.ones((1, 128))
-        
+
         # Mock a path with nodes and relationships
         mock_node = mock.MagicMock()
         mock_node.labels = ["Skill"]
         mock_node.items.return_value = [("name", "Python")]
-        mock_node.get.return_value = "Python"  # Ensure the node can be accessed like a dict
-        
+        mock_node.get.return_value = (
+            "Python"  # Ensure the node can be accessed like a dict
+        )
+
         mock_path = mock.MagicMock()
         mock_path.nodes = [mock_node]
         mock_path.relationships = []
-        
-        mock_session.run.return_value.single.return_value = {"path": mock_path, "node_id": 1}
-        
+
+        mock_session.run.return_value.single.return_value = {
+            "path": mock_path,
+            "node_id": 1,
+        }
+
         # Test with varying experience levels
         candidate_skills = [
             {"name": "Python", "years": 3},  # Less than required
@@ -275,8 +290,10 @@ async def test_match_role_experience_scoring(
             candidate_skills,
         )
         assert result.overall_score > 0
-        assert len(result.matching_skills) == 2
-        assert len(result.skill_gaps) == 0
+        expected_matching_skills = 2
+        assert len(result.matching_skills) == expected_matching_skills
+        expected_skill_gaps = 0
+        assert len(result.skill_gaps) == expected_skill_gaps
 
 
 @pytest.mark.asyncio
@@ -289,8 +306,16 @@ async def test_find_best_match(
     ) as mock_embeddings:
         mock_embeddings.model = object()
         mock_embeddings.get_embedding.return_value = np.ones((1, 128))
-        mock_node = UserDict({"name": "Python", "type": "Programming Language"})
+        mock_node = mock.MagicMock()
         mock_node.labels = ["Skill"]
+        mock_node.get.side_effect = lambda k, default=None: {
+            "name": "Python",
+            "type": "Programming Language",
+        }.get(k, default)
+        mock_node.items.return_value = [
+            ("name", "Python"),
+            ("type", "Programming Language"),
+        ]
         mock_path = mock.MagicMock()
         mock_path.nodes = [mock_node]
         mock_path.relationships = []
@@ -304,6 +329,7 @@ async def test_find_best_match(
             else:
                 mock_result.single = AsyncMock(return_value=None)
             return mock_result
+
         mock_session.run.side_effect = run_side_effect
 
         best_match = await skill_matcher._find_best_match(
@@ -346,8 +372,16 @@ async def test_find_best_match_below_threshold(
     ) as mock_embeddings:
         mock_embeddings.model = object()
         mock_embeddings.get_embedding.return_value = np.ones((1, 128))
-        mock_node = UserDict({"name": "Python", "type": "Programming Language"})
+        mock_node = mock.MagicMock()
         mock_node.labels = ["Skill"]
+        mock_node.get.side_effect = lambda k, default=None: {
+            "name": "Python",
+            "type": "Programming Language",
+        }.get(k, default)
+        mock_node.items.return_value = [
+            ("name", "Python"),
+            ("type", "Programming Language"),
+        ]
         mock_path = mock.MagicMock()
         mock_path.nodes = [mock_node]
         mock_path.relationships = []
@@ -361,6 +395,7 @@ async def test_find_best_match_below_threshold(
             else:
                 mock_result.single = AsyncMock(return_value=None)
             return mock_result
+
         mock_session.run.side_effect = run_side_effect
 
         # Create a matcher with high threshold
@@ -406,15 +441,23 @@ async def test_gather_evidence(
 ) -> None:
     """Test gathering evidence for skill match."""
     # Mock a path with nodes and relationships
-    mock_node = UserDict({"name": "Python", "type": "Programming Language"})
+    mock_node = mock.MagicMock()
     mock_node.labels = ["Skill"]
-    
+    mock_node.get.side_effect = lambda k, default=None: {
+        "name": "Python",
+        "type": "Programming Language",
+    }.get(k, default)
+    mock_node.items.return_value = [
+        ("name", "Python"),
+        ("type", "Programming Language"),
+    ]
+
     mock_path = mock.MagicMock()
     mock_path.nodes = [mock_node]
     mock_path.relationships = []
-    
+
     mock_session.run.return_value.single.return_value = {"path": mock_path}
-    
+
     evidence = await skill_matcher._gather_evidence(mock_session, "Python", "Python")
     assert isinstance(evidence, list)
     assert len(evidence) > 0
@@ -443,8 +486,16 @@ async def test_match_role_with_evidence(
     ) as mock_embeddings:
         mock_embeddings.model = object()
         mock_embeddings.get_embedding.return_value = np.ones((1, 128))
-        mock_node = UserDict({"name": "Python", "type": "Programming Language"})
+        mock_node = mock.MagicMock()
         mock_node.labels = ["Skill"]
+        mock_node.get.side_effect = lambda k, default=None: {
+            "name": "Python",
+            "type": "Programming Language",
+        }.get(k, default)
+        mock_node.items.return_value = [
+            ("name", "Python"),
+            ("type", "Programming Language"),
+        ]
         mock_path = mock.MagicMock()
         mock_path.nodes = [mock_node]
         mock_path.relationships = []

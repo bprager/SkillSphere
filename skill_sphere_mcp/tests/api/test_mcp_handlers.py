@@ -1,32 +1,31 @@
 """Tests for MCP handlers."""
 
 from typing import Any
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.api.mcp.handlers import get_resource
-from skill_sphere_mcp.api.mcp.handlers import handle_get_entity
-from skill_sphere_mcp.api.mcp.handlers import handle_list_resources
-from skill_sphere_mcp.api.mcp.handlers import handle_search
-from skill_sphere_mcp.api.mcp.handlers import handle_tool_dispatch
+from skill_sphere_mcp.api.mcp.handlers import (
+    get_resource,
+    handle_get_entity,
+    handle_list_resources,
+    handle_search,
+    handle_tool_dispatch,
+)
 
 
 class AsyncIterator:
     """Helper class to create async iterators for mocking."""
-    
-    def __init__(self, items: List[Any]):
+
+    def __init__(self, items: list[Any]):
         self.items = items
         self.index = 0
-    
+
     def __aiter__(self):
         return self
-    
+
     async def __anext__(self):
         if self.index >= len(self.items):
             raise StopAsyncIteration
@@ -47,22 +46,20 @@ def mock_session():
 async def test_handle_search_success(mock_session):
     """Test successful search handling."""
     # Mock search results
-    mock_session.run.return_value = AsyncIterator([
-        {
-            "node": {
-                "id": "1",
-                "name": "Python",
-                "type": "Skill",
-                "description": "Python programming language"
+    mock_session.run.return_value = AsyncIterator(
+        [
+            {
+                "node": {
+                    "id": "1",
+                    "name": "Python",
+                    "type": "Skill",
+                    "description": "Python programming language",
+                }
             }
-        }
-    ])
-
-    result = await handle_search(
-        session=mock_session,
-        query="Python",
-        limit=10
+        ]
     )
+
+    result = await handle_search(session=mock_session, query="Python", limit=10)
 
     assert "results" in result
     assert len(result["results"]) == 1
@@ -74,7 +71,7 @@ async def test_handle_search_empty_query(mock_session):
     """Test search handling with empty query."""
     with pytest.raises(HTTPException) as exc_info:
         await handle_search(session=mock_session, query="", limit=10)
-    assert exc_info.value.status_code == 400
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert "Query cannot be empty" in str(exc_info.value.detail)
 
 
@@ -85,7 +82,7 @@ async def test_handle_search_database_error(mock_session):
 
     with pytest.raises(HTTPException) as exc_info:
         await handle_search(session=mock_session, query="Python", limit=10)
-    assert exc_info.value.status_code == 500
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "Database error" in str(exc_info.value.detail)
 
 
@@ -96,19 +93,22 @@ async def test_handle_tool_dispatch_success(mock_session: AsyncMock) -> None:
         mock_dispatch.return_value = {
             "match_score": 0.0,
             "matching_skills": [],
-            "skill_gaps": ["Python"]
+            "skill_gaps": ["Python"],
         }
 
         result = await handle_tool_dispatch(
             session=mock_session,
             tool_name="skill.match_role",  # Use a valid tool name
-            parameters={"required_skills": ["Python"], "years_experience": {"Python": 5}}
+            parameters={
+                "required_skills": ["Python"],
+                "years_experience": {"Python": 5},
+            },
         )
         assert result["result"] == "success"
         assert result["data"] == {
             "match_score": 0.0,
             "matching_skills": [],
-            "skill_gaps": ["Python"]
+            "skill_gaps": ["Python"],
         }
 
 
@@ -117,7 +117,9 @@ async def test_handle_tool_dispatch_missing_name(mock_session: AsyncMock) -> Non
     """Test tool dispatch handling with missing tool name."""
     with pytest.raises(HTTPException) as exc_info:
         await handle_tool_dispatch(session=mock_session, tool_name="", parameters={})
-    assert exc_info.value.status_code == 422  # Changed from 400 to 422
+    assert (
+        exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    )  # Changed from 400 to 422
     assert exc_info.value.detail == "Tool name is required"  # Updated error message
 
 
@@ -125,14 +127,16 @@ async def test_handle_tool_dispatch_missing_name(mock_session: AsyncMock) -> Non
 async def test_handle_get_entity_success(mock_session):
     """Test successful entity retrieval."""
     mock_result = AsyncMock()
-    mock_result.single = AsyncMock(return_value={
-        "n": {
-            "id": "1",
-            "name": "Test Entity",
-            "type": "Skill",
-            "description": "Test description"
+    mock_result.single = AsyncMock(
+        return_value={
+            "n": {
+                "id": "1",
+                "name": "Test Entity",
+                "type": "Skill",
+                "description": "Test description",
+            }
         }
-    })
+    )
     mock_session.run.return_value = mock_result
 
     result = await handle_get_entity(session=mock_session, entity_id="1")
@@ -151,7 +155,7 @@ async def test_handle_get_entity_not_found(mock_session):
 
     with pytest.raises(HTTPException) as exc_info:
         await handle_get_entity(session=mock_session, entity_id="nonexistent")
-    assert exc_info.value.status_code == 404
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert "Entity not found" in str(exc_info.value.detail)
 
 
@@ -177,5 +181,5 @@ async def test_handle_get_resource_invalid():
     """Test invalid resource retrieval."""
     with pytest.raises(HTTPException) as exc_info:
         await get_resource(resource_type="invalid")
-    assert exc_info.value.status_code == 400
-    assert "Invalid resource type" in str(exc_info.value.detail) 
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Invalid resource type" in str(exc_info.value.detail)

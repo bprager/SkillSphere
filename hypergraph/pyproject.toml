@@ -59,4 +59,7 @@ exclude = ["skills_hypergraph_ontology.py"]
 [dependency-groups]
 dev = [
     "pylance>=0.31.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.11.11",
 ]

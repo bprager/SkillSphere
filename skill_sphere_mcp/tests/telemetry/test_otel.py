@@ -3,15 +3,12 @@
 import logging
 import os
 import sys
-
 from unittest import mock
 
-
 # Add the src directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 import pytest
-
 from opentelemetry import trace
 
 from skill_sphere_mcp.telemetry.otel import setup_telemetry
@@ -21,7 +18,7 @@ class TestSetupTelemetrySimple:
     """Test OpenTelemetry setup functionality."""
 
     @pytest.fixture(autouse=True)
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Setup logging for tests."""
         logging.basicConfig(level=logging.DEBUG)
 
@@ -33,13 +30,16 @@ class TestSetupTelemetrySimple:
     @mock.patch("skill_sphere_mcp.telemetry.otel.trace")
     def test_setup_telemetry_success(
         self,
-        mock_trace,
-        mock_batch_processor,
-        mock_exporter,
-        mock_provider,
-        mock_resource,
-        mock_get_settings,
-    ):
+        mocks,
+    ) -> None:
+        (
+            mock_trace,
+            mock_batch_processor,
+            mock_exporter,
+            mock_provider,
+            mock_resource,
+            mock_get_settings,
+        ) = mocks
         """Test successful telemetry setup."""
         # Mock settings
         mock_settings = mock.MagicMock()
@@ -82,7 +82,9 @@ class TestSetupTelemetrySimple:
 
     @mock.patch("skill_sphere_mcp.telemetry.otel.get_settings")
     @mock.patch("skill_sphere_mcp.telemetry.otel.logger")
-    def test_setup_telemetry_settings_error(self, mock_logger, mock_get_settings):
+    def test_setup_telemetry_settings_error(
+        self, mock_logger, mock_get_settings
+    ) -> None:
         """Test telemetry setup when settings raise an error."""
         # Mock settings to raise an error
         mock_get_settings.side_effect = ValueError("Invalid settings")
@@ -105,7 +107,7 @@ class TestSetupTelemetrySimple:
     @mock.patch("skill_sphere_mcp.telemetry.otel.logger")
     def test_setup_telemetry_resource_error(
         self, mock_logger, mock_resource, mock_get_settings
-    ):
+    ) -> None:
         """Test telemetry setup when Resource creation fails."""
         # Mock settings
         mock_settings = mock.MagicMock()
@@ -129,9 +131,11 @@ class TestSetupTelemetrySimple:
         # Verify function returns None on error
         assert result is None
 
-    def test_setup_telemetry_integration(self):
+    def test_setup_telemetry_integration(self) -> None:
         """Test telemetry setup with minimal mocking to verify integration."""
-        with mock.patch("skill_sphere_mcp.telemetry.otel.get_settings") as mock_get_settings:
+        with mock.patch(
+            "skill_sphere_mcp.telemetry.otel.get_settings"
+        ) as mock_get_settings:
             # Mock settings
             mock_settings = mock.MagicMock()
             mock_settings.otel_service_name = "test-service"
@@ -148,4 +152,4 @@ class TestSetupTelemetrySimple:
 
 if __name__ == "__main__":
     # Run tests directly
-    pytest.main([__file__, "-v"]) 
+    pytest.main([__file__, "-v"])

@@ -1,32 +1,18 @@
 """Tests for the tool handlers."""
 
 import logging
-
 from typing import Any
-from typing import List
 from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
 
 import numpy as np
 import pytest
 import pytest_asyncio
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from neo4j import AsyncSession
-from starlette.status import HTTP_400_BAD_REQUEST
-from tests.constants import DEFAULT_TEST_LIMIT
-from tests.constants import DEFAULT_TEST_TOP_K
-from tests.constants import HTTP_BAD_REQUEST
-from tests.constants import HTTP_NOT_FOUND
 
-from skill_sphere_mcp.api.mcp.handlers import explain_match
-from skill_sphere_mcp.api.mcp.handlers import graph_search
-from skill_sphere_mcp.api.mcp.handlers import match_role
+from skill_sphere_mcp.api.mcp.handlers import explain_match, graph_search, match_role
 from skill_sphere_mcp.cv.generator import generate_cv
-from skill_sphere_mcp.graph.skill_matching import MatchResult
-from skill_sphere_mcp.graph.skill_matching import SkillMatch
-
+from skill_sphere_mcp.graph.skill_matching import MatchResult, SkillMatch
 
 logger = logging.getLogger(__name__)
 
@@ -46,14 +32,14 @@ EXPECTED_RESULTS_COUNT = 2
 
 class AsyncIterator:
     """Helper class to create async iterators for mocking."""
-    
-    def __init__(self, items: List[Any]):
+
+    def __init__(self, items: list[Any]):
         self.items = items
         self.index = 0
-    
+
     def __aiter__(self):
         return self
-    
+
     async def __anext__(self):
         if self.index >= len(self.items):
             raise StopAsyncIteration
@@ -93,16 +79,18 @@ async def test_match_role_success(mock_session: AsyncMock) -> None:
     """Test successful skill matching."""
     # Setup mock session response
     mock_result = AsyncMock()
-    mock_result = AsyncIterator([
-        {
-            "p": {
-                "id": "1",
-                "name": "Test Person",
-                "skills": ["Python", "FastAPI"],
-                "experience": {"Python": 5, "FastAPI": 3},
+    mock_result = AsyncIterator(
+        [
+            {
+                "p": {
+                    "id": "1",
+                    "name": "Test Person",
+                    "skills": ["Python", "FastAPI"],
+                    "experience": {"Python": 5, "FastAPI": 3},
+                }
             }
-        }
-    ])
+        ]
+    )
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -113,7 +101,7 @@ async def test_match_role_success(mock_session: AsyncMock) -> None:
         mock_session,
     )
     assert "match_score" in result
-    assert result["match_score"] == 1.0
+    assert result["match_score"] == pytest.approx(1.0)
     assert "matching_skills" in result
     assert len(result["matching_skills"]) == 1
     assert "skill_gaps" in result
@@ -125,7 +113,7 @@ async def test_match_role_no_skills(mock_session: AsyncMock) -> None:
     """Test skill matching with no skills provided."""
     with pytest.raises(HTTPException) as exc_info:
         await match_role({"required_skills": [], "years_experience": {}}, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -158,7 +146,8 @@ async def test_explain_match_success(mock_session: AsyncMock) -> None:
     )
     assert "explanation" in result
     assert "evidence" in result
-    assert len(result["evidence"]) == 2
+    evidence_count = 2
+    assert len(result["evidence"]) == evidence_count
     assert any(e["type"] == "project" for e in result["evidence"])
     assert any(e["type"] == "certification" for e in result["evidence"])
 
@@ -168,7 +157,7 @@ async def test_explain_match_missing_params(mock_session: AsyncMock) -> None:
     """Test explain match with missing parameters."""
     with pytest.raises(HTTPException) as exc_info:
         await explain_match({}, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -186,7 +175,7 @@ async def test_explain_match_skill_not_found(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 404
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert "Skill 999 not found" in str(exc_info.value.detail)
 
 
@@ -214,14 +203,10 @@ async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
     """Test CV generation with invalid format."""
     with pytest.raises(HTTPException) as exc_info:
         await generate_cv(
-            {
-                "profile_id": "123",
-                "target_keywords": ["Python"],
-                "format": "invalid"
-            },
-            mock_session
+            {"profile_id": "123", "target_keywords": ["Python"], "format": "invalid"},
+            mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "Validation error" in str(exc_info.value.detail)
     assert "format" in str(exc_info.value.detail)
 
@@ -230,21 +215,23 @@ async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
 async def test_graph_search_success(mock_session: AsyncMock) -> None:
     """Test successful graph search."""
     mock_result = AsyncMock()
-    mock_result = AsyncIterator([
-        {
-            "n": {
-                "id": "1",
-                "name": "Python",
-                "type": "Skill",
-                "description": "Python programming language",
-                "labels": ["Skill"],
-                "properties": {
+    mock_result = AsyncIterator(
+        [
+            {
+                "n": {
+                    "id": "1",
                     "name": "Python",
+                    "type": "Skill",
                     "description": "Python programming language",
-                },
+                    "labels": ["Skill"],
+                    "properties": {
+                        "name": "Python",
+                        "description": "Python programming language",
+                    },
+                }
             }
-        }
-    ])
+        ]
+    )
     mock_session.run.return_value = mock_result
 
     result = await graph_search(
@@ -265,7 +252,7 @@ async def test_graph_search_missing_query(mock_session: AsyncMock) -> None:
     """Test graph search with missing query."""
     with pytest.raises(HTTPException) as exc_info:
         await graph_search({}, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -279,7 +266,7 @@ async def test_graph_search_invalid_top_k(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -292,7 +279,7 @@ async def test_match_role_missing_skills(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -306,7 +293,7 @@ async def test_match_role_invalid_experience(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "years_experience must be a dictionary" in str(exc_info.value.detail)
 
 
@@ -321,7 +308,7 @@ async def test_match_role_invalid_experience_type(mock_session: AsyncMock) -> No
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "must be an integer" in str(exc_info.value.detail)
 
 
@@ -336,7 +323,7 @@ async def test_match_role_invalid_experience_value(mock_session: AsyncMock) -> N
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "must be positive" in str(exc_info.value.detail)
 
 
@@ -358,7 +345,7 @@ async def test_match_role_partial_match(mock_session: AsyncMock) -> None:
         mock_session,
     )
 
-    assert result["match_score"] == 0.0
+    assert result["match_score"] == pytest.approx(0.0)
     assert isinstance(result["skill_gaps"], list)
     assert isinstance(result["matching_skills"], list)
 
@@ -412,7 +399,8 @@ async def test_explain_match_multiple_evidence(mock_session: AsyncMock) -> None:
         mock_session,
     )
 
-    assert len(result["evidence"]) == 5
+    evidence_count = 5
+    assert len(result["evidence"]) == evidence_count
     assert any("Project A" in str(e["description"]) for e in result["evidence"])
     assert any("Cert A" in str(e["description"]) for e in result["evidence"])
 
@@ -425,7 +413,7 @@ async def test_explain_match_invalid_skill_id(mock_session: AsyncMock) -> None:
             {"skill_id": "invalid", "role_requirement": "Python Developer"},
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
@@ -444,9 +432,9 @@ async def test_graph_search_empty_results(mock_session: AsyncMock) -> None:
 async def test_graph_search_special_characters(mock_session: AsyncMock) -> None:
     """Test graph search with special characters in query."""
     mock_result = AsyncMock()
-    mock_result = AsyncIterator([
-        {"n": {"id": "1", "name": "C++", "description": "Programming language"}}
-    ])
+    mock_result = AsyncIterator(
+        [{"n": {"id": "1", "name": "C++", "description": "Programming language"}}]
+    )
     mock_session.run.return_value = mock_result
 
     result = await graph_search({"query": "C++", "top_k": 5}, mock_session)
@@ -459,27 +447,32 @@ async def test_graph_search_special_characters(mock_session: AsyncMock) -> None:
 async def test_graph_search_large_top_k(mock_session: AsyncMock) -> None:
     """Test graph search with a large top_k value."""
     mock_result = AsyncMock()
-    mock_result = AsyncIterator([{"n": {"id": str(i), "name": f"Node {i}"}} for i in range(100)])
+    mock_result = AsyncIterator(
+        [{"n": {"id": str(i), "name": f"Node {i}"}} for i in range(100)]
+    )
     mock_session.run.return_value = mock_result
 
-    result = await graph_search({"query": "Node", "top_k": 100}, mock_session)
+    max_results = 100
+    result = await graph_search({"query": "Node", "top_k": max_results}, mock_session)
     assert "results" in result
-    assert len(result["results"]) == 100
+    assert len(result["results"]) == max_results
 
 
 @pytest.mark.asyncio
 async def test_match_role_empty_experience(mock_session: AsyncMock) -> None:
     """Test match role with empty years_experience."""
     mock_result = AsyncMock()
-    mock_result = AsyncIterator([
-        {
-            "p": {
-                "name": "Test Person",
-                "skills": ["Python", "FastAPI"],
-                "experience": {},
+    mock_result = AsyncIterator(
+        [
+            {
+                "p": {
+                    "name": "Test Person",
+                    "skills": ["Python", "FastAPI"],
+                    "experience": {},
+                }
             }
-        }
-    ])
+        ]
+    )
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -490,8 +483,9 @@ async def test_match_role_empty_experience(mock_session: AsyncMock) -> None:
         mock_session,
     )
     assert "match_score" in result
-    assert result["match_score"] == 1.0
-    assert len(result["matching_skills"]) == 2
+    assert result["match_score"] == pytest.approx(1.0)
+    matching_skills_count = 2
+    assert len(result["matching_skills"]) == matching_skills_count
     assert len(result["skill_gaps"]) == 0
 
 
@@ -510,7 +504,7 @@ async def test_match_role_nonexistent_skills(mock_session: AsyncMock) -> None:
         mock_session,
     )
     assert "match_score" in result
-    assert result["match_score"] == 0.0
+    assert result["match_score"] == pytest.approx(0.0)
     assert len(result["skill_gaps"]) > 0
 
 
@@ -518,22 +512,24 @@ async def test_match_role_nonexistent_skills(mock_session: AsyncMock) -> None:
 async def test_match_role_multiple_profiles(mock_session: AsyncMock) -> None:
     """Test match role with multiple matching profiles."""
     mock_result = AsyncMock()
-    mock_result = AsyncIterator([
-        {
-            "p": {
-                "name": "Person 1",
-                "skills": ["Python"],
-                "experience": {"Python": 5},
-            }
-        },
-        {
-            "p": {
-                "name": "Person 2",
-                "skills": ["Python"],
-                "experience": {"Python": 3},
-            }
-        },
-    ])
+    mock_result = AsyncIterator(
+        [
+            {
+                "p": {
+                    "name": "Person 1",
+                    "skills": ["Python"],
+                    "experience": {"Python": 5},
+                }
+            },
+            {
+                "p": {
+                    "name": "Person 2",
+                    "skills": ["Python"],
+                    "experience": {"Python": 3},
+                }
+            },
+        ]
+    )
     mock_session.run.return_value = mock_result
 
     result = await match_role(
@@ -544,7 +540,7 @@ async def test_match_role_multiple_profiles(mock_session: AsyncMock) -> None:
         mock_session,
     )
     assert "match_score" in result
-    assert result["match_score"] == 1.0
+    assert result["match_score"] == pytest.approx(1.0)
     assert len(result["matching_skills"]) == 1
     assert len(result["skill_gaps"]) == 0
 
@@ -554,4 +550,4 @@ async def test_match_role_empty_skills(mock_session: AsyncMock) -> None:
     """Test match role with empty required_skills list."""
     with pytest.raises(HTTPException) as exc_info:
         await match_role({"required_skills": [], "years_experience": {}}, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

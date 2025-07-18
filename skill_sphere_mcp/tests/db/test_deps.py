@@ -5,22 +5,15 @@
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
 
 import pytest_asyncio
-
-from fastapi import Depends
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from neo4j import AsyncSession
-from starlette.status import HTTP_200_OK
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
-from skill_sphere_mcp.db.connection import DatabaseConnection
 from skill_sphere_mcp.db.deps import get_db_session
-
 
 get_db_session_dep = Depends(get_db_session)
 

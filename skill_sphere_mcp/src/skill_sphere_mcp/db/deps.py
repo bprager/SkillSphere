@@ -14,7 +14,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     connection = DatabaseConnection(
         uri=settings.neo4j_uri,
         user=settings.neo4j_user,
-        password=settings.neo4j_password
+        password=settings.neo4j_password,
     )
     await connection.connect()
 
@@ -29,9 +29,12 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         if session is not None:
             try:
                 # Close session if it exists
-                if hasattr(session, 'close') and callable(session.close):
+                if hasattr(session, "close") and callable(session.close):
                     session.close()  # type: ignore[unused-coroutine]
+            except (RuntimeError, ValueError, AttributeError):
+                # Ignore known close errors
+                pass
             except Exception:
-                # Ignore close errors
+                # Broad catch for unexpected errors during session close (should not crash app)
                 pass
         await connection.close()

@@ -3,18 +3,12 @@
 # pylint: disable=redefined-outer-name
 
 from builtins import anext
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
-
-from fastapi import HTTPException
-from neo4j import AsyncGraphDatabase
-from neo4j import AsyncSession
-from neo4j.exceptions import AuthError
-from neo4j.exceptions import ServiceUnavailable
+from neo4j import AsyncGraphDatabase, AsyncSession
+from neo4j.exceptions import AuthError, ServiceUnavailable
 
 from skill_sphere_mcp.db.connection import DatabaseConnection
 
@@ -52,7 +46,9 @@ def conn(settings: MagicMock, driver: AsyncMock) -> DatabaseConnection:
         "skill_sphere_mcp.db.connection.GraphDatabase.driver",
         return_value=driver,
     ):
-        conn = DatabaseConnection(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
+        conn = DatabaseConnection(
+            settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password
+        )
         conn._driver = driver
         return conn
 
@@ -66,7 +62,9 @@ async def test_connection_initialization(
         "skill_sphere_mcp.db.connection.GraphDatabase.driver",
         return_value=driver,
     ) as mock_driver:
-        conn = DatabaseConnection(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
+        conn = DatabaseConnection(
+            settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password
+        )
         await conn.connect()  # Ensure driver is initialized
         # Verify driver was created with correct parameters
         mock_driver.assert_called_once_with(
@@ -122,10 +120,10 @@ async def test_close(conn: DatabaseConnection, driver: AsyncMock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_session(
+async def test_get_session_unique(
     conn: DatabaseConnection, driver: AsyncMock, session_mock: AsyncMock
 ) -> None:
-    """Test session creation."""
+    """Test session creation (unique name to avoid redeclaration)."""
     conn._driver = driver
     driver.session.return_value = session_mock
 
@@ -157,7 +155,7 @@ async def test_get_session():
     session = await anext(session_gen)
     assert session is not None
     # Test that session can be used
-    if hasattr(session, 'close') and session.close is not None:
+    if hasattr(session, "close") and session.close is not None:
         try:
             await session.close()
         except (TypeError, AttributeError):

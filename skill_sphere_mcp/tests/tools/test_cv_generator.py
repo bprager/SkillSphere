@@ -1,12 +1,10 @@
 """Tests for CV generation functionality."""
 
 from unittest.mock import AsyncMock
-from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from neo4j import AsyncSession
 
 from skill_sphere_mcp.cv.generator import generate_cv
@@ -125,7 +123,7 @@ async def test_generate_cv_pdf_format(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 501
+    assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
     assert "PDF format not implemented" in str(exc_info.value.detail)
 
 
@@ -139,7 +137,7 @@ async def test_generate_cv_missing_keywords(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "target_keywords" in str(exc_info.value.detail)
 
 
@@ -154,7 +152,7 @@ async def test_generate_cv_invalid_format(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "format" in str(exc_info.value.detail)
 
 
@@ -199,7 +197,7 @@ async def test_generate_cv_database_error(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 500
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "Database error" in str(exc_info.value.detail)
 
 
@@ -216,5 +214,5 @@ async def test_generate_cv_no_profile_found(mock_session: AsyncMock) -> None:
             },
             mock_session,
         )
-    assert exc_info.value.status_code == 404
-    assert "Profile not found" in str(exc_info.value.detail) 
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert "Profile not found" in str(exc_info.value.detail)

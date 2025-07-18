@@ -2,7 +2,6 @@
 
 from http import HTTPStatus
 
-
 # HTTP Status Codes
 HTTP_OK = HTTPStatus.OK
 HTTP_BAD_REQUEST = HTTPStatus.BAD_REQUEST

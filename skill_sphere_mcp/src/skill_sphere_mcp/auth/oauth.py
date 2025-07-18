@@ -3,28 +3,42 @@
 import os
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import Request
+from fastapi import status
 
 
 # Mock classes for OAuth2 functionality (placeholder implementation)
 class IntrospectionTokenValidator:
     """Mock token validator for testing."""
+
     def __init__(self, **kwargs: Any) -> None:
         pass
 
+
+# pylint: disable-next=R0903
 class OAuth2ResourceProtector:
     """Mock OAuth2 resource protector for testing."""
-    def __init__(self, token_validator: IntrospectionTokenValidator | None = None) -> None:
+
+    def __init__(
+        self, token_validator: IntrospectionTokenValidator | None = None
+    ) -> None:
         self.token_validator = token_validator
 
     def __call__(self, request: Request) -> Any:
         """Mock token validation."""
+
+        # pylint: disable-next=R0903
         class MockToken:
             """Mock token for testing."""
+
             active = True
             sub = "test_user"
             scope = "read write"
+
         return MockToken()
+
 
 OAUTH_AVAILABLE = False
 
@@ -37,7 +51,10 @@ MCP_RESOURCE_ID = os.getenv("MCP_RESOURCE_ID")
 
 oauth2_protector = OAuth2ResourceProtector()
 
-async def validate_access_token(_request: Request, token: Any = Depends(oauth2_protector)) -> Any:
+
+async def validate_access_token(
+    _request: Request, token: Any = Depends(oauth2_protector)
+) -> Any:
     """Validate OAuth2 access token and return the token if valid."""
     if not token or not getattr(token, "active", False):
         raise HTTPException(
@@ -46,17 +63,22 @@ async def validate_access_token(_request: Request, token: Any = Depends(oauth2_p
         )
     return token
 
+
+# pylint: disable-next=R0903
 class MockToken:
     """Mock token for testing purposes."""
 
 
+# pylint: disable-next=R0903
 class OAuthConfig:
     """Configuration for OAuth authentication."""
 
 
+# pylint: disable-next=R0903
 class TokenValidator:
     """Validator for OAuth tokens."""
 
 
+# pylint: disable-next=R0903
 class OAuth2ResourceServer:
     """OAuth2 Resource Server for token validation."""

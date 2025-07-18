@@ -31,7 +31,8 @@ class Node2VecModel:
             config: Node2Vec configuration parameters
         """
         self._model = Node2Vec(config)
-        self.state = self._model._state
+        # Access to protected member _state is required for integration; pylint: disable=protected-access
+        self.state = self._model._state  # pylint: disable=protected-access
 
     async def fit(self, session: AsyncSession) -> None:
         """Fit the model to the graph.
@@ -80,7 +81,10 @@ class Node2VecModel:
         """
         if session is not None:
             # Get graph structure from database
-            self._model._state.graph = await self._model.get_graph(session)
+            # Access to protected member _state is required for integration; pylint: disable=protected-access
+            self._model._state.graph = await self._model.get_graph(
+                session
+            )  # pylint: disable=protected-access
         else:
             # For testing purposes, use the existing graph
             transition_config = TransitionConfig(
@@ -104,9 +108,12 @@ class Node2VecModel:
             directed=False,
             unweighted=True,
         )
-        self._model.preprocess_transition_probs(self._model._state.graph, transition_config)
+        # Access to protected member _state is required for integration; pylint: disable=protected-access
+        self._model.preprocess_transition_probs(
+            self._model._state.graph, transition_config
+        )  # pylint: disable=protected-access
 
-        self._model._state.preprocessed = True
+        self._model._state.preprocessed = True  # pylint: disable=protected-access
 
     def train(self) -> None:
         """Train the model using the preprocessed graph."""

@@ -8,6 +8,7 @@ from neo4j import AsyncSession
 
 logger = logging.getLogger(__name__)
 
+
 async def get_entity_by_id(session: AsyncSession, entity_id: str) -> dict[str, Any]:
     """Get an entity by ID from the database.
 
@@ -78,5 +79,5 @@ async def get_entity_by_id(session: AsyncSession, entity_id: str) -> dict[str, A
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"get_entity_by_id: Unexpected error: {e}", exc_info=True)
+        logger.error("get_entity_by_id: Unexpected error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}") from e

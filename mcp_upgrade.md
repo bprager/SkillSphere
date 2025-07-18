@@ -33,7 +33,7 @@ Upgrade the existing SkillSphere MCP server (FastAPI‑based) from compliance wi
 
 | Task | Description                                                                                                           |
 | ---- | --------------------------------------------------------------------------------------------------------------------- |
-| 1    | Install `fastapi-oauth2-resource-server` and add to `pyproject.toml`.                                                 |
+| 1    | Use FastAPI's built-in OAuth2/JWT support (see <https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/>).           |
 | 2    | Create `auth/oauth.py` with `OAuth2ResourceProtector` using Introspection endpoint from `${OAUTH_INTROSPECTION_URL}`. |
 | 3    | Introduce new **required** env vars: `OAUTH_INTROSPECTION_URL`, `OAUTH_CLIENT_ID`, `MCP_RESOURCE_ID`.                 |
 | 4    | Update dependency injection in `routers/*.py`: `current_user = Depends(validate_access_token)`.                       |
@@ -127,5 +127,4 @@ Upgrade the existing SkillSphere MCP server (FastAPI‑based) from compliance wi
 
 * MCP Spec 2025‑06‑18: [https://modelcontext.org/spec/2025-06-18](https://modelcontext.org/spec/2025-06-18)
 * RFC 8707 (Resource Indicators): [https://datatracker.ietf.org/doc/html/rfc8707](https://datatracker.ietf.org/doc/html/rfc8707)
-* fastapi‑oauth2‑resource‑server: [https://github.com/indominusbyte/fastapi-oauth2-resource-server](https://github.com/indominusbyte/fastapi-oauth2-resource-server)
-
+* For OAuth2 resource server, use FastAPI's built-in security utilities and a JWT validation library such as `python-jose` or `PyJWT`.

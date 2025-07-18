@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 class ExplainMatchOutputModel(BaseModel):
     """Output model for explain match operations."""
+
     explanation: str = Field(..., description="Explanation of the skill match")
     evidence: list[dict[str, Any]] = Field(..., description="List of evidence items")
 
@@ -75,6 +76,7 @@ async def explain_match(
 
 class GraphSearchOutputModel(BaseModel):
     """Output model for graph search operations."""
+
     results: list[dict[str, Any]] = Field(..., description="List of search results")
     query: str = Field(..., description="Search query string")
     top_k: int = Field(..., description="Number of top results returned")
@@ -109,7 +111,7 @@ async def graph_search(
         if node_id:
             r["links"] = [
                 f"bolt://localhost/{node_id}",
-                f"https://graphviewer.example.com/node/{node_id}"
+                f"https://graphviewer.example.com/node/{node_id}",
             ]
         else:
             r["links"] = []
@@ -123,9 +125,12 @@ async def graph_search(
 
 class MatchRoleOutputModel(BaseModel):
     """Output model for match role operations."""
+
     match_score: float = Field(..., description="Match score between 0 and 1")
     skill_gaps: list[str] = Field(..., description="List of missing skills")
-    matching_skills: list[dict[str, Any]] = Field(..., description="List of matching skills")
+    matching_skills: list[dict[str, Any]] = Field(
+        ..., description="List of matching skills"
+    )
 
 
 async def match_role(
@@ -181,13 +186,16 @@ async def match_role(
     )
 
 
+# pylint: disable-next=R0903 # Too few public methods
 class SomeHandler:
     """Handler for some tool logic."""
 
 
+# pylint: disable-next=R0903 # Too few public methods
 class AnotherHandler:
     """Handler for another tool logic."""
 
 
+# pylint: disable-next=R0903 # Too few public methods
 class YetAnotherHandler:
     """Handler for yet another tool logic."""

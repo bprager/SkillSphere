@@ -3,27 +3,27 @@ from unittest.mock import AsyncMock
 import pytest
 
 from skill_sphere_mcp.tools.dispatcher import dispatch_tool
-from skill_sphere_mcp.tools.handlers import ExplainMatchOutputModel
-from skill_sphere_mcp.tools.handlers import GraphSearchOutputModel
-from skill_sphere_mcp.tools.handlers import MatchRoleOutputModel
 
 
 @pytest.mark.asyncio
-async def test_dispatch_tool_structured_output_match_role():
+async def test_dispatch_tool_structured_output_match_role() -> None:
     parameters = {
         "required_skills": ["Python", "FastAPI"],
         "years_experience": {"Python": 3, "FastAPI": 2},
     }
     session = AsyncMock()
-    result = await dispatch_tool("skill.match_role", parameters, session, structured_output=True)
+    result = await dispatch_tool(
+        "skill.match_role", parameters, session, structured_output=True
+    )
     assert "structured_result" in result
     structured = result["structured_result"]
     assert isinstance(structured["match_score"], float)
     assert isinstance(structured["skill_gaps"], list)
     assert isinstance(structured["matching_skills"], list)
 
+
 @pytest.mark.asyncio
-async def test_dispatch_tool_structured_output_explain_match():
+async def test_dispatch_tool_structured_output_explain_match() -> None:
     parameters = {
         "skill_id": "skill123",
         "role_requirement": "Senior Developer",
@@ -37,14 +37,17 @@ async def test_dispatch_tool_structured_output_explain_match():
         "certifications": [{"name": "Cert A"}],
     }
     session.run.return_value = mock_record
-    result = await dispatch_tool("skill.explain_match", parameters, session, structured_output=True)
+    result = await dispatch_tool(
+        "skill.explain_match", parameters, session, structured_output=True
+    )
     assert "structured_result" in result
     structured = result["structured_result"]
     assert "explanation" in structured
     assert isinstance(structured["evidence"], list)
 
+
 @pytest.mark.asyncio
-async def test_dispatch_tool_structured_output_graph_search():
+async def test_dispatch_tool_structured_output_graph_search() -> None:
     parameters = {
         "query": "Python",
         "top_k": 5,
@@ -54,9 +57,12 @@ async def test_dispatch_tool_structured_output_graph_search():
     mock_record = AsyncMock()
     mock_record.all.return_value = [{"n": {"name": "Python Node"}}]
     session.run.return_value = mock_record
-    result = await dispatch_tool("graph.search", parameters, session, structured_output=True)
+    result = await dispatch_tool(
+        "graph.search", parameters, session, structured_output=True
+    )
     assert "structured_result" in result
     structured = result["structured_result"]
     assert isinstance(structured["results"], list)
     assert structured["query"] == "Python"
-    assert structured["top_k"] == 5
+    expected_top_k = 5
+    assert structured["top_k"] == expected_top_k

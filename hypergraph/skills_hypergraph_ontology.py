@@ -7,9 +7,10 @@ professional skills, experiences, and relationships in a semantic graph structur
 # type: ignore
 
 # pylint: disable=no-member,import-error,too-few-public-methods
-from owlready2 import Thing  # type: ignore
-from owlready2 import get_ontology  # type: ignore
-
+from owlready2 import (
+    Thing,  # type: ignore
+    get_ontology,  # type: ignore
+)
 
 # Create a new ontology
 onto = get_ontology("http://www.prager.ws/ontology/skills-hypergraph.owl")

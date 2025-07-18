@@ -1,6 +1,5 @@
 """Legacy REST API routes."""
 
-
 from fastapi import APIRouter, Depends, HTTPException
 from neo4j import AsyncSession
 
@@ -42,22 +41,24 @@ async def search_semantic(
     try:
         query = request.get("query", "")
         k = request.get("k", 10)
-        
+
         # Simple mock implementation for now
         # In a real implementation, this would use embeddings
         result = await session.run(
             "MATCH (n) WHERE n.name CONTAINS $query RETURN n LIMIT $k",
-            {"query": query, "k": k}
+            {"query": query, "k": k},
         )
-        
+
         records = []
         async for record in result:
             node = record["n"]
-            records.append({
-                "entity_id": node.get("id", str(node.get("name", ""))),
-                "score": 0.8  # Mock score
-            })
-        
+            records.append(
+                {
+                    "entity_id": node.get("id", str(node.get("name", ""))),
+                    "score": 0.8,  # Mock score
+                }
+            )
+
         return records
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Search failed") from exc 
+        raise HTTPException(status_code=500, detail="Search failed") from exc

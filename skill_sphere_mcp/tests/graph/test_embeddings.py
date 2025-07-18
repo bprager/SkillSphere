@@ -4,19 +4,14 @@
 
 from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
 import pytest_asyncio
-
 from neo4j import AsyncSession
 
-from skill_sphere_mcp.graph.embeddings import Node2VecEmbeddings
-from skill_sphere_mcp.graph.embeddings import embeddings
-
+from skill_sphere_mcp.graph.embeddings import Node2VecEmbeddings, embeddings
 
 # Create a random number generator for testing
 rng = np.random.default_rng(42)

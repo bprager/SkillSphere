@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +17,8 @@ ERROR_CODE_INVALID_PARAMS = -32602
 ERROR_CODE_INTERNAL = -32603
 
 # HTTP Status Constants
-HTTP_UNPROCESSABLE_ENTITY = 422
-HTTP_BAD_REQUEST = 400
+HTTP_UNPROCESSABLE_ENTITY = status.HTTP_422_UNPROCESSABLE_ENTITY
+HTTP_BAD_REQUEST = status.HTTP_400_BAD_REQUEST
 
 # Error message constants
 ERROR_MSG_PARSE = "Parse error"
@@ -77,11 +77,18 @@ class JSONRPCRequest:
     def __post_init__(self) -> None:
         """Validate request fields."""
         if self.jsonrpc != "2.0":
-            raise HTTPException(status_code=422, detail="Invalid JSON-RPC version")
+            raise HTTPException(
+                status_code=HTTP_UNPROCESSABLE_ENTITY, detail="Invalid JSON-RPC version"
+            )
         if not self.method:
-            raise HTTPException(status_code=422, detail="Method is required")
+            raise HTTPException(
+                status_code=HTTP_UNPROCESSABLE_ENTITY, detail="Method is required"
+            )
         if self.params is not None and not isinstance(self.params, dict):
-            raise HTTPException(status_code=422, detail="Params must be a dictionary")
+            raise HTTPException(
+                status_code=HTTP_UNPROCESSABLE_ENTITY,
+                detail="Params must be a dictionary",
+            )
 
 
 @dataclass
@@ -255,8 +262,16 @@ class JSONRPCHandler:
                 str(e),
                 request.id,
             )
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             logger.error("Error handling request: %s", e)
+            return JSONRPCResponse.create_error(
+                ERROR_CODE_INTERNAL,
+                ERROR_MESSAGES["internal_error"],
+                request.id,
+            )
+        except Exception as e:
+            # Broad catch for unexpected errors in JSON-RPC handler (should not crash app)
+            logger.error("Unexpected error handling request: %s", e)
             return JSONRPCResponse.create_error(
                 ERROR_CODE_INTERNAL,
                 ERROR_MESSAGES["internal_error"],

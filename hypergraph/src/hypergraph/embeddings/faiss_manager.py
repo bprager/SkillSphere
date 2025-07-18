@@ -28,5 +28,5 @@ class FaissManager:
                 else faiss.IndexFlatIP(dim)  # type: ignore[attr-defined]
             )
         # type: ignore[arg-type]
-        cls._index.add(np.array(vectors, dtype="float32"))
+        cls._index.add(x=np.array(vectors, dtype="float32"))
         faiss.write_index(cls._index, str(index_path))  # type: ignore[attr-defined]

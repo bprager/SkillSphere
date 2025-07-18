@@ -2,22 +2,18 @@
 
 from http import HTTPStatus
 from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
 
 import pytest
-
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from skill_sphere_mcp.api.jsonrpc import ERROR_INVALID_PARAMS
-from skill_sphere_mcp.api.jsonrpc import ERROR_METHOD_NOT_FOUND
-from skill_sphere_mcp.api.jsonrpc import JSONRPCRequest
+from skill_sphere_mcp.api.jsonrpc import (
+    ERROR_INVALID_PARAMS,
+    JSONRPCRequest,
+)
 from skill_sphere_mcp.api.mcp.routes import get_db_session
 from skill_sphere_mcp.app import create_app
 
-from .constants import HTTP_OK
-from .constants import HTTP_UNPROCESSABLE_ENTITY
+from .constants import HTTP_OK, HTTP_UNPROCESSABLE_ENTITY
 
 
 @pytest.fixture
@@ -29,51 +25,40 @@ def mock_db_session():
     def run_side_effect(*args, **kwargs):
         query = args[0] if args else ""
         params = args[1] if len(args) > 1 else kwargs
-        # Normalize query string to ignore whitespace/newlines
         norm_query = " ".join(query.split())
+        mock_result = None
 
-        # For handle_get_entity (MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1)
-        if "MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1" in norm_query:
-            # Simulate not found for 'nonexistent'
+        if (
+            "MATCH (n) WHERE n.id = $entity_id OR n.name = $entity_id RETURN n LIMIT 1"
+            in norm_query
+        ):
             if params and (params.get("entity_id") == "nonexistent"):
                 mock_result = AsyncMock()
                 mock_result.single = AsyncMock(return_value=None)
-                return mock_result
-            # Otherwise, return a dummy entity
-            mock_result = AsyncMock()
-            mock_result.single = AsyncMock(
-                return_value={
-                    "n": {"id": "someid", "name": "Some Entity", "type": "Skill"}
-                }
-            )
-            return mock_result
+            else:
+                mock_result = AsyncMock()
+                mock_result.single = AsyncMock(
+                    return_value={
+                        "n": {"id": "someid", "name": "Some Entity", "type": "Skill"}
+                    }
+                )
 
-        # For get_entity_by_id (MATCH (n) WHERE n.id = $entity_id ...)
         elif (
             "MATCH (n) WHERE n.id = $entity_id RETURN n, [(n)-[r]->(m) | {type: type(r), target: m.id}] as relationships"
             in norm_query
         ):
-            # Simulate not found for 'nonexistent'
             if params and (params.get("entity_id") == "nonexistent"):
                 mock_result = AsyncMock()
                 mock_result.single = AsyncMock(return_value=None)
-                return mock_result
-            # Otherwise, return a dummy entity with relationships
-            mock_result = AsyncMock()
-            mock_result.single = AsyncMock(
-                return_value={
-                    "n": {"id": "someid", "name": "Some Entity", "type": "Skill"},
-                    "relationships": [
-                        {
-                            "type": "RELATES_TO",
-                            "target": "otherid"
-                        }
-                    ]
-                }
-            )
-            return mock_result
+            else:
+                mock_result = AsyncMock()
+                mock_result.single = AsyncMock(
+                    return_value={
+                        "n": {"id": "someid", "name": "Some Entity", "type": "Skill"},
+                        "relationships": [{"type": "RELATES_TO", "target": "otherid"}],
+                    }
+                )
 
-        # For match_role (MATCH (p:Person))
         elif "MATCH (p:Person)" in norm_query and "WHERE ALL(skill IN" in norm_query:
             mock_result = AsyncMock()
             mock_result.all = AsyncMock(
@@ -88,9 +73,7 @@ def mock_db_session():
                     }
                 ]
             )
-            return mock_result
 
-        # For match_role (MATCH (p:Person)) - simpler version
         elif "MATCH (p:Person)" in norm_query:
             mock_result = AsyncMock()
             mock_result.all = AsyncMock(
@@ -105,9 +88,7 @@ def mock_db_session():
                     }
                 ]
             )
-            return mock_result
 
-        # For explain_match (MATCH (s:Skill))
         elif "MATCH (s:Skill" in norm_query:
             mock_result = AsyncMock()
             mock_result.single = AsyncMock(
@@ -129,58 +110,58 @@ def mock_db_session():
                     ],
                 }
             )
-            return mock_result
 
-        # For graph_search (MATCH (n))
         elif "MATCH (n)" in norm_query:
+
             class AsyncIteratorMock:
                 def __init__(self, items):
                     self.items = items
                     self.index = 0
-                
+
                 def __aiter__(self):
                     return self
-                
+
                 async def __anext__(self):
                     if self.index >= len(self.items):
                         raise StopAsyncIteration
                     item = self.items[self.index]
                     self.index += 1
                     return item
-            
-            mock_result = AsyncIteratorMock([
-                {
-                    "n": {
-                        "id": "1",
-                        "name": "Python",
-                        "type": "Skill",
-                        "description": "Python programming language",
-                        "labels": ["Skill"],
-                        "properties": {
-                            "name": "Python",
-                            "description": "Python programming language",
-                        },
-                    }
-                },
-                {
-                    "n": {
-                        "id": "2",
-                        "name": "FastAPI",
-                        "type": "Skill",
-                        "description": "FastAPI web framework",
-                        "labels": ["Skill"],
-                        "properties": {
-                            "name": "FastAPI",
-                            "description": "FastAPI web framework",
-                        },
-                    }
-                },
-            ])
-            return mock_result
 
-        # Default case
-        mock_result = AsyncMock()
-        mock_result.all = AsyncMock(return_value=[])
+            mock_result = AsyncIteratorMock(
+                [
+                    {
+                        "n": {
+                            "id": "1",
+                            "name": "Python",
+                            "type": "Skill",
+                            "description": "Python programming language",
+                            "labels": ["Skill"],
+                            "properties": {
+                                "name": "Python",
+                                "description": "Python programming language",
+                            },
+                        }
+                    },
+                    {
+                        "n": {
+                            "id": "2",
+                            "name": "FastAPI",
+                            "type": "Skill",
+                            "description": "FastAPI web framework",
+                            "labels": ["Skill"],
+                            "properties": {
+                                "name": "FastAPI",
+                                "description": "FastAPI web framework",
+                            },
+                        }
+                    },
+                ]
+            )
+
+        if mock_result is None:
+            mock_result = AsyncMock()
+            mock_result.all = AsyncMock(return_value=[])
         return mock_result
 
     session.run.side_effect = run_side_effect
@@ -208,7 +189,8 @@ async def test_health_check(client: TestClient) -> None:
 async def test_get_entity_not_found(client: TestClient) -> None:
     """Test getting a non-existent entity."""
     response = client.get("/mcp/entities/nonexistent")
-    assert response.status_code == 404
+    expected_status_code = 404
+    assert response.status_code == expected_status_code
     assert "Entity not found" in response.json()["detail"]
 
 
@@ -216,7 +198,8 @@ async def test_get_entity_not_found(client: TestClient) -> None:
 async def test_get_entity_invalid_id(client: TestClient) -> None:
     """Test getting an entity with invalid ID."""
     response = client.get("/mcp/entities/!@#")
-    assert response.status_code == 422
+    expected_status_code = 422
+    assert response.status_code == expected_status_code
     assert "Invalid entity ID" in response.json()["detail"]
 
 
@@ -224,7 +207,8 @@ async def test_get_entity_invalid_id(client: TestClient) -> None:
 async def test_get_entity_success(client: TestClient) -> None:
     """Test getting an entity successfully."""
     response = client.get("/mcp/entities/someid")
-    assert response.status_code == 200
+    expected_status_code = 200
+    assert response.status_code == expected_status_code
     data = response.json()
     assert data["id"] == "someid"
     assert data["name"] == "Some Entity"
@@ -278,7 +262,8 @@ async def test_get_resource_invalid(client: TestClient) -> None:
 async def test_tool_dispatch_missing_name(client: TestClient) -> None:
     """Test tool dispatch with missing tool name."""
     response = client.post("/mcp/rpc/tools/dispatch", json={})
-    assert response.status_code == 422
+    expected_status_code = 422
+    assert response.status_code == expected_status_code
     assert response.json()["detail"] == "Tool name is required"
 
 
@@ -306,7 +291,8 @@ async def test_mcp_tool_dispatch_success(client: TestClient) -> None:
             },
         },
     )
-    assert response.status_code == 200
+    expected_status_code = 200
+    assert response.status_code == expected_status_code
     data = response.json()
     assert "result" in data
     assert "data" in data
@@ -322,7 +308,8 @@ async def test_mcp_tool_dispatch_invalid_params(client: TestClient) -> None:
             "parameters": {},
         },
     )
-    assert response.status_code == 422
+    expected_status_code = 422
+    assert response.status_code == expected_status_code
     assert "Required skills are missing" in response.json()["detail"]
 
 
@@ -359,7 +346,10 @@ async def test_mcp_jsonrpc_search_missing_query(client: TestClient) -> None:
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
     assert data["id"] == 1
-    assert data["error"] == {"code": ERROR_INVALID_PARAMS["code"], "message": "Query is required"}
+    assert data["error"] == {
+        "code": ERROR_INVALID_PARAMS["code"],
+        "message": "Query is required",
+    }
 
 
 @pytest.mark.asyncio
@@ -398,7 +388,8 @@ async def test_mcp_jsonrpc_tool_missing_name(client: TestClient) -> None:
         id=1,
     )
     response = client.post("/mcp/rpc", json=request.__dict__)
-    assert response.status_code == 200
+    expected_status_code = 200
+    assert response.status_code == expected_status_code
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
@@ -419,7 +410,8 @@ async def test_mcp_jsonrpc_tool_unknown(client: TestClient) -> None:
         id=1,
     )
     response = client.post("/mcp/rpc", json=request.__dict__)
-    assert response.status_code == HTTPStatus.OK
+    expected_status_code = 200
+    assert response.status_code == expected_status_code
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data
@@ -438,7 +430,8 @@ async def test_mcp_jsonrpc_invalid_method(client: TestClient) -> None:
         id=1,
     )
     response = client.post("/mcp/rpc", json=request.__dict__)
-    assert response.status_code == 200
+    expected_status_code = 200
+    assert response.status_code == expected_status_code
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert "error" in data

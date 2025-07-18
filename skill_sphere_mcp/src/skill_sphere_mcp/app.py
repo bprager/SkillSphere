@@ -1,5 +1,6 @@
 """MCP Server - FastAPI application setup and configuration."""
 
+import importlib.resources
 import logging
 import os
 from collections.abc import AsyncGenerator
@@ -65,10 +66,15 @@ async def lifespan(_fastapi_app: FastAPI) -> AsyncGenerator[None, None]:
     if settings.enable_telemetry:
         try:
             provider = trace.get_tracer_provider()
-            if hasattr(provider, 'force_flush'):
-                provider.force_flush()
+            # Flush all span processors if possible
+            if hasattr(provider, "_active_span_processors"):
+                for processor in getattr(provider, "_active_span_processors", []):
+                    if hasattr(processor, "force_flush"):
+                        processor.force_flush()
             logger.info("OpenTelemetry cleanup completed")
+        # pylint: disable-next=W0718
         except Exception as exc:
+            # Broad catch for unexpected errors during shutdown (should not crash app)
             logger.error("Shutdown error: %s", exc)
             raise
 
@@ -112,8 +118,13 @@ def create_app() -> FastAPI:
             provider.add_span_processor(span_processor)
             FastAPIInstrumentor.instrument_app(mcp_server_app)
             logger.info("OpenTelemetry instrumentation enabled")
-        except Exception as exc:
+        except (ValueError, ImportError, RuntimeError) as exc:
             logger.error("Startup error: %s", exc)
+            # Do not raise here to allow app creation in tests
+        # pylint: disable-next=W0718
+        except Exception as exc:
+            # Broad catch for unexpected errors during telemetry setup (should not crash app)
+            logger.error("Unexpected startup error: %s", exc)
             # Do not raise here to allow app creation in tests
 
     # Configure CORS
@@ -125,16 +136,33 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Get the static directory path
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    # Get the static directory path (works in both dev and installed package)
+
+    try:
+        static_dir = str(
+            importlib.resources.files("skill_sphere_mcp").joinpath("static")
+        )
+    except (AttributeError, ModuleNotFoundError, FileNotFoundError) as exc:
+        # Fallback for local dev if importlib.resources fails
+        logger.warning("Static dir fallback due to: %s", exc)
+        static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    # pylint: disable-next=W0718
+    except Exception as exc:
+        # Broad catch for unexpected errors resolving static dir (should not crash app)
+        logger.error("Unexpected error resolving static dir: %s", exc)
+        static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 
     # Include API routes first
     if OAUTH_AVAILABLE and get_settings().enable_oauth:
-        mcp_server_app.include_router(api_router, dependencies=[Depends(validate_access_token)])  # /v1 routes with OAuth
+        mcp_server_app.include_router(
+            api_router, dependencies=[Depends(validate_access_token)]
+        )  # /v1 routes with OAuth
     else:
         mcp_server_app.include_router(api_router)  # /v1 routes without OAuth
 
-    mcp_server_app.include_router(rest_router, prefix="/v1", tags=["rest"])  # /v1/healthz endpoint
+    mcp_server_app.include_router(
+        rest_router, prefix="/v1", tags=["rest"]
+    )  # /v1/healthz endpoint
     mcp_server_app.include_router(mcp_router, prefix="/mcp", tags=["mcp"])
     mcp_server_app.include_router(metrics_router)  # /metrics and other API routes
     mcp_server_app.include_router(elicitation_router)  # /elicitation routes
@@ -147,7 +175,9 @@ def create_app() -> FastAPI:
 
     # Mount .well-known for OAuth discovery document
     well_known_dir = os.path.join(static_dir, ".well-known")
-    mcp_server_app.mount("/.well-known", StaticFiles(directory=well_known_dir), name="well-known")
+    mcp_server_app.mount(
+        "/.well-known", StaticFiles(directory=well_known_dir), name="well-known"
+    )
 
     # Add a route for the root path to serve index.html
     @mcp_server_app.get("/")
@@ -158,24 +188,21 @@ def create_app() -> FastAPI:
     # Add direct tool endpoints for testing
     @mcp_server_app.post("/match_role", tags=["tools"])
     async def match_role_root(
-        request: dict,
-        session: AsyncSession = Depends(get_db_session)
+        request: dict, session: AsyncSession = Depends(get_db_session)
     ) -> dict[str, Any]:
         """Match role endpoint at root level."""
         return await match_role_direct_endpoint(request, session)
 
     @mcp_server_app.post("/explain_match", tags=["tools"])
     async def explain_match_root(
-        request: dict,
-        session: AsyncSession = Depends(get_db_session)
+        request: dict, session: AsyncSession = Depends(get_db_session)
     ) -> dict[str, Any]:
         """Explain match endpoint at root level."""
         return await explain_match_endpoint(request, session)
 
     @mcp_server_app.post("/graph_search", tags=["tools"])
     async def graph_search_root(
-        request: dict,
-        session: AsyncSession = Depends(get_db_session)
+        request: dict, session: AsyncSession = Depends(get_db_session)
     ) -> dict[str, Any]:
         """Graph search endpoint at root level."""
         return await graph_search_endpoint(request, session)

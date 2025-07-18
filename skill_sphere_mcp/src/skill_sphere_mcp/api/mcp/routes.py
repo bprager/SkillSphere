@@ -45,8 +45,7 @@ async def search_endpoint(
     try:
         result = await handle_search(session, request.query, request.limit)
         return SearchResponse(
-            results=result.get("results", []),
-            total=result.get("total", 0)
+            results=result.get("results", []), total=result.get("total", 0)
         )
     except Exception as e:
         logger.error("Search error: %s", e)
@@ -59,7 +58,9 @@ async def tool_dispatch_endpoint(
 ) -> ToolDispatchResponse:
     """Tool dispatch endpoint for executing tools."""
     try:
-        result = await handle_tool_dispatch(session, request.tool_name, request.parameters or {})
+        result = await handle_tool_dispatch(
+            session, request.tool_name, request.parameters or {}
+        )
         return create_successful_tool_response(result)
     except Exception as e:
         logger.error("Tool dispatch error: %s", e)
@@ -78,12 +79,11 @@ async def rpc_tool_dispatch_endpoint(
             raise HTTPException(status_code=422, detail="Tool name is required")
 
         parameters = request.get("parameters", {})
-        result = await dispatch_tool(tool_name, parameters, session, structured_output=False)
+        result = await dispatch_tool(
+            tool_name, parameters, session, structured_output=False
+        )
 
-        return {
-            "result": "success",
-            "data": result
-        }
+        return {"result": "success", "data": result}
     except HTTPException:
         raise
     except Exception as e:
@@ -102,7 +102,39 @@ async def get_entity_endpoint(
             raise HTTPException(status_code=422, detail="Invalid entity ID")
 
         # Check for invalid characters
-        if any(char in entity_id for char in ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=', '[', ']', '{', '}', '|', '\\', ':', ';', '"', "'", '<', '>', ',', '.', '?', '/']):
+        if any(
+            char in entity_id
+            for char in [
+                "!",
+                "@",
+                "#",
+                "$",
+                "%",
+                "^",
+                "&",
+                "*",
+                "(",
+                ")",
+                "+",
+                "=",
+                "[",
+                "]",
+                "{",
+                "}",
+                "|",
+                "\\",
+                ":",
+                ";",
+                '"',
+                "'",
+                "<",
+                ">",
+                ",",
+                ".",
+                "?",
+                "/",
+            ]
+        ):
             raise HTTPException(status_code=422, detail="Invalid entity ID")
 
         result = await handle_get_entity(session, entity_id)
@@ -112,7 +144,7 @@ async def get_entity_endpoint(
             type=result.get("type", ""),
             description=result.get("description", ""),
             properties=result.get("properties", {}),
-            relationships=result.get("relationships", [])
+            relationships=result.get("relationships", []),
         )
     except HTTPException:
         raise
@@ -126,7 +158,7 @@ async def get_entity_endpoint(
 
 @router.get("/resources", response_model=list[ResourceResponse])
 async def list_resources_endpoint(
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ) -> list[ResourceResponse]:
     """List resources endpoint."""
     try:
@@ -136,7 +168,7 @@ async def list_resources_endpoint(
                 type="collection",
                 description=f"{resource} collection",
                 properties=[],
-                relationships=[]
+                relationships=[],
             )
             for resource in resources
         ]
@@ -166,9 +198,7 @@ async def get_resource_direct_endpoint(resource_name: str) -> dict[str, Any]:
 
 
 @router.get("/resources/{resource_name}", response_model=ResourceResponse)
-async def get_resource_endpoint(
-    resource_name: str
-) -> ResourceResponse:
+async def get_resource_endpoint(resource_name: str) -> ResourceResponse:
     """Get resource by name endpoint."""
     try:
         # This is a placeholder implementation
@@ -177,14 +207,14 @@ async def get_resource_endpoint(
                 type="collection",
                 description="Skills collection",
                 properties=[],
-                relationships=[]
+                relationships=[],
             )
         if resource_name == "profiles":
             return ResourceResponse(
                 type="collection",
                 description="Profiles collection",
                 properties=[],
-                relationships=[]
+                relationships=[],
             )
         raise HTTPException(status_code=404, detail="Resource not found")
     except HTTPException:
@@ -204,12 +234,20 @@ async def rpc_endpoint(
         jsonrpc_request = JSONRPCRequest(**request)
         response = await handle_rpc_request(jsonrpc_request, session)
         return response.__dict__
-    except Exception as e:
+    except (TypeError, ValueError) as e:
         logger.error("RPC error: %s", e)
         return {
             "jsonrpc": "2.0",
             "error": {"code": -32603, "message": "Internal error"},
-            "id": request.get("id")
+            "id": request.get("id"),
+        }
+    except Exception as e:
+        # Broad catch for unexpected errors in RPC endpoint (should not crash app)
+        logger.error("Unexpected RPC error: %s", e)
+        return {
+            "jsonrpc": "2.0",
+            "error": {"code": -32603, "message": "Internal error"},
+            "id": request.get("id"),
         }
 
 

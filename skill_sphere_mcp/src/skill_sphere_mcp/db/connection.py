@@ -22,14 +22,16 @@ class DatabaseConnection:
     async def connect(self) -> None:
         """Establish database connection."""
         try:
-            driver = GraphDatabase.driver(
-                self.uri,
-                auth=(self.user, self.password)
-            )
+            driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
             self._driver = cast(AsyncDriver, driver)
             logger.info("Database connection established")
-        except Exception as e:
+        except (ValueError, TypeError, AuthError, ServiceUnavailable) as e:
             logger.error("Failed to establish database connection: %s", e)
+            raise
+        # pylint: disable-next=W0718
+        except Exception as e:
+            # Broad catch for unexpected errors in establishing connection (should not crash app)
+            logger.error("Unexpected error establishing database connection: %s", e)
             raise
 
     async def verify_connectivity(self) -> bool:
@@ -39,24 +41,33 @@ class DatabaseConnection:
 
         try:
             await self._driver.verify_connectivity()
-            return True
         except ServiceUnavailable:
             logger.error("Database service unavailable")
             return False
         except AuthError:
             logger.error("Database authentication failed")
             return False
-        except Exception as e:
+        except (RuntimeError, ValueError) as e:
             logger.error("Database connectivity check failed: %s", e)
             return False
+        # pylint: disable-next=W0718
+        except Exception as e:
+            # Broad catch for unexpected errors during connectivity check (should not crash app)
+            logger.error("Unexpected error during connectivity check: %s", e)
+            return False
+        return True
 
     async def close(self) -> None:
         """Close database connection."""
         if self._driver is not None:
             try:
                 await self._driver.close()
-            except Exception as e:
+            except (RuntimeError, ValueError) as e:
                 logger.error("Error closing database connection: %s", e)
+            # pylint: disable-next=W0718
+            except Exception as e:
+                # Broad catch for unexpected errors during connection close (should not crash app)
+                logger.error("Unexpected error closing database connection: %s", e)
             finally:
                 self._driver = None
                 logger.info("Database connection closed")
@@ -69,6 +80,11 @@ class DatabaseConnection:
 
         try:
             return self._driver.session()
-        except Exception as e:
+        except (RuntimeError, ValueError, AttributeError) as e:
             logger.error("Failed to create database session: %s", e)
+            return None
+        # pylint: disable-next=W0718
+        except Exception as e:
+            # Broad catch for unexpected errors during session creation (should not crash app)
+            logger.error("Unexpected error creating database session: %s", e)
             return None

@@ -2,14 +2,11 @@
 
 # pylint: disable=import-error, redefined-outer-name, unused-argument, protected-access, wrong-import-position
 import sys
-
 from pathlib import Path
 from typing import Any
 
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest_asyncio
 
@@ -58,7 +55,8 @@ def test_write_triples(graph_writer: Any) -> None:
     ]
     graph_writer.write(triples)
 
-    assert mock_session.execute_write.call_count == 2
+    expected_write_calls = 2
+    assert mock_session.execute_write.call_count == expected_write_calls
 
 
 def test_write_invalid_triple(graph_writer: Any) -> None:
@@ -83,7 +81,8 @@ def test_run_node2vec(graph_writer: Any) -> None:
     graph_writer.run_node2vec(dim=128, walks=10, walk_length=80)
 
     # Verify the three Neo4j operations were called
-    assert mock_session.run.call_count == 3
+    expected_run_calls = 3
+    assert mock_session.run.call_count == expected_run_calls
 
     # Check graph projection
     project_call = mock_session.run.call_args_list[0][0][0]

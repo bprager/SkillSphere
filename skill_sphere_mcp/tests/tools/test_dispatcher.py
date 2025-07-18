@@ -1,24 +1,20 @@
 """Tests for tool dispatcher."""
 
-from unittest.mock import AsyncMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from neo4j import AsyncSession
-from starlette.status import HTTP_400_BAD_REQUEST
-from starlette.status import HTTP_404_NOT_FOUND
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from skill_sphere_mcp.tools.dispatcher import _validate_explain_match_params
-from skill_sphere_mcp.tools.dispatcher import _validate_generate_cv_params
-from skill_sphere_mcp.tools.dispatcher import _validate_graph_search_params
-from skill_sphere_mcp.tools.dispatcher import _validate_match_role_params
-from skill_sphere_mcp.tools.dispatcher import dispatch_tool
-
+from skill_sphere_mcp.tools.dispatcher import (
+    _validate_explain_match_params,
+    _validate_generate_cv_params,
+    _validate_graph_search_params,
+    _validate_match_role_params,
+    dispatch_tool,
+)
 
 # Test data
 MOCK_SKILLS = ["Python", "FastAPI"]
@@ -86,7 +82,7 @@ def test_validate_generate_cv_params() -> None:
                 "format": "markdown",
             }
         )
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.detail == "Profile ID is required"
 
     with pytest.raises(HTTPException) as exc_info:
@@ -153,7 +149,7 @@ async def test_dispatch_tool_invalid_name(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid tool name."""
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool("invalid.tool", {}, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest_asyncio.fixture
@@ -161,7 +157,7 @@ async def test_dispatch_tool_invalid_params(mock_session: AsyncMock) -> None:
     """Test tool dispatch with invalid parameters."""
     with pytest.raises(HTTPException) as exc_info:
         await dispatch_tool("skill.match_role", {}, mock_session)
-    assert exc_info.value.status_code == 422
+    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest_asyncio.fixture
@@ -179,4 +175,4 @@ async def test_dispatch_tool_handler_error(mock_session: AsyncMock) -> None:
                 },
                 mock_session,
             )
-        assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

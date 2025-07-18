@@ -1,23 +1,25 @@
 """Tests for MCP models."""
 
 import pytest
-
 from pydantic import ValidationError
 
-from skill_sphere_mcp.api.mcp.models import EntityResponse
-from skill_sphere_mcp.api.mcp.models import ResourceResponse
-from skill_sphere_mcp.api.mcp.models import SearchRequest
-from skill_sphere_mcp.api.mcp.models import SearchResponse
-from skill_sphere_mcp.api.mcp.models import ToolDispatchRequest
-from skill_sphere_mcp.api.mcp.models import ToolDispatchResponse
+from skill_sphere_mcp.api.mcp.models import (
+    EntityResponse,
+    ResourceResponse,
+    SearchRequest,
+    SearchResponse,
+    ToolDispatchRequest,
+    ToolDispatchResponse,
+)
 
 
 def test_search_request_validation():
     """Test SearchRequest model validation."""
     # Valid request
-    request = SearchRequest(query="Python", limit=10)
+    test_limit = 10
+    request = SearchRequest(query="Python", limit=test_limit)
     assert request.query == "Python"
-    assert request.limit == 10
+    assert request.limit == test_limit
 
     # Invalid query
     with pytest.raises(ValidationError) as exc_info:
@@ -30,17 +32,15 @@ def test_search_request_validation():
     assert "greater than 0" in str(exc_info.value)
 
     # Default limit
+    default_limit = 20
     request = SearchRequest(query="Python")
-    assert request.limit == 20  # Default value
+    assert request.limit == default_limit  # Default value
 
 
 def test_tool_dispatch_request_validation():
     """Test ToolDispatchRequest model validation."""
     # Valid request
-    request = ToolDispatchRequest(
-        tool_name="test.tool",
-        parameters={"key": "value"}
-    )
+    request = ToolDispatchRequest(tool_name="test.tool", parameters={"key": "value"})
     assert request.tool_name == "test.tool"
     assert request.parameters == {"key": "value"}
 
@@ -65,11 +65,8 @@ def test_entity_response_validation():
         description="Test description",
         properties={"key": "value"},
         relationships=[
-            {
-                "type": "RELATES_TO",
-                "target": {"id": "2", "name": "Related Entity"}
-            }
-        ]
+            {"type": "RELATES_TO", "target": {"id": "2", "name": "Related Entity"}}
+        ],
     )
     assert response.id == "1"
     assert response.name == "Test Entity"
@@ -92,7 +89,7 @@ def test_resource_response_validation():
         type="nodes",
         description="Graph nodes",
         properties=["id", "name", "type"],
-        relationships=["RELATES_TO", "BELONGS_TO"]
+        relationships=["RELATES_TO", "BELONGS_TO"],
     )
     assert response.type == "nodes"
     assert response.description == "Graph nodes"
@@ -110,21 +107,17 @@ def test_search_response_validation():
     # Valid response
     response = SearchResponse(
         results=[
-            {
-                "node": {
-                    "id": "1",
-                    "name": "Python",
-                    "type": "Skill"
-                },
-                "score": 0.95
-            }
+            {"node": {"id": "1", "name": "Python", "type": "Skill"}, "score": 0.95}
         ],
-        total=1
+        total=1,
     )
     assert len(response.results) == 1
     assert response.total == 1
     assert response.results[0]["node"]["name"] == "Python"
-    assert response.results[0]["score"] == 0.95
+    expected_score = 0.95
+    import pytest
+
+    assert response.results[0]["score"] == pytest.approx(expected_score)
 
     # Empty results
     response = SearchResponse(results=[], total=0)
@@ -138,7 +131,7 @@ def test_tool_dispatch_response_validation():
     response = ToolDispatchResponse(
         result="success",
         data={"key": "value"},
-        message="Operation completed successfully"
+        message="Operation completed successfully",
     )
     assert response.result == "success"
     assert response.data == {"key": "value"}
@@ -148,8 +141,8 @@ def test_tool_dispatch_response_validation():
     response = ToolDispatchResponse(
         result="error",
         data={"error": "Something went wrong"},
-        message="Operation failed"
+        message="Operation failed",
     )
     assert response.result == "error"
     assert "error" in response.data
-    assert response.message == "Operation failed" 
+    assert response.message == "Operation failed"

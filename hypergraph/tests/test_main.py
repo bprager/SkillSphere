@@ -1,17 +1,14 @@
 """Tests for the main module."""
 
 import sys
-
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 # pylint: disable=import-error
 from hypergraph.__main__ import main
-
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -247,10 +244,11 @@ def test_readme_files_are_skipped(
 
     # Patch langchain to prevent version metadata access
     with patch("langchain.__init__", new=MagicMock()):
+        from langchain_ollama import OllamaEmbeddings
+
         from hypergraph.db.graph import GraphWriter
         from hypergraph.db.registry import Registry
         from hypergraph.llm.triples import TripleExtractor
-        from langchain_ollama import OllamaEmbeddings
 
         # Mock all dependencies
         mock_registry = MagicMock(spec=Registry)
