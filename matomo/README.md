@@ -234,14 +234,65 @@ docker-compose -f docker-compose.matomo.yml restart matomo
 
 ### Updates
 
-1. **Update Docker images**:
+#### Upgrade Process (e.g. from 5.3.2 to 5.4.0)
+
+To upgrade Matomo to a new version:
+
+1. **Edit `docker-compose.matomo.yml`** to update the Matomo image:
+
+   ```yaml
+   services:
+     matomo:
+       image: matomo:5.4.0
+       ...
+    ```
+
+2. **Pull the new image**:
 
    ```bash
-   docker-compose -f docker-compose.matomo.yml pull
-   docker-compose -f docker-compose.matomo.yml up -d
+   docker pull matomo:5.4.0
    ```
 
-2. **Run Matomo updates**: Access the admin interface for automatic updates
+3. **Stop the running containers**:
+
+   ```bash
+   docker-compose -f docker-compose.matomo.yml --env-file ~/Projects/SkillSphere/skill_sphere_mcp/.env down
+   ```
+
+4. **Restart with the new version**:
+
+   ```bash
+   docker-compose -f docker-compose.matomo.yml --env-file ~/Projects/SkillSphere/skill_sphere_mcp/.env up -d
+   ```
+
+5. **Verify the new version** inside the container:
+
+   ```bash
+   docker inspect matomo_matomo_1 | grep MATOMO_VERSION
+   ```
+
+   ✅ Expected output:
+
+   ```bash
+   "MATOMO_VERSION=5.4.0"
+   ```
+
+6. **Access Matomo UI** at `https://homeip.prager.ws/matomo/` and verify successful upgrade and functionality.
+
+7. *(Optional)* Remove the old image to save space:
+
+   ```bash
+   docker image rm matomo:5.3.2
+   ```
+
+#### Quick Pull and Restart
+
+If using a `latest` or floating tag:
+
+```bash
+docker-compose -f docker-compose.matomo.yml pull
+docker-compose -f docker-compose.matomo.yml up -d
+```
 
 ## Troubleshooting
 
