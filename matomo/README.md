@@ -26,6 +26,7 @@ Internet → nginx (fenrir) → Docker Container (odin:8080) → Matomo
 matomo/
 ├── README.md                    # This documentation
 ├── docker-compose.matomo.yml    # Docker services definition
+├── .env.example                 # Example environment variables
 ├── matomo.config.ini           # Matomo configuration file
 └── bak/
     └── matomo.config.ini       # Configuration backup
@@ -86,24 +87,31 @@ collation = "utf8mb4_0900_ai_ci"
 
 ### Deployment
 
-1. **Start the containers**:
+1. **Create your local environment file**:
 
    ```bash
    cd /home/bernd/Projects/SkillSphere/matomo
-   docker-compose -f docker-compose.matomo.yml up -d
+   cp .env.example .env
+   # Edit .env and set secure values
    ```
 
-2. **Verify container status**:
+2. **Start the containers**:
 
    ```bash
-   docker-compose -f docker-compose.matomo.yml ps
+   docker compose -f docker-compose.matomo.yml up -d
    ```
 
-3. **Check logs if needed**:
+3. **Verify container status**:
 
    ```bash
-   docker-compose -f docker-compose.matomo.yml logs matomo
-   docker-compose -f docker-compose.matomo.yml logs db
+   docker compose -f docker-compose.matomo.yml ps
+   ```
+
+4. **Check logs if needed**:
+
+   ```bash
+   docker compose -f docker-compose.matomo.yml logs matomo
+   docker compose -f docker-compose.matomo.yml logs db
    ```
 
 ### Initial Setup
@@ -169,20 +177,20 @@ To update existing visits with enhanced geolocation data:
 
 ```bash
 # Re-attribute visits for a specific date range
-docker-compose -f docker-compose.matomo.yml exec matomo php /var/www/html/console usercountry:attribute 2025-07-01,2025-07-03 --provider=geoip2php
+docker compose -f docker-compose.matomo.yml exec matomo php /var/www/html/console usercountry:attribute 2025-07-01,2025-07-03 --provider=geoip2php
 
 # Check provider status
-docker-compose -f docker-compose.matomo.yml exec matomo php /var/www/html/console usercountry:attribute --help
+docker compose -f docker-compose.matomo.yml exec matomo php /var/www/html/console usercountry:attribute --help
 ```
 
 #### Verify GeoIP Functionality
 
 ```bash
 # Check database availability
-docker-compose -f docker-compose.matomo.yml exec matomo ls -la /var/lib/GeoIP/
+docker compose -f docker-compose.matomo.yml exec matomo ls -la /var/lib/GeoIP/
 
 # Test location data
-docker-compose -f docker-compose.matomo.yml exec db mysql -u matomo -pmatomo matomo -e "SELECT idvisit, location_country, location_region, location_city, location_latitude, location_longitude FROM matomo_log_visit WHERE location_latitude IS NOT NULL LIMIT 5;"
+docker compose -f docker-compose.matomo.yml exec db mysql -u matomo -pmatomo matomo -e "SELECT idvisit, location_country, location_region, location_city, location_latitude, location_longitude FROM matomo_log_visit WHERE location_latitude IS NOT NULL LIMIT 5;"
 ```
 
 #### Database Updates
@@ -191,18 +199,7 @@ MaxMind databases are updated on the host system. After updates, restart Matomo:
 
 ```bash
 # Restart to pick up database changes
-docker-compose -f docker-compose.matomo.yml restart matomo
-```
-
-### GeoIP Maintenance
-
-#### Host Database Updates
-
-MaxMind databases are updated on the host system. After updates, restart Matomo:
-
-```bash
-# Restart to pick up database changes
-docker-compose -f docker-compose.matomo.yml restart matomo
+docker compose -f docker-compose.matomo.yml restart matomo
 ```
 
 ## General Maintenance
@@ -218,13 +215,13 @@ docker-compose -f docker-compose.matomo.yml restart matomo
 2. **Restart containers to apply changes**:
 
    ```bash
-   docker-compose -f docker-compose.matomo.yml restart
+   docker compose -f docker-compose.matomo.yml restart
    ```
 
 3. **Verify config is applied**:
 
    ```bash
-   docker exec matomo_matomo_1 cat /var/www/html/config/config.ini.php
+   docker compose -f docker-compose.matomo.yml exec matomo cat /var/www/html/config/config.ini.php
    ```
 
 ### Backup
@@ -234,7 +231,7 @@ docker-compose -f docker-compose.matomo.yml restart matomo
 
 ### Updates
 
-#### Upgrade Process (e.g. from 5.3.2 to 5.4.0)
+#### Upgrade Process (e.g. from 5.6.2 to 5.7.1)
 
 To upgrade Matomo to a new version:
 
@@ -243,38 +240,38 @@ To upgrade Matomo to a new version:
    ```yaml
    services:
      matomo:
-       image: matomo:5.4.0
+       image: matomo:5.7.1
        ...
     ```
 
 2. **Pull the new image**:
 
    ```bash
-   docker pull matomo:5.4.0
+   docker compose -f docker-compose.matomo.yml pull matomo
    ```
 
-3. **Stop the running containers**:
+3. **Recreate the Matomo container**:
 
    ```bash
-   docker-compose -f docker-compose.matomo.yml --env-file ~/Projects/SkillSphere/skill_sphere_mcp/.env down
+   docker compose -f docker-compose.matomo.yml up -d matomo
    ```
 
-4. **Restart with the new version**:
+4. **Run the database upgrade as `www-data`**:
 
    ```bash
-   docker-compose -f docker-compose.matomo.yml --env-file ~/Projects/SkillSphere/skill_sphere_mcp/.env up -d
+   docker compose -f docker-compose.matomo.yml exec --user www-data matomo php /var/www/html/console core:update --yes
    ```
 
 5. **Verify the new version** inside the container:
 
    ```bash
-   docker inspect matomo_matomo_1 | grep MATOMO_VERSION
+   docker compose -f docker-compose.matomo.yml exec matomo php /var/www/html/console core:version
    ```
 
    ✅ Expected output:
 
    ```bash
-   "MATOMO_VERSION=5.4.0"
+   5.7.1
    ```
 
 6. **Access Matomo UI** at `https://homeip.prager.ws/matomo/` and verify successful upgrade and functionality.
@@ -282,16 +279,35 @@ To upgrade Matomo to a new version:
 7. *(Optional)* Remove the old image to save space:
 
    ```bash
-   docker image rm matomo:5.3.2
+   docker image rm matomo:5.6.2
    ```
+
+#### Durable fix for `config/config.ini.php` writability
+
+The compose service now runs a startup guard that enforces:
+
+- owner `www-data:www-data` on `/var/www/html/config/config.ini.php`
+- mode `664` on the same file
+
+This prevents upgrade failures like:
+
+```text
+The Matomo configuration file (config/config.ini.php) is not writable
+```
+
+If needed, you can verify it manually:
+
+```bash
+docker compose -f docker-compose.matomo.yml exec --user www-data matomo php -r 'echo is_writable("/var/www/html/config/config.ini.php") ? "writable\n" : "not-writable\n";'
+```
 
 #### Quick Pull and Restart
 
 If using a `latest` or floating tag:
 
 ```bash
-docker-compose -f docker-compose.matomo.yml pull
-docker-compose -f docker-compose.matomo.yml up -d
+docker compose -f docker-compose.matomo.yml pull
+docker compose -f docker-compose.matomo.yml up -d
 ```
 
 ## Troubleshooting
@@ -307,7 +323,7 @@ docker-compose -f docker-compose.matomo.yml up -d
 
 3. **Container connectivity**:
    - Check Docker network configuration
-   - Verify port mappings in docker-compose.yml
+   - Verify port mappings in `docker-compose.matomo.yml`
 
 4. **Cache directory permissions error**:
    - **Error**: "Unable to write in the cache directory (/var/www/html/tmp/templates_c/XX)"
@@ -316,29 +332,30 @@ docker-compose -f docker-compose.matomo.yml up -d
 
      ```bash
      # Fix ownership of the entire templates_c directory
-     docker-compose -f docker-compose.matomo.yml exec matomo chown -R www-data:www-data /var/www/html/tmp/templates_c/
+       docker compose -f docker-compose.matomo.yml exec matomo chown -R www-data:www-data /var/www/html/tmp/templates_c/
 
-     # Ensure proper permissions
-     docker-compose -f docker-compose.matomo.yml exec matomo chmod -R 755 /var/www/html/tmp/templates_c/
+       # Ensure proper permissions
+       docker compose -f docker-compose.matomo.yml exec matomo chmod -R 755 /var/www/html/tmp/templates_c/
+
      ```
 
 ### Useful Commands
 
 ```bash
 # Check container status
-docker-compose -f docker-compose.matomo.yml ps
+docker compose -f docker-compose.matomo.yml ps
 
 # View logs
-docker-compose -f docker-compose.matomo.yml logs -f matomo
+docker compose -f docker-compose.matomo.yml logs -f matomo
 
 # Access container shell
-docker exec -it matomo_matomo_1 bash
+docker compose -f docker-compose.matomo.yml exec matomo bash
 
 # Test proxy headers
 curl -H "Host: homeip.prager.ws" http://localhost:8080/
 
 # Check configuration inside container
-docker exec matomo_matomo_1 cat /var/www/html/config/config.ini.php
+docker compose -f docker-compose.matomo.yml exec matomo cat /var/www/html/config/config.ini.php
 ```
 
 ## Security Considerations
@@ -376,4 +393,4 @@ Configure these features through the Matomo admin interface under Privacy settin
 
 ---
 
-**Last updated**: July 2, 2025
+**Last updated**: February 12, 2026

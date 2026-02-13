@@ -1,9 +1,14 @@
-version: '3.8'
-
 services:
   matomo:
-    image: matomo:5.4.0
+    image: matomo:5.7.1
     restart: unless-stopped
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        chown 33:33 /var/www/html/config/config.ini.php 2>/dev/null || true
+        chmod 664 /var/www/html/config/config.ini.php 2>/dev/null || true
+        exec apache2-foreground
     ports:
       - "8080:80"
     environment:
@@ -15,12 +20,11 @@ services:
       - MATOMO_DATABASE_DBNAME=matomo
     volumes:
       - matomo_data:/var/www/html
-      - ./matomo.config.ini:/var/www/html/config/config.ini.php:ro
+      - ./matomo.config.ini:/var/www/html/config/config.ini.php
       - /var/lib/GeoIP:/var/lib/GeoIP:ro
     depends_on:
       db:
         condition: service_healthy
-
 
   db:
     image: mysql:8.0
